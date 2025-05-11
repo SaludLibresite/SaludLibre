@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "nombre": "Juan Perez",
+    "slug": "juan-perez-cardiologo-1",
+    "especialidad": "Cardiología",
+    "telefono": "1234567890",
+    "email": "juan.perez@gmail.com",
+    "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM"
+  },
+  {
+    "id": 2,
+    "nombre": "Juan Perez",
+    "slug": "juan-perez-cardiologo-2",
+    "especialidad": "Cardiología",
+    "telefono": "1234567890",
+    "email": "juan.perez@gmail.com",
+    "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM"
+  },
+  {
+    "id": 3,
+    "nombre": "Juan Perez",
+    "slug": "juan-perez-cardiologo-3",
+    "especialidad": "Cardiología",
+    "telefono": "1234567890",
+    "email": "juan.perez@gmail.com",
+    "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM"
+  }
+]
