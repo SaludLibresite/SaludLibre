@@ -4,22 +4,22 @@ import { motion } from "framer-motion";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
-  animate: { 
-    opacity: 1, 
+  animate: {
+    opacity: 1,
     y: 0,
     transition: {
       duration: 0.6,
-      ease: [0.6, -0.05, 0.01, 0.99]
-    }
-  }
+      ease: [0.6, -0.05, 0.01, 0.99],
+    },
+  },
 };
 
 const staggerContainer = {
   animate: {
     transition: {
-      staggerChildren: 0.1
-    }
-  }
+      staggerChildren: 0.1,
+    },
+  },
 };
 
 const PointCard = ({ point, index }) => {
@@ -33,13 +33,9 @@ const PointCard = ({ point, index }) => {
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
         {point.icon}
       </div>
-      <dt className="text-lg font-semibold text-gray-900 mb-1">
-        {point.name}
-      </dt>
-      <dd className="text-gray-600 leading-relaxed">
-        {point.description}
-      </dd>
-      <motion.div 
+      <dt className="text-lg font-semibold text-gray-900 mb-1">{point.name}</dt>
+      <dd className="text-gray-600 leading-relaxed">{point.description}</dd>
+      <motion.div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-100 -z-10"
         initial={{ scale: 0.8, opacity: 0 }}
         whileHover={{ scale: 1.5, opacity: 0.5 }}
@@ -71,7 +67,7 @@ export default function InfoSection({
           transition={{
             duration: 8,
             repeat: Infinity,
-            repeatType: "reverse"
+            repeatType: "reverse",
           }}
         />
         <motion.div
@@ -83,27 +79,27 @@ export default function InfoSection({
           transition={{
             duration: 8,
             repeat: Infinity,
-            repeatType: "reverse"
+            repeatType: "reverse",
           }}
         />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <motion.div 
+        <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <motion.h2 
+          <motion.h2
             className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-4"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
             {firstTitle}
           </motion.h2>
-          <motion.p 
+          <motion.p
             className="text-xl text-slate-600 max-w-3xl mx-auto"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -115,7 +111,7 @@ export default function InfoSection({
         </motion.div>
 
         <div className="mx-auto grid max-w-2xl grid-cols-1 gap-y-16 sm:gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
-          <motion.div 
+          <motion.div
             className="lg:ml-auto"
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -123,14 +119,14 @@ export default function InfoSection({
             transition={{ duration: 0.6 }}
           >
             <div className="lg:max-w-lg m-4">
-              <motion.h2 
+              <motion.h2
                 className="font-semibold text-3xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-8"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
                 {title}
               </motion.h2>
-              <motion.dl 
+              <motion.dl
                 variants={staggerContainer}
                 initial="initial"
                 whileInView="animate"
@@ -144,7 +140,7 @@ export default function InfoSection({
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="flex items-start justify-end lg:order-first"
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -173,21 +169,21 @@ export default function InfoSection({
           </motion.div>
         </div>
 
-        <motion.div 
+        <motion.div
           className="mt-20 text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <motion.h2 
+          <motion.h2
             className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
             {lastTitle}
           </motion.h2>
-          <motion.p 
+          <motion.p
             className="text-lg text-slate-600 max-w-3xl mx-auto"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}

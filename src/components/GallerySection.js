@@ -1,77 +1,86 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.1,
-      duration: 0.5,
-      ease: [0.6, -0.05, 0.01, 0.99]
-    }
-  })
-};
-
-const hoverVariants = {
-  hover: {
-    scale: 1.02,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 20
-    }
-  }
-};
-
-const imageVariants = {
-  hover: {
-    scale: 1.1,
-    transition: {
-      duration: 0.4,
-      ease: "easeOut"
-    }
-  }
-};
+import useEmblaCarousel from "embla-carousel-react";
 
 export default function GallerySection({ items }) {
-  // Extend items with additional cards for better visual effect
-  const extendedItems = [
-    ...items,
+  // Define categories for the carousel
+  const categories = [
+    {
+      id: 1,
+      title: "Cardiología",
+      description:
+        "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
+      imageUrl: "/img/doctor-1.jpg",
+    },
+    {
+      id: 2,
+      title: "Neurología",
+      description: "Expertos en el sistema nervioso y trastornos cerebrales.",
+      imageUrl: "/img/doctor-2.jpg",
+    },
     {
       id: 3,
-      title: "Innovación en cirugía robótica",
-      href: "#",
-      description: "Descubre cómo la tecnología robótica está revolucionando los procedimientos quirúrgicos.",
+      title: "Pediatría",
+      description:
+        "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
       imageUrl: "/img/doctor-3.jpg",
-      date: "Mar 14, 2024",
-      datetime: "2024-03-14",
-      author: {
-        name: "Dr. Carlos Rodríguez",
-        imageUrl: "/img/doctor-4.jpg",
-      },
-      category: "Tecnología Médica",
     },
     {
       id: 4,
-      title: "Salud mental en tiempos modernos",
-      href: "#",
-      description: "Estrategias y consejos para mantener una buena salud mental en la era digital.",
-      imageUrl: "/img/doctor-6.jpg",
-      date: "Mar 13, 2024",
-      datetime: "2024-03-13",
-      author: {
-        name: "Dra. Ana Martínez",
-        imageUrl: "/img/doctor-5.jpg",
-      },
-      category: "Salud Mental",
-    }
+      title: "Dermatología",
+      description:
+        "Especialistas en el diagnóstico y tratamiento de afecciones de la piel.",
+      imageUrl: "/img/doctor-4.jpg",
+    },
+    {
+      id: 5,
+      title: "Traumatología",
+      description:
+        "Tratamiento de lesiones y enfermedades del sistema musculoesquelético.",
+      imageUrl: "/img/doctor-5.jpg",
+    },
   ];
 
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    align: "start",
+    skipSnaps: false,
+  });
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollSnaps, setScrollSnaps] = useState([]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    setScrollSnaps(emblaApi.scrollSnapList());
+    emblaApi.on("select", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
+  const scrollTo = useCallback(
+    (index) => emblaApi && emblaApi.scrollTo(index),
+    [emblaApi]
+  );
+
   return (
-    <div className="relative bg-gradient-to-br from-white via-blue-50/30 to-white py-24">
+    <div className="relative py-24">
       {/* Animated background elements */}
       <motion.div
         className="absolute inset-0 overflow-hidden"
@@ -88,154 +97,259 @@ export default function GallerySection({ items }) {
           transition={{
             duration: 8,
             repeat: Infinity,
-            repeatType: "reverse"
+            repeatType: "reverse",
           }}
         />
       </motion.div>
 
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12 px-6 lg:px-8"
         >
-          <motion.h2 
+          <motion.h2
             className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 sm:text-5xl"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            Últimas Noticias y Artículos
+            Nuestras Especialidades
           </motion.h2>
-          <motion.p 
-            className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto"
+          <motion.p
+            className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            Mantente informado sobre los últimos avances en medicina y consejos de salud.
+            Descubre las áreas de especialización médica en las que nuestros
+            profesionales pueden ayudarte a mejorar tu salud y bienestar.
           </motion.p>
         </motion.div>
 
-        <motion.div 
-          className="mx-auto mt-16 grid max-w-2xl auto-rows-fr grid-cols-1 gap-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-2 xl:grid-cols-3"
-          variants={{
-            visible: {
-              transition: {
-                staggerChildren: 0.1
-              }
-            }
-          }}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-        >
-          {extendedItems.map((post, index) => (
-            <motion.article
-              key={post.id}
-              custom={index}
-              variants={cardVariants}
-              whileHover="hover"
-              className="relative isolate flex flex-col justify-end overflow-hidden rounded-2xl bg-gray-900 px-8 pb-8 pt-80 sm:pt-48 lg:pt-80 group"
-            >
-              <motion.div
-                className="absolute inset-0 -z-10"
-                variants={imageVariants}
-              >
-                <Image
-                  alt=""
-                  src={post.imageUrl}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </motion.div>
-              
-              <motion.div 
-                className="absolute inset-0 -z-10 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent opacity-80"
-                whileHover={{ opacity: 0.9 }}
-                transition={{ duration: 0.3 }}
-              />
-              
-              <motion.div 
-                className="absolute inset-0 -z-10 rounded-2xl ring-1 ring-inset ring-white/10"
-                whileHover={{ 
-                  boxShadow: "0 0 30px rgba(59, 130, 246, 0.3)",
-                  transition: { duration: 0.3 }
-                }}
-              />
+        {/* Embla carousel container with gradient overlays */}
+        <div className="relative">
+          {/* Left gradient overlay */}
+          <div className="absolute left-0 top-0 bottom-0 w-[15%] bg-gradient-to-r from-white to-transparent z-10" />
+          {/* Right gradient overlay */}
+          <div className="absolute right-0 top-0 bottom-0 w-[15%] bg-gradient-to-l from-white to-transparent z-10" />
 
-              <div className="flex flex-wrap items-center gap-y-1 overflow-hidden text-sm/6 text-gray-300">
-                <motion.time 
-                  dateTime={post.datetime} 
-                  className="mr-8"
-                  whileHover={{ x: 5 }}
-                  transition={{ type: "spring", stiffness: 400 }}
+          {/* Carousel wrapper */}
+          <div className="overflow-hidden px-6 lg:px-8" ref={emblaRef}>
+            <div className="flex -ml-4 pl-[5%] [&>:nth-child(1)]:ml-24">
+              {categories.map((category) => (
+                <motion.div
+                  key={category.id}
+                  className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.6 }}
                 >
-                  {post.date}
-                </motion.time>
-                <div className="-ml-4 flex items-center gap-x-4">
-                  <svg
-                    viewBox="0 0 2 2"
-                    className="-ml-0.5 size-0.5 flex-none fill-white/50"
+                  <motion.div
+                    className="group relative h-[36rem] bg-white rounded-3xl overflow-hidden transition-all duration-300"
+                    whileHover={{
+                      boxShadow: "0 20px 60px -15px rgba(0,0,0,0.15)",
+                      transition: { duration: 0.3, ease: "easeOut" },
+                    }}
                   >
-                    <circle r={1} cx={1} cy={1} />
-                  </svg>
-                  <motion.div 
-                    className="flex gap-x-2.5 items-center"
-                    whileHover={{ x: 5 }}
-                    transition={{ type: "spring", stiffness: 400 }}
-                  >
-                    <div className="relative size-6 flex-none rounded-full overflow-hidden ring-2 ring-white/20">
+                    {/* Imagen y overlay */}
+                    <div className="absolute inset-0 z-0">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10 transition-opacity duration-300 opacity-60 group-hover:opacity-40" />
                       <Image
-                        alt=""
-                        src={post.author.imageUrl}
+                        src={category.imageUrl}
+                        alt={category.title}
                         fill
-                        className="object-cover"
+                        className="object-cover transition-all duration-700"
+                        sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
+                        priority
                       />
                     </div>
-                    <span className="font-medium">{post.author.name}</span>
+
+                    {/* Contenido */}
+                    <div className="relative h-full z-10 flex flex-col justify-end p-8">
+                      {/* Badge de categoría */}
+                      <div className="bg-amber-50 w-fit px-4 py-2 rounded-full mb-6 shadow-sm">
+                        <span className="text-sm font-medium text-amber-700">
+                          Especialidad médica
+                        </span>
+                      </div>
+
+                      {/* Contenedor del texto principal */}
+                      <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-8 transition-transform duration-300 group-hover:translate-y-[-4px]">
+                        <h3 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
+                          {category.title}
+                        </h3>
+                        <p className="text-gray-600 text-base leading-relaxed mb-8 line-clamp-3">
+                          {category.description}
+                        </p>
+
+                        <motion.a
+                          href={`#${category.title.toLowerCase()}`}
+                          className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium text-sm hover:from-amber-600 hover:to-yellow-600 transition-all duration-300"
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          Ver especialistas
+                          <svg
+                            className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2.5}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </motion.a>
+                      </div>
+                    </div>
                   </motion.div>
-                </div>
-              </div>
+                </motion.div>
+              ))}
 
-              <motion.h3 
-                className="mt-3 text-xl font-semibold leading-6 text-white"
-                whileHover={{ x: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <a href={post.href} className="group">
-                  <span className="absolute inset-0" />
-                  {post.title}
-                </a>
-              </motion.h3>
-
-              <motion.p 
-                className="mt-2 text-sm text-gray-300 line-clamp-2"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-              >
-                {post.description}
-              </motion.p>
-
+              {/* Card "Ver más" */}
               <motion.div
-                className="mt-4 flex items-center gap-2"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
+                className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6 }}
               >
-                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
-                  {post.category}
-                </span>
+                <motion.div
+                  className="group relative h-[36rem] bg-gradient-to-br from-amber-50 to-white rounded-3xl overflow-hidden border-2 border-dashed border-amber-200 transition-all duration-300 hover:border-amber-300"
+                  whileHover={{
+                    boxShadow: "0 20px 60px -15px rgba(0,0,0,0.1)",
+                    transition: { duration: 0.3, ease: "easeOut" },
+                  }}
+                >
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center">
+                    <div className="w-20 h-20 mb-8 rounded-full bg-amber-100 flex items-center justify-center">
+                      <svg
+                        className="w-10 h-10 text-amber-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                      Más especialidades
+                    </h3>
+                    <p className="text-gray-600 text-base leading-relaxed mb-8">
+                      Descubre todas nuestras especialidades médicas y encuentra
+                      el especialista adecuado para ti
+                    </p>
+                    <motion.a
+                      href="/especialidades"
+                      className="inline-flex items-center px-6 py-3 rounded-xl border-2 border-amber-200 text-amber-700 font-medium text-sm hover:bg-amber-50 transition-colors duration-300"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Ver todas
+                      <svg
+                        className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
+                      </svg>
+                    </motion.a>
+                  </div>
+                </motion.div>
               </motion.div>
-            </motion.article>
+
+              {/* Card vacía para scroll */}
+              <motion.div
+                className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0 }}
+              >
+                <div className="h-[36rem] w-full" />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Navigation buttons - Positioned over the gradients */}
+          <div className="absolute inset-y-0 left-0 flex items-center justify-start pl-2 z-20">
+            <motion.button
+              onClick={scrollPrev}
+              className="p-3 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white transition-all"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className="w-5 h-5 text-blue-800"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 19.5L8.25 12l7.5-7.5"
+                />
+              </svg>
+            </motion.button>
+          </div>
+          <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-2 z-20">
+            <motion.button
+              onClick={scrollNext}
+              className="p-3 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white transition-all"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2.5}
+                stroke="currentColor"
+                className="w-5 h-5 text-blue-800"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Dots indicator */}
+        <div className="flex justify-center mt-8 gap-2">
+          {scrollSnaps.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => scrollTo(index)}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                index === selectedIndex
+                  ? "bg-blue-600 w-6"
+                  : "bg-blue-200 hover:bg-blue-300"
+              }`}
+            />
           ))}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

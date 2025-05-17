@@ -6,61 +6,62 @@ import FAQSection from "../components/FAQSection";
 import NavBar from "../components/NavBar";
 import React, { useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import Footer from "../components/Footer";
 
 // Animation variants
 const fadeInUp = {
   initial: { opacity: 0, y: 60 },
-  animate: { 
-    opacity: 1, 
+  animate: {
+    opacity: 1,
     y: 0,
-    transition: { 
+    transition: {
       duration: 0.8,
-      ease: [0.6, -0.05, 0.01, 0.99]
-    }
-  }
+      ease: [0.6, -0.05, 0.01, 0.99],
+    },
+  },
 };
 
 const fadeInLeft = {
   initial: { opacity: 0, x: -60 },
-  animate: { 
-    opacity: 1, 
+  animate: {
+    opacity: 1,
     x: 0,
-    transition: { 
+    transition: {
       duration: 0.8,
-      ease: [0.6, -0.05, 0.01, 0.99]
-    }
-  }
+      ease: [0.6, -0.05, 0.01, 0.99],
+    },
+  },
 };
 
 const fadeInRight = {
   initial: { opacity: 0, x: 60 },
-  animate: { 
-    opacity: 1, 
+  animate: {
+    opacity: 1,
     x: 0,
-    transition: { 
+    transition: {
       duration: 0.8,
-      ease: [0.6, -0.05, 0.01, 0.99]
-    }
-  }
+      ease: [0.6, -0.05, 0.01, 0.99],
+    },
+  },
 };
 
 const scaleUp = {
   initial: { opacity: 0, scale: 0.8 },
-  animate: { 
-    opacity: 1, 
+  animate: {
+    opacity: 1,
     scale: 1,
-    transition: { 
+    transition: {
       duration: 0.8,
-      ease: [0.6, -0.05, 0.01, 0.99]
-    }
-  }
+      ease: [0.6, -0.05, 0.01, 0.99],
+    },
+  },
 };
 
 const staggerContainer = {
   animate: {
     transition: {
       staggerChildren: 0.2,
-      delayChildren: 0.1
+      delayChildren: 0.1,
     },
   },
 };
@@ -77,8 +78,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen overflow-hidden">
-      <motion.div 
+    <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen ">
+      <motion.div
         className="w-full mx-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -105,10 +106,10 @@ export default function Home() {
           initial="initial"
           animate="animate"
           variants={staggerContainer}
-          className="pb-8"
+          className="pb-8 mt-10"
         >
-          <motion.div 
-            variants={fadeInUp} 
+          <motion.div
+            variants={fadeInUp}
             className="px-4 sm:px-6 lg:px-8"
             whileHover={{ scale: 1.01 }}
             transition={{ duration: 0.3 }}
@@ -137,13 +138,12 @@ export default function Home() {
           whileInView="animate"
           viewport={{ once: true, margin: "-100px" }}
           variants={staggerContainer}
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
         >
-          <motion.div 
+          <motion.div
             variants={fadeInLeft}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="mb-20"
+            className="mb-20 max-w-7xl mx-auto px-6"
           >
             <InfoSection
               firstTitle="Nuestro impacto en la salud"
@@ -185,13 +185,13 @@ export default function Home() {
             variants={scaleUp}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="my-20 bg-gradient-to-br from-blue-400 to-blue-900 rounded-3xl shadow-2xl overflow-hidden transform hover:scale-[1.02] transition-all duration-500"
+            className="max-w-7xl mx-auto my-20  overflow-hidden transform hover:scale-[1.02] transition-all duration-500"
             style={{ y }}
           >
             <StatsSection />
           </motion.div>
 
-          <motion.div 
+          <motion.div
             variants={fadeInRight}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -238,49 +238,49 @@ export default function Home() {
             variants={scaleUp}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative mb-20 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-12 sm:p-16 text-center shadow-2xl transform hover:scale-[1.02] transition-all duration-500"
-            whileHover={{ 
+            className="relative max-w-7xl mx-auto mb-20 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-12 sm:p-16 text-center shadow-2xl transform hover:scale-[1.02] transition-all duration-500"
+            whileHover={{
               scale: 1.02,
-              transition: { duration: 0.3 }
+              transition: { duration: 0.3 },
             }}
           >
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-[url('/img/pattern.png')] opacity-10 mix-blend-overlay"
-              animate={{ 
-                backgroundPosition: ['0% 0%', '100% 100%'],
+              animate={{
+                backgroundPosition: ["0% 0%", "100% 100%"],
               }}
-              transition={{ 
+              transition={{
                 duration: 20,
                 repeat: Infinity,
-                repeatType: "reverse"
+                repeatType: "reverse",
               }}
             />
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-blue-800/20"
-              animate={{ 
+              animate={{
                 opacity: [0.2, 0.3, 0.2],
               }}
-              transition={{ 
+              transition={{
                 duration: 4,
                 repeat: Infinity,
-                repeatType: "reverse"
+                repeatType: "reverse",
               }}
             />
-            <motion.div 
+            <motion.div
               className="relative z-10"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
             >
-              <motion.h2 
+              <motion.h2
                 className="text-4xl font-bold mb-6 tracking-tight"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
               >
                 ¿Listo para cuidar tu salud?
               </motion.h2>
-              <motion.p 
+              <motion.p
                 className="text-xl mb-10 text-blue-100 max-w-2xl mx-auto leading-relaxed"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -293,9 +293,9 @@ export default function Home() {
               <motion.button
                 onClick={() => (window.location.href = "/doctores")}
                 className="bg-white text-blue-600 px-10 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600"
-                whileHover={{ 
+                whileHover={{
                   scale: 1.1,
-                  transition: { duration: 0.2 }
+                  transition: { duration: 0.2 },
                 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -304,26 +304,26 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             variants={fadeInUp}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <motion.div 
+            <motion.div
               className="text-center mb-16"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
             >
-              <motion.h2 
+              <motion.h2
                 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-6 tracking-tight"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
               >
                 Preguntas Frecuentes
               </motion.h2>
-              <motion.p 
+              <motion.p
                 className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -334,7 +334,7 @@ export default function Home() {
                 atención.
               </motion.p>
             </motion.div>
-            <motion.div 
+            <motion.div
               className="max-w-4xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -372,6 +372,8 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </motion.div>
+
+        <Footer />
       </motion.div>
     </div>
   );

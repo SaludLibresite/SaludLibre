@@ -1,7 +1,7 @@
-import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import Image from "next/image";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function NavBar({ logo, links, button }) {
   const [open, setOpen] = useState(false);
@@ -15,21 +15,21 @@ export default function NavBar({ logo, links, button }) {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [scrolled]);
 
   const navVariants = {
     hidden: { y: -100, opacity: 0 },
-    visible: { 
-      y: 0, 
+    visible: {
+      y: 0,
       opacity: 1,
       transition: {
         type: "spring",
         stiffness: 100,
-        damping: 20
-      }
-    }
+        damping: 20,
+      },
+    },
   };
 
   const menuVariants = {
@@ -39,8 +39,8 @@ export default function NavBar({ logo, links, button }) {
       transition: {
         type: "spring",
         stiffness: 300,
-        damping: 30
-      }
+        damping: 30,
+      },
     },
     open: {
       opacity: 1,
@@ -48,9 +48,9 @@ export default function NavBar({ logo, links, button }) {
       transition: {
         type: "spring",
         stiffness: 300,
-        damping: 30
-      }
-    }
+        damping: 30,
+      },
+    },
   };
 
   const linkVariants = {
@@ -60,36 +60,36 @@ export default function NavBar({ logo, links, button }) {
       transition: {
         type: "spring",
         stiffness: 400,
-        damping: 10
-      }
-    }
+        damping: 10,
+      },
+    },
   };
 
   return (
-    <motion.nav 
-      className={`w-full sticky top-0 z-40 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-yellow-300/30 backdrop-blur-md shadow-lg' 
-          : 'bg-yellow-400'
+    <motion.nav
+      className={`w-full sticky top-0 transition-all duration-300  z-[90] ${
+        scrolled
+          ? "bg-yellow-400/70 backdrop-blur-md shadow-lg"
+          : "bg-yellow-400"
       }`}
       initial="hidden"
       animate="visible"
       variants={navVariants}
     >
       <div className=" max-w-6xl mx-auto flex items-center justify-between py-4 px-4 md:px-6">
-        <motion.div 
+        <motion.div
           className="flex items-center gap-4"
           whileHover={{ scale: 1.05 }}
           transition={{ type: "spring", stiffness: 400, damping: 10 }}
         >
           {logo && (
             <Link href="/">
-              <Image 
-                src={logo} 
-                alt="Logo" 
-                width={48} 
-                height={48} 
-                className="object-contain cursor-pointer transform hover:rotate-3 transition-transform duration-300" 
+              <Image
+                src={logo}
+                alt="Logo"
+                width={48}
+                height={48}
+                className="object-contain cursor-pointer transform hover:rotate-3 transition-transform duration-300"
               />
             </Link>
           )}
@@ -97,24 +97,25 @@ export default function NavBar({ logo, links, button }) {
 
         {/* Desktop links */}
         <div className="hidden md:flex gap-6 flex-1 justify-center">
-          {links && links.map((link, i) => (
-            <motion.a
-              key={i}
-              href={link.href}
-              className="text-white hover:text-blue-600 font-medium text-base px-3 py-2 rounded-lg relative group"
-              variants={linkVariants}
-              whileHover="hover"
-              whileTap={{ scale: 0.95 }}
-            >
-              {link.label}
-              <motion.span
-                className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
-                initial={{ scaleX: 0 }}
-                whileHover={{ scaleX: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.a>
-          ))}
+          {links &&
+            links.map((link, i) => (
+              <motion.a
+                key={i}
+                href={link.href}
+                className="text-white hover:text-blue-600 font-medium text-base px-3 py-2 rounded-lg relative group"
+                variants={linkVariants}
+                whileHover="hover"
+                whileTap={{ scale: 0.95 }}
+              >
+                {link.label}
+                <motion.span
+                  className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
+                  initial={{ scaleX: 0 }}
+                  whileHover={{ scaleX: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.a>
+            ))}
         </div>
 
         <div className="flex items-center gap-4">
@@ -122,9 +123,9 @@ export default function NavBar({ logo, links, button }) {
             <motion.button
               className={button.className}
               onClick={button.onClick}
-              whileHover={{ 
+              whileHover={{
                 scale: 1.05,
-                boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)"
+                boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
               }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
@@ -181,12 +182,12 @@ export default function NavBar({ logo, links, button }) {
                 <div className="flex items-center justify-between mb-8">
                   {logo && (
                     <Link href="/">
-                      <Image 
-                        src={logo} 
-                        alt="Logo" 
-                        width={40} 
-                        height={40} 
-                        className="object-contain cursor-pointer" 
+                      <Image
+                        src={logo}
+                        alt="Logo"
+                        width={40}
+                        height={40}
+                        className="object-contain cursor-pointer"
                       />
                     </Link>
                   )}
@@ -197,35 +198,50 @@ export default function NavBar({ logo, links, button }) {
                     className="p-2 rounded-full hover:bg-gray-100"
                     aria-label="Cerrar menú"
                   >
-                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <svg
+                      width="24"
+                      height="24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
                       <path d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </motion.button>
                 </div>
 
                 <div className="flex flex-col gap-4 flex-1">
-                  {links && links.map((link, i) => (
-                    <motion.a
-                      key={i}
-                      href={link.href}
-                      className="text-slate-700 hover:text-blue-600 font-medium text-lg px-4 py-3 rounded-xl hover:bg-blue-50 transition-colors"
-                      onClick={() => setOpen(false)}
-                      whileHover={{ x: 10 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    >
-                      {link.label}
-                    </motion.a>
-                  ))}
+                  {links &&
+                    links.map((link, i) => (
+                      <motion.a
+                        key={i}
+                        href={link.href}
+                        className="text-slate-700 hover:text-blue-600 font-medium text-lg px-4 py-3 rounded-xl hover:bg-blue-50 transition-colors"
+                        onClick={() => setOpen(false)}
+                        whileHover={{ x: 10 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 10,
+                        }}
+                      >
+                        {link.label}
+                      </motion.a>
+                    ))}
                 </div>
 
                 {button && (
                   <motion.button
                     className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg mt-4"
-                    onClick={() => { setOpen(false); button.onClick && button.onClick(); }}
-                    whileHover={{ 
+                    onClick={() => {
+                      setOpen(false);
+                      button.onClick && button.onClick();
+                    }}
+                    whileHover={{
                       scale: 1.05,
-                      boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)"
+                      boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
                     }}
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
@@ -240,4 +256,4 @@ export default function NavBar({ logo, links, button }) {
       </AnimatePresence>
     </motion.nav>
   );
-} 
+}
