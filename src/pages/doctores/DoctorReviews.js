@@ -1,25 +1,35 @@
-import usersReview from "../../data/usersReview.json";
 
-export default function DoctorReviews({ reviews }) {
+export default function DoctorReviews({reviews}) {
   return (
-    <div className="bg-white rounded-xl shadow p-5 w-full my-4">
-      <h3 className="font-bold text-lg mb-3 text-blue-800">Reseñas de pacientes</h3>
-      <div className="flex flex-col gap-4">
-        {reviews.map((r, i) => (
-          <div key={i} className="flex gap-4 items-start bg-slate-50 rounded-lg p-4 shadow">
-            <img src={r.photo} alt={r.name} className="w-12 h-12 rounded-full object-cover border-2 border-blue-100" />
-            <div className="flex-1">
-              <div className="flex gap-2 items-center mb-1">
-                <span className="font-semibold text-blue-700">{r.name}</span>
-                <span className="text-yellow-400 text-base">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
-                <span className="text-xs text-slate-400 ml-2">{r.date}</span>
+    <div className="bg-white ml-24 rounded-2xl mr-24 py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-base/7 font-semibold text-indigo-600">Testimonials</h2>
+          <p className="mt-2 text-balance text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+            We have worked with thousands of amazing people
+          </p>
+        </div>
+        <div className="mx-auto mt-16 flow-root max-w-2xl sm:mt-20 lg:mx-0 lg:max-w-none">
+          <div className="-mt-8 sm:-mx-4 sm:columns-2 sm:text-[0] lg:columns-3">
+            {reviews.map((review) => (
+              <div key={review.id} className="pt-8 sm:inline-block sm:w-full sm:px-4">
+                <figure className="rounded-2xl bg-gray-50 p-8 text-sm/6">
+                  <blockquote className="text-gray-900">
+                    <p>{`“${review.comment}”`}</p>
+                  </blockquote>
+                  <figcaption className="mt-6 flex items-center gap-x-4">
+                    <img alt="" src={review.photo} className="size-10 rounded-full bg-gray-50" />
+                    <div>
+                      <div className="font-semibold text-gray-900">{review.name}</div>
+                      <div className="text-gray-600">{`@${review.comment}`}</div>
+                    </div>
+                  </figcaption>
+                </figure>
               </div>
-              <p className="text-slate-600 text-sm">{r.comment}</p>
-            </div>
+            ))}
           </div>
-        ))}
-        {reviews.length === 0 && <div className="text-slate-400 text-center">Sin reseñas aún.</div>}
+        </div>
       </div>
     </div>
-  );
-} 
+  )
+}

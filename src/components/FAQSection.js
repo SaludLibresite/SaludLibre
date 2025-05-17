@@ -1,29 +1,30 @@
-import { useState } from 'react';
-import React from 'react';
-
+import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react'
+import { MinusSmallIcon, PlusSmallIcon } from '@heroicons/react/24/outline'
 export default function FAQSection({ faqs }) {
-  const [open, setOpen] = useState(null);
   return (
-    <section className="py-10 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Preguntas frecuentes</h2>
-      <div className="space-y-4">
-        {faqs.map((faq, i) => (
-          <div key={i} className="border rounded-lg overflow-hidden">
-            <button
-              className="w-full text-left px-4 py-3 font-semibold bg-slate-100 hover:bg-slate-200 transition flex justify-between items-center"
-              onClick={() => setOpen(open === i ? null : i)}
-            >
-              {faq.question}
-              <span>{open === i ? '-' : '+'}</span>
-            </button>
-            {open === i && (
-              <div className="px-4 py-3 bg-white text-slate-700 border-t animate-fade-in">
-                {faq.answer}
-              </div>
-            )}
-          </div>
-        ))}
+    <div className="bg-white rounded-2xl">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-4xl">
+          <dl className="mt-16 divide-y divide-gray-900/10">
+            {faqs.map((faq) => (
+              <Disclosure key={faq.question} as="div" className="py-6 first:pt-0 last:pb-0">
+                <dt>
+                  <DisclosureButton className="group flex w-full items-start justify-between text-left text-gray-900">
+                    <span className="text-base/7 font-semibold">{faq.question}</span>
+                    <span className="ml-6 flex h-7 items-center">
+                      <PlusSmallIcon aria-hidden="true" className="size-6 group-data-[open]:hidden" />
+                      <MinusSmallIcon aria-hidden="true" className="size-6 group-[&:not([data-open])]:hidden" />
+                    </span>
+                  </DisclosureButton>
+                </dt>
+                <DisclosurePanel as="dd" className="mt-2 pr-12">
+                  <p className="text-base/7 text-gray-600">{faq.answer}</p>
+                </DisclosurePanel>
+              </Disclosure>
+            ))}
+          </dl>
+        </div>
       </div>
-    </section>
-  );
-} 
+    </div>
+  )
+}

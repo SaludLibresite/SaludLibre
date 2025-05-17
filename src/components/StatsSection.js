@@ -1,15 +1,49 @@
-import React from 'react';
-
-export default function StatsSection({ stats }) {
+export default function Example() {
   return (
-    <section className="py-10 m-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-      {stats.map((stat, i) => (
-        <div key={i} className={`rounded-xl p-8 shadow-md ${stat.highlight ? 'bg-yellow-300 text-black' : stat.darkness ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'}`}>
-          <div className="text-3xl font-bold mb-2">{stat.value}</div>
-          <div className="text-lg font-semibold mb-1">{stat.label}</div>
-          <div className="text-base">{stat.description}</div>
+    <div className="mx-auto m-8  max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto flex max-w-2xl flex-col gap-8 lg:mx-0 lg:max-w-none lg:flex-row lg:items-end">
+        <div className="bg-gray-300 flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gray-50 p-8 sm:w-3/4 sm:max-w-md sm:flex-row-reverse sm:items-end lg:w-72 lg:max-w-none lg:flex-none lg:flex-col lg:items-start">
+          <p className="flex-none text-3xl font-bold tracking-tight text-gray-900">
+            250k
+          </p>
+          <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
+            <p className="text-lg font-semibold tracking-tight text-gray-900">
+              Users on the platform
+            </p>
+            <p className="mt-2 text-base/7 text-gray-600">
+              Vel labore deleniti veniam consequuntur sunt nobis.
+            </p>
+          </div>
         </div>
-      ))}
-    </section>
+        <div className="flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gray-900 p-8 sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-sm lg:flex-auto lg:flex-col lg:items-start lg:gap-y-44">
+          <p className="flex-none text-3xl font-bold tracking-tight text-white">
+            $8.9 billion
+          </p>
+          <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
+            <p className="text-lg font-semibold tracking-tight text-white">
+              We’re proud that our customers have made over $8 billion in total
+              revenue.
+            </p>
+            <p className="mt-2 text-base/7 text-gray-400">
+              Eu duis porta aliquam ornare. Elementum eget magna egestas.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-yellow-300 p-8 sm:w-11/12 sm:max-w-xl sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-none lg:flex-auto lg:flex-col lg:items-start lg:gap-y-28">
+          <p className="flex-none text-3xl font-bold tracking-tight text-dark">
+            401,093
+          </p>
+          <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
+            <p className="text-lg font-semibold tracking-tight text-dark">
+              Transactions this year
+            </p>
+            <p className="mt-2 text-base/7 text-dark">
+              Eu duis porta aliquam ornare. Elementum eget magna egestas. Eu
+              duis porta aliquam ornare.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-} 
+}
