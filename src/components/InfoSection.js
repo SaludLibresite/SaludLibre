@@ -1,39 +1,58 @@
 import Image from "next/image";
 import React from "react";
-export default function InfoSection({ image, title, points, firstTitle, firstDescription, lastTitle, lastDescription }) {
+
+export default function InfoSection({
+  image,
+  title,
+  points,
+  firstTitle,
+  firstDescription,
+  lastTitle,
+  lastDescription,
+}) {
   return (
-    <section className="items-center gap-8 py-10">
-      <div className="mb-14 text-center">
-        <h2 className="text-2xl font-bold mb-2">{firstTitle}</h2>
-        <p className="text-lg text-slate-600">
-          {firstDescription}
-        </p>
-      </div>
-      <div className="mb-14 flex flex-col md:flex-row">
-        <div className="w-full  md:w-1/2 flex justify-center">
-          <Image
-            src={image}
-            alt="info"
-            width={320}
-            height={220}
-            className="rounded-xl shadow-md object-cover"
-          />
+    <div className="rounded-2xl overflow-hidden bg-white py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-4">
+            {firstTitle}
+          </h2>
+          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            {firstDescription}
+            hospital líder en la región.
+          </p>
         </div>
-        <div className=" w-full md:w-1/2">
-          <h2 className="mr-12 text-2xl font-bold mb-4">{title}</h2>
-          <ul className="list-disc pl-5 space-y-2 text-lg">
-            {points.map((p, i) => (
-              <li key={i}>{p}</li>
-            ))}
-          </ul>
+        <div className="mx-auto grid max-w-2xl pl-16 grid-cols-1 gap-y-16 sm:gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
+          <div className="lg:ml-auto">
+            <div className="lg:max-w-lg m-4">
+              <h2 className="font-semibold text-2xl">{title}</h2>
+              <dl className="mt-10 max-w-xl space-y-4 text-base/7 text-gray-600 lg:max-w-none">
+                {points.map((point) => (
+                  <div key={point.name} className="relative pl-9">
+                    <dt className="inline font-semibold text-gray-900">
+                      {point.name}
+                    </dt>{" "}
+                    <dd className="inline">{point.description}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+          <div className="flex items-start justify-end lg:order-first">
+            <Image
+              alt="Product screenshot"
+              src={image}
+              width={2432}
+              height={1442}
+              className="w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]"
+            />
+          </div>
+        </div>
+        <div className="mt-14">
+          <h2 className="text-2xl font-bold mb-2">{lastTitle}</h2>
+          <p className="text-lg text-slate-600">{lastDescription}</p>
         </div>
       </div>
-      <div className="mb-2 text-center">
-        <h2 className="text-2xl font-bold mb-2">{lastTitle}</h2>
-        <p className="text-lg text-slate-600">
-          {lastDescription}
-        </p>
-      </div>
-    </section>
+    </div>
   );
 }
