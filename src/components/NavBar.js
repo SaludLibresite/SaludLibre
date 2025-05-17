@@ -69,14 +69,14 @@ export default function NavBar({ logo, links, button }) {
     <motion.nav 
       className={`w-full sticky top-0 z-40 transition-all duration-300 ${
         scrolled 
-          ? 'bg-white/80 backdrop-blur-md shadow-lg' 
-          : 'bg-white'
+          ? 'bg-yellow-300/30 backdrop-blur-md shadow-lg' 
+          : 'bg-yellow-400'
       }`}
       initial="hidden"
       animate="visible"
       variants={navVariants}
     >
-      <div className="max-w-6xl mx-auto flex items-center justify-between py-4 px-4 md:px-6">
+      <div className=" max-w-6xl mx-auto flex items-center justify-between py-4 px-4 md:px-6">
         <motion.div 
           className="flex items-center gap-4"
           whileHover={{ scale: 1.05 }}
@@ -101,7 +101,7 @@ export default function NavBar({ logo, links, button }) {
             <motion.a
               key={i}
               href={link.href}
-              className="text-slate-700 hover:text-blue-600 font-medium text-base px-3 py-2 rounded-lg relative group"
+              className="text-white hover:text-blue-600 font-medium text-base px-3 py-2 rounded-lg relative group"
               variants={linkVariants}
               whileHover="hover"
               whileTap={{ scale: 0.95 }}
