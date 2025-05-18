@@ -60,7 +60,7 @@ const contactInfo = [
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-100">
+    <footer className=" mt-8 bg-gradient-to-br from-white via-blue-50/30 to-white rounded-2xl border-t border-gray-100">
       <div className="mx-auto max-w-7xl px-6 pb-8 pt-16 sm:pt-20 lg:px-8">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           {/* Logo y descripción */}
