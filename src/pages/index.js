@@ -2,11 +2,10 @@ import HeroCarousel from "../components/HeroCarousel";
 import InfoSection from "../components/InfoSection";
 import StatsSection from "../components/StatsSection";
 import GallerySection from "../components/GallerySection";
-import FAQSection from "../components/FAQSection";
+import FAQSection from "../components/FAQSection";  
 import NavBar from "../components/NavBar";
 import React, { useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import Footer from "../components/Footer";
 
 // Animation variants
 const fadeInUp = {
@@ -372,8 +371,6 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </motion.div>
-
-        <Footer />
       </motion.div>
     </div>
   );
