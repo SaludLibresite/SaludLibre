@@ -8,11 +8,6 @@ export default function DoctorGallery({ images = [] }) {
   const imagesPerSlide = 3;
   const totalSlides = Math.ceil(images.length / imagesPerSlide);
 
-  // Don't render if no images
-  if (!images || images.length === 0) {
-    return null;
-  }
-
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % totalSlides);
   };
@@ -49,6 +44,11 @@ export default function DoctorGallery({ images = [] }) {
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [selectedImage]);
+
+  // Don't render if no images
+  if (!images || images.length === 0) {
+    return null;
+  }
 
   // Divide images into slides
   const slides = Array.from({ length: totalSlides }, (_, i) =>
