@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function NavBar({ logo, links, button }) {
+export default function NavBar({ logo = "/logo.png", links, button }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -69,14 +69,14 @@ export default function NavBar({ logo, links, button }) {
     <motion.nav
       className={`w-full sticky top-0 transition-all duration-300  z-[90] ${
         scrolled
-          ? "bg-yellow-400/70 backdrop-blur-md shadow-lg"
+          ? "bg-yellow-400/90 backdrop-blur-md shadow-lg"
           : "bg-yellow-400"
       }`}
       initial="hidden"
       animate="visible"
       variants={navVariants}
     >
-      <div className=" max-w-6xl mx-auto flex items-center justify-between py-4 px-4 md:px-6">
+      <div className="w-10/12 mx-auto flex items-center justify-between py-4 px-4 md:px-6">
         <motion.div
           className="flex items-center gap-4"
           whileHover={{ scale: 1.05 }}
@@ -87,8 +87,8 @@ export default function NavBar({ logo, links, button }) {
               <Image
                 src={logo}
                 alt="Logo"
-                width={48}
-                height={48}
+                width={200}
+                height={200}
                 className="object-contain cursor-pointer transform hover:rotate-3 transition-transform duration-300"
               />
             </Link>
@@ -102,14 +102,14 @@ export default function NavBar({ logo, links, button }) {
               <motion.a
                 key={i}
                 href={link.href}
-                className="text-white hover:text-blue-600 font-medium text-base px-3 py-2 rounded-lg relative group"
+                className="text-gray-900 font-medium text-base px-3 py-2 rounded-lg relative group"
                 variants={linkVariants}
                 whileHover="hover"
                 whileTap={{ scale: 0.95 }}
               >
                 {link.label}
                 <motion.span
-                  className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
+                  className="absolute bottom-0 left-0 w-full h-0.5  bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
                   initial={{ scaleX: 0 }}
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3 }}

@@ -67,15 +67,12 @@ export default function Footer() {
           <div className="space-y-8">
             <div className="flex items-center">
               <Image
-                src="/img/logo.png"
+                src="/logo.png"
                 alt="Doctores AR"
-                width={40}
-                height={40}
-                className="h-10 w-auto"
+                width={800}
+                height={800}
+                className="h-14 w-auto"
               />
-              <span className="ml-3 text-xl font-bold text-gray-900">
-                Doctores AR
-              </span>
             </div>
             <p className="text-sm leading-6 text-gray-600 max-w-md">
               Conectamos pacientes con los mejores profesionales de la salud en

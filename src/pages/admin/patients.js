@@ -1,4 +1,3 @@
-import { useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import PatientsList from "../../components/admin/PatientsList";
 

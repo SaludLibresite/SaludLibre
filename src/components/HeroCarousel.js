@@ -1,10 +1,10 @@
-import Image from 'next/image';
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import Image from "next/image";
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
   const [current, setCurrent] = React.useState(0);
-  const [query, setQuery] = React.useState('');
+  const [query, setQuery] = React.useState("");
   const [direction, setDirection] = React.useState(0);
 
   React.useEffect(() => {
@@ -18,18 +18,18 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
   const slideVariants = {
     enter: (direction) => ({
       x: direction > 0 ? 1000 : -1000,
-      opacity: 0
+      opacity: 0,
     }),
     center: {
       zIndex: 1,
       x: 0,
-      opacity: 1
+      opacity: 1,
     },
     exit: (direction) => ({
       zIndex: 0,
       x: direction < 0 ? 1000 : -1000,
-      opacity: 0
-    })
+      opacity: 0,
+    }),
   };
 
   const swipeConfidenceThreshold = 10000;
@@ -54,7 +54,7 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
           exit="exit"
           transition={{
             x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.2 }
+            opacity: { duration: 0.2 },
           }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
@@ -69,15 +69,15 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
           }}
           className="absolute inset-0"
         >
-          <Image 
-            src={images[current]} 
-            alt={`slide-${current}`} 
-            layout="fill" 
+          <Image
+            src={images[current]}
+            alt={`slide-${current}`}
+            layout="fill"
             objectFit="cover"
             priority
             className="transform hover:scale-105 transition-transform duration-700"
           />
-          <motion.div 
+          <motion.div
             className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -86,13 +86,13 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
         </motion.div>
       </AnimatePresence>
 
-      <motion.div 
+      <motion.div
         className="absolute inset-0 flex flex-col items-center justify-center z-20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <motion.h1 
+        <motion.h1
           className="text-4xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg text-center px-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -102,7 +102,10 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
         </motion.h1>
         <motion.form
           className="flex w-full max-w-xl px-4"
-          onSubmit={e => { e.preventDefault(); onSearch?.(query); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSearch?.(query);
+          }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
@@ -110,13 +113,13 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
           <motion.input
             className="flex-1 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-l-xl outline-none text-lg shadow-lg"
             type="text"
-            placeholder={searchPlaceholder || 'Buscar doctor, especialidad...'}
+            placeholder={searchPlaceholder || "Buscar doctor, especialidad..."}
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             whileFocus={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           />
-          <motion.button 
+          <motion.button
             className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-8 py-3 rounded-r-xl font-semibold text-black shadow-lg hover:shadow-xl transition-all duration-300"
             whileHover={{ scale: 1.05, backgroundColor: "#fbbf24" }}
             whileTap={{ scale: 0.95 }}
@@ -131,7 +134,9 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
         {images.map((_, idx) => (
           <motion.button
             key={idx}
-            className={`w-3 h-3 rounded-full ${idx === current ? 'bg-yellow-400' : 'bg-white/60'}`}
+            className={`w-3 h-3 rounded-full ${
+              idx === current ? "bg-yellow-400" : "bg-white/60"
+            }`}
             onClick={() => {
               setDirection(idx > current ? 1 : -1);
               setCurrent(idx);
@@ -150,8 +155,18 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
         whileTap={{ scale: 0.9 }}
         aria-label="Slide anterior"
       >
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <svg
+          className="w-6 h-6 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
       </motion.button>
 
@@ -162,10 +177,20 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
         whileTap={{ scale: 0.9 }}
         aria-label="Slide siguiente"
       >
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        <svg
+          className="w-6 h-6 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
         </svg>
       </motion.button>
     </div>
   );
-} 
+}

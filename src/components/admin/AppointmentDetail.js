@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { appointmentDetail } from "../../data/adminData";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import {
   CalendarIcon,
   PhoneIcon,
@@ -8,47 +8,163 @@ import {
   PencilIcon,
   DocumentIcon,
   ClockIcon,
+  UserIcon,
+  MapPinIcon,
+  IdentificationIcon,
+  HeartIcon,
 } from "@heroicons/react/24/outline";
+import { useAuth } from "../../context/AuthContext";
+import {
+  getAppointmentById,
+  updateAppointmentStatus,
+} from "../../lib/appointmentsService";
+import { getPatientById, addMedicalNote } from "../../lib/patientsService";
 
 export default function AppointmentDetail({ appointmentId }) {
-  const [activeTab, setActiveTab] = useState("Notas");
+  const { currentUser } = useAuth();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("Información");
+  const [appointment, setAppointment] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [clinicalNotes, setClinicalNotes] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const data = appointmentDetail; // In real app, fetch by appointmentId
+  // Load appointment and patient data
+  useEffect(() => {
+    async function loadData() {
+      if (!appointmentId || !currentUser) return;
 
-  const tabs = [
-    "Notas",
-    "Historial Médico",
-    "Recetas",
-    "Resultados de Laboratorio",
-    "Seguimiento",
-  ];
+      try {
+        setLoading(true);
+        setError(null);
 
-  const handleCompleteVisit = () => {
-    // Handle complete visit logic
-    console.log("Visit completed");
+        // Load appointment data
+        const appointmentData = await getAppointmentById(appointmentId);
+        if (!appointmentData) {
+          setError("Cita no encontrada");
+          return;
+        }
+
+        setAppointment(appointmentData);
+
+        // Load patient data if appointment has patientId
+        if (appointmentData.patientId) {
+          const patientData = await getPatientById(appointmentData.patientId);
+          if (patientData) {
+            setPatient(patientData);
+            setClinicalNotes(patientData.medicalNotes || "");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading appointment:", error);
+        setError("Error al cargar la información de la cita");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [appointmentId, currentUser]);
+
+  const tabs = ["Información", "Notas Médicas", "Historial", "Documentos"];
+
+  const handleCompleteVisit = async () => {
+    try {
+      await updateAppointmentStatus(appointmentId, "completed");
+      setAppointment((prev) => ({ ...prev, status: "completed" }));
+    } catch (error) {
+      console.error("Error completing visit:", error);
+    }
   };
 
-  const handleReschedule = () => {
-    // Handle reschedule logic
-    console.log("Reschedule appointment");
+  const handleCancel = async () => {
+    try {
+      await updateAppointmentStatus(appointmentId, "cancelled");
+      setAppointment((prev) => ({ ...prev, status: "cancelled" }));
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+    }
   };
 
-  const handleCall = () => {
-    // Handle call logic
-    console.log("Calling patient");
+  const handleConfirm = async () => {
+    try {
+      await updateAppointmentStatus(appointmentId, "confirmed");
+      setAppointment((prev) => ({ ...prev, status: "confirmed" }));
+    } catch (error) {
+      console.error("Error confirming appointment:", error);
+    }
   };
 
-  const handleWhatsApp = () => {
-    // Handle WhatsApp logic
-    console.log("Opening WhatsApp");
+  const handleSaveNotes = async () => {
+    if (!patient) return;
+
+    try {
+      setSaving(true);
+      await addMedicalNote(patient.id, clinicalNotes);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error saving notes:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleCancel = () => {
-    // Handle cancel logic
-    console.log("Cancel appointment");
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "confirmed":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      case "completed":
+        return "bg-amber-100 text-amber-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-500">
+            Cargando información de la cita...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !appointment) {
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="text-center py-12">
+          <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            {error || "No se encontró la cita"}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            La cita solicitada no está disponible o no existe.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="mt-4 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+          >
+            Volver
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const appointmentDate = appointment.date?.toDate
+    ? appointment.date.toDate()
+    : new Date(appointment.date);
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -56,59 +172,94 @@ export default function AppointmentDetail({ appointmentId }) {
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-lg font-medium text-gray-700">
-                {data.patient.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
-              </span>
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+              <UserIcon className="h-6 w-6 text-amber-600" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                {data.patient.name}
+                {appointment.patientName}
               </h2>
-              <p className="text-sm text-gray-500">
-                {data.appointment.date} • {data.appointment.time}
-              </p>
+              <div className="flex items-center space-x-4 text-sm text-gray-500">
+                <span>{appointmentDate.toLocaleDateString("es-ES")}</span>
+                <span>•</span>
+                <span>{appointment.time}</span>
+                <span>•</span>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${getStatusColor(
+                    appointment.status
+                  )}`}
+                >
+                  {appointment.status === "confirmed"
+                    ? "Confirmada"
+                    : appointment.status === "pending"
+                    ? "Pendiente"
+                    : appointment.status === "cancelled"
+                    ? "Cancelada"
+                    : appointment.status === "completed"
+                    ? "Completada"
+                    : appointment.status}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleReschedule}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <CalendarIcon className="h-4 w-4" />
-              <span>Reprogramar</span>
-            </button>
-            <button
-              onClick={handleCall}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <PhoneIcon className="h-4 w-4" />
-              <span>Llamar</span>
-            </button>
-            <button
-              onClick={handleWhatsApp}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <ChatBubbleLeftRightIcon className="h-4 w-4" />
-              <span>WhatsApp</span>
-            </button>
-            <button
-              onClick={handleCancel}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <XMarkIcon className="h-4 w-4" />
-              <span>Cancelar</span>
-            </button>
-            <button
-              onClick={handleCompleteVisit}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              Completar Visita
-            </button>
+            {appointment.status === "pending" && (
+              <button
+                onClick={handleConfirm}
+                className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span>Confirmar</span>
+              </button>
+            )}
+
+            {appointment.patientPhone && (
+              <button
+                onClick={() => window.open(`tel:${appointment.patientPhone}`)}
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                <PhoneIcon className="h-4 w-4" />
+                <span>Llamar</span>
+              </button>
+            )}
+
+            {appointment.patientPhone && (
+              <button
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/${appointment.patientPhone.replace(
+                      /\D/g,
+                      ""
+                    )}`
+                  )
+                }
+                className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                <span>WhatsApp</span>
+              </button>
+            )}
+
+            {appointment.status !== "cancelled" &&
+              appointment.status !== "completed" && (
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center space-x-2 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                  <span>Cancelar</span>
+                </button>
+              )}
+
+            {appointment.status === "confirmed" && (
+              <button
+                onClick={handleCompleteVisit}
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+              >
+                Completar Visita
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -122,7 +273,7 @@ export default function AppointmentDetail({ appointmentId }) {
               onClick={() => setActiveTab(tab)}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab
-                  ? "border-blue-500 text-blue-600"
+                  ? "border-blue-500 text-amber-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -134,38 +285,156 @@ export default function AppointmentDetail({ appointmentId }) {
 
       {/* Tab Content */}
       <div className="p-6">
-        {activeTab === "Notas" && (
+        {activeTab === "Información" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Appointment Info */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Información de la Cita
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">
+                    {appointmentDate.toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <ClockIcon className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">
+                    {appointment.time}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <DocumentIcon className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">
+                    {appointment.reason || "No especificado"}
+                  </span>
+                </div>
+                {appointment.notes && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Notas de la Cita
+                    </h4>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                      {appointment.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Patient Info */}
+            {patient && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Información del Paciente
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <UserIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {patient.firstName} {patient.lastName}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <IdentificationIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {patient.dni || "No especificado"}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <PhoneIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {patient.phone || appointment.patientPhone}
+                    </span>
+                  </div>
+                  {patient.address && (
+                    <div className="flex items-center space-x-3">
+                      <MapPinIcon className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        {patient.address}
+                      </span>
+                    </div>
+                  )}
+                  {patient.birthDate && (
+                    <div className="flex items-center space-x-3">
+                      <CalendarIcon className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        Nacido el{" "}
+                        {new Date(
+                          patient.birthDate.toDate()
+                        ).toLocaleDateString("es-ES")}
+                      </span>
+                    </div>
+                  )}
+                  {patient.allergies && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">
+                        Alergias
+                      </h4>
+                      <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                        {patient.allergies}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "Notas Médicas" && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">
-                Notas Clínicas
+                Notas Médicas
               </h3>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center space-x-2 text-blue-600 hover:text-blue-700"
-              >
-                <PencilIcon className="h-4 w-4" />
-                <span>Editar</span>
-              </button>
+              {patient && (
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="flex items-center space-x-2 text-amber-600 hover:text-blue-700"
+                  disabled={saving}
+                >
+                  <PencilIcon className="h-4 w-4" />
+                  <span>{isEditing ? "Cancelar" : "Editar"}</span>
+                </button>
+              )}
             </div>
 
-            {isEditing ? (
+            {!patient ? (
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-yellow-800">
+                  Esta cita no está asociada a un paciente registrado. Las notas
+                  médicas solo están disponibles para pacientes registrados.
+                </p>
+              </div>
+            ) : isEditing ? (
               <div>
                 <textarea
                   value={clinicalNotes}
                   onChange={(e) => setClinicalNotes(e.target.value)}
-                  placeholder="Ingrese notas clínicas..."
-                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ingrese notas médicas..."
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
                 <div className="mt-4 flex space-x-2">
                   <button
-                    onClick={() => setIsEditing(false)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    onClick={handleSaveNotes}
+                    disabled={saving}
+                    className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50"
                   >
-                    Guardar
+                    {saving ? "Guardando..." : "Guardar"}
                   </button>
                   <button
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      setIsEditing(false);
+                      setClinicalNotes(patient.medicalNotes || "");
+                    }}
                     className="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50"
                   >
                     Cancelar
@@ -176,166 +445,45 @@ export default function AppointmentDetail({ appointmentId }) {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600">
                   {clinicalNotes ||
-                    "No hay notas clínicas aún. Haga clic en Editar para agregar notas."}
+                    "No hay notas médicas aún. Haga clic en Editar para agregar notas."}
                 </p>
               </div>
             )}
+          </div>
+        )}
 
-            {/* Documents Section */}
-            <div className="mt-8">
-              <h4 className="text-md font-medium text-gray-900 mb-4">
-                Documentos
-              </h4>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <DocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">
-                  Arrastre y suelte archivos aquí o
+        {activeTab === "Historial" && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Historial de Citas
+            </h3>
+            {patient ? (
+              <div className="text-center py-8">
+                <CalendarIcon className="mx-auto h-8 w-8 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">
+                  Funcionalidad de historial próximamente disponible
                 </p>
-                <button className="mt-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-                  Examinar Archivos
-                </button>
               </div>
-
-              {data.documents.length > 0 && (
-                <div className="mt-4">
-                  {data.documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <DocumentIcon className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm text-gray-900">
-                          {doc.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-700 text-sm">
-                          Descargar
-                        </button>
-                        <button className="text-red-600 hover:text-red-700 text-sm">
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "Historial Médico" && (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Historial Médico
-            </h3>
-            <div className="space-y-4">
-              {data.medicalHistory.map((entry, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">
-                      {entry.diagnosis}
-                    </h4>
-                    <span className="text-sm text-gray-500">{entry.date}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Tratamiento: {entry.treatment}
-                  </p>
-                  <p className="text-sm text-gray-600">Notas: {entry.notes}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "Recetas" && (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Recetas Actuales
-            </h3>
-            <div className="space-y-4">
-              {data.prescriptions.map((prescription, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">
-                      {prescription.medication}
-                    </h4>
-                    <span className="text-sm text-gray-500">
-                      Repeticiones: {prescription.refills}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {prescription.dosage} - {prescription.frequency}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Iniciado: {prescription.startDate}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "Resultados de Laboratorio" && (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Resultados de Laboratorio
-            </h3>
-            <div className="space-y-4">
-              {data.labResults.map((result, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">{result.test}</h4>
-                    <span className="text-sm text-gray-500">{result.date}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Estado: {result.status}
-                  </p>
-                  <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm">
-                    Ver Reporte ({result.file})
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "Seguimiento" && (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Planificación de Seguimiento
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Próxima Cita
-                </label>
-                <div className="flex space-x-4">
-                  <input
-                    type="date"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>Chequeo Regular</option>
-                    <option>Seguimiento</option>
-                    <option>Consulta</option>
-                  </select>
-                </div>
+            ) : (
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-yellow-800">
+                  El historial solo está disponible para pacientes registrados.
+                </p>
               </div>
+            )}
+          </div>
+        )}
 
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                Programar Seguimiento
-              </button>
+        {activeTab === "Documentos" && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Documentos
+            </h3>
+            <div className="text-center py-8">
+              <DocumentIcon className="mx-auto h-8 w-8 text-gray-400" />
+              <p className="mt-2 text-sm text-gray-500">
+                Funcionalidad de documentos próximamente disponible
+              </p>
             </div>
           </div>
         )}

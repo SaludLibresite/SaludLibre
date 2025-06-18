@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import doctoresData from "../data/doctores.json";
+import { getAllDoctors } from "../lib/doctorsService";
 
 const SearchIcon = () => (
   <svg
@@ -50,9 +50,12 @@ const DoctorResult = ({ doctor }) => (
   >
     <div className="flex gap-4">
       <img
-        src={doctor.imagen}
+        src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
         alt={doctor.nombre}
         className="w-20 h-20 object-cover rounded-lg"
+        onError={(e) => {
+          e.target.src = "/img/doctor-1.jpg";
+        }}
       />
       <div className="flex-1">
         <h3 className="font-semibold text-gray-900">Dr. {doctor.nombre}</h3>
@@ -128,7 +131,23 @@ const SearchModal = ({
   const [modalSearch, setModalSearch] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [debouncedSearch] = useState(null);
+  const [doctoresData, setDoctoresData] = useState([]);
+
+  // Load doctors data
+  useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        const doctors = await getAllDoctors();
+        setDoctoresData(doctors);
+      } catch (error) {
+        console.error("Error loading doctors:", error);
+      }
+    };
+
+    if (isOpen) {
+      loadDoctors();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -139,7 +158,7 @@ const SearchModal = ({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (modalSearch.trim().length >= 3) {
+      if (modalSearch.trim().length >= 3 && doctoresData.length > 0) {
         setIsSearching(true);
         const results = doctoresData.filter(
           (d) =>
@@ -156,7 +175,7 @@ const SearchModal = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [modalSearch]);
+  }, [modalSearch, doctoresData]);
 
   return (
     <AnimatePresence>

@@ -124,7 +124,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
               />
               <img
-                src={doctor.imagen}
+                src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
                 alt={doctor.nombre}
                 className={`rounded-2xl object-cover shadow-md transition-transform duration-300
                   ${
@@ -134,6 +134,9 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                       ? "w-32 h-32"
                       : "w-28 h-28"
                   }`}
+                onError={(e) => {
+                  e.target.src = "/img/doctor-1.jpg";
+                }}
               />
             </div>
 

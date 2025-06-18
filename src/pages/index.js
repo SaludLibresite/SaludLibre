@@ -78,7 +78,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen ">
+    <div>
       <motion.div
         className="w-full mx-auto"
         initial={{ opacity: 0 }}
@@ -86,7 +86,6 @@ export default function Home() {
         transition={{ duration: 0.5 }}
       >
         <NavBar
-          logo="/img/logo-hospital.png"
           links={[
             { href: "#servicios", label: "Servicios" },
             { href: "/doctores", label: "Doctores" },

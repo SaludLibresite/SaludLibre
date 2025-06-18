@@ -1,12 +1,17 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 
-export default function DoctorGallery({ images }) {
+export default function DoctorGallery({ images = [] }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef(null);
   const imagesPerSlide = 3;
   const totalSlides = Math.ceil(images.length / imagesPerSlide);
+
+  // Don't render if no images
+  if (!images || images.length === 0) {
+    return null;
+  }
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % totalSlides);

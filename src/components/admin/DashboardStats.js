@@ -1,54 +1,107 @@
-import { dashboardStats } from "../../data/adminData";
 import {
-  ArrowUpIcon,
-  ArrowDownIcon,
   UserGroupIcon,
   CalendarIcon,
   ClockIcon,
   CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
 
-const iconMap = {
-  "Total de Pacientes": UserGroupIcon,
-  "Citas de Hoy": CalendarIcon,
-  "Esta Semana": ClockIcon,
-  Ingresos: CurrencyDollarIcon,
-};
-
 export default function DashboardStats() {
+  // Estadísticas reales - inicialmente vacías
+  const stats = [
+    {
+      title: "Total de Pacientes",
+      value: "0",
+      change: "0%",
+      changeType: "neutral",
+      icon: UserGroupIcon,
+      color: "amber",
+    },
+    {
+      title: "Citas de Hoy",
+      value: "0",
+      change: "0",
+      changeType: "neutral",
+      icon: CalendarIcon,
+      color: "yellow",
+    },
+    {
+      title: "Esta Semana",
+      value: "0",
+      change: "0",
+      changeType: "neutral",
+      icon: ClockIcon,
+      color: "orange",
+    },
+    {
+      title: "Ingresos",
+      value: "$0",
+      change: "0%",
+      changeType: "neutral",
+      icon: CurrencyDollarIcon,
+      color: "amber",
+    },
+  ];
+
+  const getColorClasses = (color) => {
+    switch (color) {
+      case "amber":
+        return {
+          bg: "bg-amber-50",
+          icon: "text-amber-600",
+          border: "border-amber-200",
+        };
+      case "yellow":
+        return {
+          bg: "bg-yellow-50",
+          icon: "text-yellow-600",
+          border: "border-yellow-200",
+        };
+      case "orange":
+        return {
+          bg: "bg-orange-50",
+          icon: "text-orange-600",
+          border: "border-orange-200",
+        };
+      default:
+        return {
+          bg: "bg-amber-50",
+          icon: "text-amber-600",
+          border: "border-amber-200",
+        };
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {dashboardStats.map((stat, index) => {
-        const Icon = iconMap[stat.title] || UserGroupIcon;
-        const isIncrease = stat.changeType === "increase";
+      {stats.map((stat, index) => {
+        const Icon = stat.icon;
+        const colors = getColorClasses(stat.color);
 
         return (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
+          <div
+            key={index}
+            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 p-6 border border-gray-100"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-gray-600 mb-1">
                   {stat.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Icon className="h-6 w-6 text-blue-600" />
+              <div
+                className={`p-3 ${colors.bg} ${colors.border} border rounded-xl shadow-sm`}
+              >
+                <Icon className={`h-6 w-6 ${colors.icon}`} />
               </div>
             </div>
             <div className="mt-4 flex items-center">
-              {isIncrease ? (
-                <ArrowUpIcon className="h-4 w-4 text-green-500" />
-              ) : (
-                <ArrowDownIcon className="h-4 w-4 text-red-500" />
-              )}
-              <span
-                className={`ml-1 text-sm font-medium ${
-                  isIncrease ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {stat.change}
-              </span>
-              <span className="ml-1 text-sm text-gray-500">del mes pasado</span>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                <span className="text-sm text-gray-500">
+                  Sin datos del mes anterior
+                </span>
+              </div>
             </div>
           </div>
         );

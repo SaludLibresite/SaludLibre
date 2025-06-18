@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import NavBar from "../../components/NavBar";
-import doctoresData from "../../data/doctores.json";
 import FloatingSearch from "../../components/FloatingSearch";
 import LoaderComponent from "../../components/doctoresPage/LoaderComponent";
-import DoctorCard from "../../components/doctoresPage/DoctorCard";
 import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
+import { getAllDoctors } from "../../lib/doctorsService";
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
@@ -19,7 +18,36 @@ export default function DoctoresPage() {
   const [selectedUbicacion, setSelectedUbicacion] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [doctoresData, setDoctoresData] = useState([]);
+  const [initialLoading, setInitialLoading] = useState(true);
 
+  // Load doctors from Firebase
+  useEffect(() => {
+    async function loadDoctors() {
+      try {
+        setInitialLoading(true);
+        const doctors = await getAllDoctors();
+        // Only show verified doctors or add a verification flag check
+        // const verifiedDoctors = doctors.filter(
+        //   (doctor) => doctor.verified !== false
+        // );
+        // setDoctoresData(verifiedDoctors);
+
+        // TEMPORAL: Mostrar todos los doctores para desarrollo
+        // Cambiar a verifiedDoctors cuando esté en producción
+        setDoctoresData(doctors);
+      } catch (error) {
+        console.error("Error loading doctors:", error);
+        setDoctoresData([]);
+      } finally {
+        setInitialLoading(false);
+      }
+    }
+
+    loadDoctors();
+  }, []);
+
+  // Create filters from loaded data
   const categorias = [
     ...new Set(doctoresData.map((d) => d.especialidad)),
   ].sort();
@@ -70,8 +98,8 @@ export default function DoctoresPage() {
 
   const filteredDoctors = doctoresData.filter((d) => {
     const searchMatch =
-      d.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      d.especialidad.toLowerCase().includes(search.toLowerCase());
+      d.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      d.especialidad?.toLowerCase().includes(search.toLowerCase());
     const categoriaMatch = categoria === "" || d.especialidad === categoria;
     const generoMatch = selectedGenero === "" || d.genero === selectedGenero;
     const consultaOnlineMatch =
@@ -137,66 +165,51 @@ export default function DoctoresPage() {
     selectedUbicacion,
   ]);
 
+  // Show initial loading screen
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+        <NavBar
+          links={[
+            { href: "/", label: "Inicio" },
+            { href: "/doctores", label: "Doctores" },
+            { href: "/beneficios", label: "Beneficios" },
+          ]}
+          button={{ text: "Iniciar Sesión", href: "/auth/login" }}
+        />
+        <div className="container mx-auto px-6 py-24">
+          <LoaderComponent />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
       <NavBar
-        logo="/images/logo-hospital.png"
         links={[
           { href: "/", label: "Inicio" },
           { href: "/doctores", label: "Doctores" },
+          { href: "/beneficios", label: "Beneficios" },
         ]}
-        button={{ text: "Contacto", onClick: () => alert("Contacto") }}
+        button={{ text: "Iniciar Sesión", href: "/auth/login" }}
       />
 
       <main className="pb-24">
         {/* Hero Section */}
-        <div className="relative isolate overflow-hidden">
-          {/* Decorative background elements */}
-          <div
-            className="absolute inset-x-0 top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-            aria-hidden="true"
-          >
-            <div
-              className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-amber-300 to-yellow-500 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-              style={{
-                clipPath:
-                  "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-              }}
-            />
-          </div>
-
-          <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+        <div className="relative">
+          {/* Content */}
+          <div className="mx-auto max-w-7xl px-6 pt-8 pb-4 lg:px-8">
             <div className="mx-auto max-w-4xl text-center">
-              {/* Decorative element */}
-              <div className="mb-8 flex justify-center">
-                <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-amber-900 ring-1 ring-amber-900/10 hover:ring-amber-900/20">
-                  <span className="absolute inset-0 rounded-full bg-amber-100 opacity-50"></span>
-                  Encuentra los mejores especialistas médicos{" "}
-                  <a href="#search" className="font-semibold text-amber-600">
-                    <span className="absolute inset-0" aria-hidden="true" /> Ver
-                    todos <span aria-hidden="true">&rarr;</span>
-                  </a>
-                </div>
-              </div>
-
-              <h1 className="relative z-10 mb-8 text-4xl font-bold tracking-tight sm:text-6xl">
-                <span className="sr-only">Encuentra Tu Especialista Ideal</span>
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-700 animate-gradient-x pb-4">
-                  Encuentra Tu
-                </span>
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 animate-gradient-x">
-                  Especialista Ideal
-                </span>
+              {/* Main heading */}
+              <h1 className="mb-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                Encuentra tu especialista médico
               </h1>
-
-              {/* Enhanced description with icon */}
-              <div className="relative">
-                <p className="text-lg leading-8 text-amber-900 sm:text-xl max-w-3xl mx-auto">
-                  Explora nuestro directorio médico avanzado con los mejores
-                  profesionales de la salud. Encuentra el especialista perfecto
-                  para tu atención médica personalizada.
-                </p>
-              </div>
+              <p className="text-lg text-slate-600">
+                {doctoresData.length > 0
+                  ? `${doctoresData.length} profesionales de la salud disponibles`
+                  : "Cargando profesionales..."}
+              </p>
             </div>
           </div>
         </div>
@@ -236,11 +249,23 @@ export default function DoctoresPage() {
             <div className="text-center py-20 px-4">
               <div className="text-7xl mb-8 opacity-50">🩺</div>
               <h3 className="text-3xl font-semibold text-slate-800 mb-3">
-                No se encontraron doctores
+                {doctoresData.length === 0
+                  ? "No hay doctores registrados aún"
+                  : "No se encontraron doctores"}
               </h3>
-              <p className="text-slate-500 max-w-md mx-auto text-lg">
-                Prueba ajustando los filtros o modificando tu búsqueda.
+              <p className="text-slate-600 text-lg max-w-2xl mx-auto leading-relaxed">
+                {doctoresData.length === 0
+                  ? "Sé el primero en registrarte como profesional de la salud."
+                  : "Intenta ajustar los filtros de búsqueda para encontrar el especialista que necesitas."}
               </p>
+              {doctoresData.length === 0 && (
+                <a
+                  href="/auth/register"
+                  className="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Registrarse como Doctor
+                </a>
+              )}
             </div>
           )}
         </div>
