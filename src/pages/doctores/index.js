@@ -5,6 +5,7 @@ import LoaderComponent from "../../components/doctoresPage/LoaderComponent";
 import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
 import { getAllDoctors } from "../../lib/doctorsService";
+import Link from "next/link";
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
@@ -259,12 +260,12 @@ export default function DoctoresPage() {
                   : "Intenta ajustar los filtros de búsqueda para encontrar el especialista que necesitas."}
               </p>
               {doctoresData.length === 0 && (
-                <a
+                <Link
                   href="/auth/register"
                   className="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Registrarse como Doctor
-                </a>
+                </Link>
               )}
             </div>
           )}
