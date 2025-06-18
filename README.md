@@ -8,7 +8,7 @@ First, run the development server:
 npm run deva
 # ora
 yarn dev9a
-# or
+# ora
 pnpm dev
 # or
 bun dev
