@@ -4,7 +4,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 First, run the development server:
 80%
-```basha
+```bashaa
 npm run deva
 # ora
 yarn dev9a
