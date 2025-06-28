@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signInWithPopup,
+  GoogleAuthProvider,
+} from "firebase/auth";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import {
@@ -16,14 +21,15 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   UserPlusIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 export default function PatientRegister() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -128,7 +134,7 @@ export default function PatientRegister() {
     }
   };
 
-  const validateStep1 = () => {
+  const validateForm = () => {
     const newErrors = {};
 
     if (!formData.name.trim()) {
@@ -153,74 +159,96 @@ export default function PatientRegister() {
       newErrors.confirmPassword = "Las contraseñas no coinciden";
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = "El teléfono es requerido";
-    }
-
-    if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = "La fecha de nacimiento es requerida";
-    }
-
-    if (!formData.gender) {
-      newErrors.gender = "El género es requerido";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateStep2 = () => {
-    const newErrors = {};
+  const handleGoogleSignUp = async () => {
+    try {
+      setGoogleLoading(true);
+      setMessage("");
 
-    if (!formData.address.trim()) {
-      newErrors.address = "La dirección es requerida";
-    }
+      const provider = new GoogleAuthProvider();
+      provider.addScope("email");
+      provider.addScope("profile");
 
-    if (!formData.emergencyContact.trim()) {
-      newErrors.emergencyContact = "El contacto de emergencia es requerido";
-    }
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    if (!formData.emergencyPhone.trim()) {
-      newErrors.emergencyPhone = "El teléfono de emergencia es requerido";
-    }
+      // Check if user already exists as a patient
+      const patientsQuery = query(
+        collection(db, "patients"),
+        where("userId", "==", user.uid)
+      );
+      const existingPatient = await getDocs(patientsQuery);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+      if (!existingPatient.empty) {
+        setMessage("Esta cuenta de Google ya está registrada como paciente");
+        return;
+      }
 
-  const validateStep3 = () => {
-    const newErrors = {};
+      // Create patient document with minimal data from Google
+      const patientData = {
+        name: user.displayName || "",
+        email: user.email,
+        phone: user.phoneNumber || "",
+        profilePhoto: user.photoURL,
+        userId: user.uid,
+        userType: "patient",
+        temporaryPassword: false,
+        isActive: true,
+        registrationMethod: "google",
+        dataComplete: false, // Flag to show completion modal in dashboard
+        doctorId: selectedDoctor?.id || "",
+        referralCode: referralCode,
+        googleInfo: {
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          phoneNumber: user.phoneNumber,
+          emailVerified: user.emailVerified,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-    if (!formData.doctorId) {
-      newErrors.doctorId = "Debe seleccionar un doctor";
-    }
+      await addDoc(collection(db, "patients"), patientData);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+      setMessage("¡Registro con Google exitoso! Redirigiendo al dashboard...");
 
-  const handleNextStep = () => {
-    let isValid = false;
+      setTimeout(() => {
+        router.push("/paciente/dashboard");
+      }, 2000);
+    } catch (error) {
+      console.error("Error with Google sign up:", error);
 
-    switch (step) {
-      case 1:
-        isValid = validateStep1();
-        break;
-      case 2:
-        isValid = validateStep2();
-        break;
-      case 3:
-        isValid = validateStep3();
-        break;
-    }
+      let errorMessage = "Error al registrarse con Google";
 
-    if (isValid) {
-      setStep(step + 1);
+      switch (error.code) {
+        case "auth/account-exists-with-different-credential":
+          errorMessage =
+            "Ya existe una cuenta con este email usando un método diferente";
+          break;
+        case "auth/popup-blocked":
+          errorMessage =
+            "Popup bloqueado. Por favor permita popups para este sitio";
+          break;
+        case "auth/popup-closed-by-user":
+          errorMessage = "Registro cancelado por el usuario";
+          break;
+        default:
+          errorMessage = error.message || "Error al registrarse con Google";
+      }
+
+      setMessage(errorMessage);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (!validateStep3()) {
+    if (!validateForm()) {
       return;
     }
 
@@ -240,30 +268,24 @@ export default function PatientRegister() {
         displayName: formData.name,
       });
 
-      // Create patient document in Firestore
+      // Create patient document
       const patientData = {
-        ...formData,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || "",
+        dateOfBirth: formData.dateOfBirth || "",
+        gender: formData.gender || "",
         userId: userCredential.user.uid,
         userType: "patient",
         temporaryPassword: false,
         isActive: true,
+        registrationMethod: "email",
+        dataComplete: !!(formData.phone && formData.dateOfBirth && formData.gender), // Check if basic data is complete
+        doctorId: selectedDoctor?.id || "",
+        referralCode: referralCode,
         createdAt: new Date(),
         updatedAt: new Date(),
-        medicalHistory: formData.medicalHistory
-          ? [
-              {
-                id: Date.now(),
-                date: new Date(),
-                notes: formData.medicalHistory,
-                type: "initial_registration",
-              },
-            ]
-          : [],
       };
-
-      // Remove password fields before saving to Firestore
-      delete patientData.password;
-      delete patientData.confirmPassword;
 
       await addDoc(collection(db, "patients"), patientData);
 
@@ -294,619 +316,492 @@ export default function PatientRegister() {
     }
   };
 
-  const renderStep1 = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Información Personal
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre Completo *
-            </label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.name ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Juan Pérez"
-                disabled={loading}
-              />
+  return (
+    <div className="min-h-screen flex">
+      {/* Left side - Form */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-white">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="text-center mb-8">
+            {/* Logo mobile */}
+            <div className="lg:hidden mb-6">
+              <img className="h-12 w-auto mx-auto" src="/logo.png" alt="Logo" />
             </div>
-            {errors.name && (
-              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-            )}
+
+            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+              <UserPlusIcon className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Registro de Paciente
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Únete a nuestra plataforma médica
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email *
-            </label>
-            <div className="relative">
-              <EnvelopeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.email ? "border-red-500" : "border-gray-300"
+          {/* Form */}
+          <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100">
+            {/* Message */}
+            {message && (
+              <div
+                className={`mb-6 p-4 rounded-lg border ${
+                  message.includes("Error")
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-green-50 text-green-700 border-green-200"
                 }`}
-                placeholder="juan@email.com"
-                disabled={loading}
-              />
-            </div>
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña *
-            </label>
-            <div className="relative">
-              <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={(e) => handleInputChange("password", e.target.value)}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.password ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Mínimo 6 caracteres"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
-                {showPassword ? (
-                  <EyeSlashIcon className="h-5 w-5" />
-                ) : (
-                  <EyeIcon className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirmar Contraseña *
-            </label>
-            <div className="relative">
-              <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  handleInputChange("confirmPassword", e.target.value)
-                }
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.confirmPassword ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Repita la contraseña"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? (
-                  <EyeSlashIcon className="h-5 w-5" />
-                ) : (
-                  <EyeIcon className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.confirmPassword}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Teléfono *
-            </label>
-            <div className="relative">
-              <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.phone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="+54 11 1234-5678"
-                disabled={loading}
-              />
-            </div>
-            {errors.phone && (
-              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha de Nacimiento *
-            </label>
-            <div className="relative">
-              <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) =>
-                  handleInputChange("dateOfBirth", e.target.value)
-                }
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.dateOfBirth ? "border-red-500" : "border-gray-300"
-                }`}
-                disabled={loading}
-              />
-            </div>
-            {errors.dateOfBirth && (
-              <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>
-            )}
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Género *
-            </label>
-            <select
-              value={formData.gender}
-              onChange={(e) => handleInputChange("gender", e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                errors.gender ? "border-red-500" : "border-gray-300"
-              }`}
-              disabled={loading}
-            >
-              <option value="">Seleccionar género</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Femenino">Femenino</option>
-              <option value="Otro">Otro</option>
-            </select>
-            {errors.gender && (
-              <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Información de Contacto y Médica
-        </h3>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dirección *
-            </label>
-            <div className="relative">
-              <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.address ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Av. Corrientes 1234, CABA"
-                disabled={loading}
-              />
-            </div>
-            {errors.address && (
-              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contacto de Emergencia *
-              </label>
-              <input
-                type="text"
-                value={formData.emergencyContact}
-                onChange={(e) =>
-                  handleInputChange("emergencyContact", e.target.value)
-                }
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.emergencyContact ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="María Pérez"
-                disabled={loading}
-              />
-              {errors.emergencyContact && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.emergencyContact}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Teléfono de Emergencia *
-              </label>
-              <input
-                type="tel"
-                value={formData.emergencyPhone}
-                onChange={(e) =>
-                  handleInputChange("emergencyPhone", e.target.value)
-                }
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                  errors.emergencyPhone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="+54 11 9876-5432"
-                disabled={loading}
-              />
-              {errors.emergencyPhone && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.emergencyPhone}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Obra Social/Prepaga
-              </label>
-              <input
-                type="text"
-                value={formData.insuranceProvider}
-                onChange={(e) =>
-                  handleInputChange("insuranceProvider", e.target.value)
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                placeholder="OSDE, Swiss Medical, etc."
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número de Afiliado
-              </label>
-              <input
-                type="text"
-                value={formData.insuranceNumber}
-                onChange={(e) =>
-                  handleInputChange("insuranceNumber", e.target.value)
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                placeholder="123456789"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alergias
-            </label>
-            <input
-              type="text"
-              value={formData.allergies}
-              onChange={(e) => handleInputChange("allergies", e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-              placeholder="Penicilina, polen, etc."
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Medicaciones Actuales
-            </label>
-            <input
-              type="text"
-              value={formData.currentMedications}
-              onChange={(e) =>
-                handleInputChange("currentMedications", e.target.value)
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-              placeholder="Losartán 50mg, Aspirina, etc."
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Historial Médico Relevante
-            </label>
-            <textarea
-              value={formData.medicalHistory}
-              onChange={(e) =>
-                handleInputChange("medicalHistory", e.target.value)
-              }
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-              placeholder="Describa cualquier condición médica relevante..."
-              disabled={loading}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Selección de Doctor
-        </h3>
-
-        {referralDoctor && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <CheckCircleIcon className="h-5 w-5 text-amber-600 mr-2" />
-              <span className="text-amber-800 font-medium">
-                Doctor recomendado por código de referencia
-              </span>
-            </div>
-            <div className="mt-2 flex items-center">
-              <div className="h-10 w-10 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mr-3">
-                <span className="text-sm font-bold text-white">
-                  {referralDoctor.nombre
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase() || "DR"}
-                </span>
+                <div className="flex items-center">
+                  {message.includes("Error") ? (
+                    <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+                  ) : (
+                    <CheckCircleIcon className="h-5 w-5 mr-2" />
+                  )}
+                  <span>{message}</span>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">
-                  {referralDoctor.nombre}
-                </h4>
-                <p className="text-gray-600 text-sm">
-                  {referralDoctor.especialidad}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {availableDoctors.map((doctor) => (
-            <div
-              key={doctor.id}
-              onClick={() => {
-                setSelectedDoctor(doctor);
-                handleInputChange("doctorId", doctor.id);
-              }}
-              className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                selectedDoctor?.id === doctor.id
-                  ? "border-amber-500 bg-amber-50"
-                  : "border-gray-200 hover:border-amber-300 hover:bg-amber-25"
-              }`}
-            >
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-lg font-bold text-white">
-                    {doctor.nombre
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase() || "DR"}
+            {/* Referral Doctor Display */}
+            {referralDoctor && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center">
+                  <CheckCircleIcon className="h-5 w-5 text-amber-600 mr-2" />
+                  <span className="text-amber-800 font-medium">
+                    Doctor recomendado por código de referencia
                   </span>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">
-                    {doctor.nombre}
-                  </h4>
-                  <p className="text-gray-600 text-sm">{doctor.especialidad}</p>
-                  <p className="text-gray-500 text-xs">{doctor.ubicacion}</p>
+                <div className="mt-2 flex items-center">
+                  <div className="h-10 w-10 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-sm font-bold text-white">
+                      {referralDoctor.nombre
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase() || "DR"}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">
+                      {referralDoctor.nombre}
+                    </h4>
+                    <p className="text-gray-600 text-sm">
+                      {referralDoctor.especialidad}
+                    </p>
+                  </div>
                 </div>
-                {selectedDoctor?.id === doctor.id && (
-                  <CheckCircleIcon className="h-6 w-6 text-amber-600" />
+              </div>
+            )}
+
+            {/* Google Sign Up Button */}
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={handleGoogleSignUp}
+                disabled={googleLoading || loading}
+                className="w-full flex justify-center items-center px-6 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 mb-4"
+              >
+                {googleLoading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                    Registrando con Google...
+                  </div>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                    Registrarse con Google
+                  </>
+                )}
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-2 text-gray-500">
+                    O registrarse con email
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Registration Form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre Completo *
+                </label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                      errors.name ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Juan Pérez"
+                    disabled={loading}
+                  />
+                </div>
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
 
-        {errors.doctorId && (
-          <p className="text-red-500 text-sm mt-2">{errors.doctorId}</p>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderSuccess = () => (
-    <div className="text-center py-12">
-      <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-        <CheckCircleIcon className="h-8 w-8 text-green-600" />
-      </div>
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-        ¡Registro Exitoso!
-      </h3>
-      <p className="text-gray-600 mb-4">
-        Su cuenta ha sido creada correctamente. Será redirigido al dashboard en
-        unos segundos.
-      </p>
-      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600 mx-auto"></div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
-      <div className="min-h-screen flex">
-        {/* Left side - Form */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="w-full max-w-2xl">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                <UserPlusIcon className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Registro de Paciente
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Únete a nuestra plataforma médica
-              </p>
-            </div>
-
-            {/* Progress indicator */}
-            <div className="flex items-center justify-center mb-8">
-              <div className="flex items-center space-x-4">
-                {[1, 2, 3].map((stepNumber) => (
-                  <div key={stepNumber} className="flex items-center">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        step >= stepNumber
-                          ? "bg-amber-600 text-white"
-                          : "bg-gray-300 text-gray-600"
-                      }`}
-                    >
-                      {stepNumber}
-                    </div>
-                    {stepNumber < 3 && (
-                      <div
-                        className={`w-12 h-0.5 ml-4 ${
-                          step > stepNumber ? "bg-amber-600" : "bg-gray-300"
-                        }`}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Form */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              {/* Message */}
-              {message && (
-                <div
-                  className={`mb-6 p-4 rounded-lg border ${
-                    message.includes("Error")
-                      ? "bg-red-50 text-red-700 border-red-200"
-                      : "bg-green-50 text-green-700 border-green-200"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {message.includes("Error") ? (
-                      <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
-                    ) : (
-                      <CheckCircleIcon className="h-5 w-5 mr-2" />
-                    )}
-                    <span>{message}</span>
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email *
+                </label>
+                <div className="relative">
+                  <EnvelopeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                      errors.email ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="juan@email.com"
+                    disabled={loading}
+                  />
                 </div>
-              )}
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
 
-              {step === 1 && renderStep1()}
-              {step === 2 && renderStep2()}
-              {step === 3 && renderStep3()}
-              {step === 4 && renderSuccess()}
-
-              {/* Form actions */}
-              {step < 4 && (
-                <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contraseña *
+                </label>
+                <div className="relative">
+                  <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                      errors.password ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Mínimo 6 caracteres"
+                    disabled={loading}
+                  />
                   <button
                     type="button"
-                    onClick={() =>
-                      step > 1
-                        ? setStep(step - 1)
-                        : router.push("/paciente/login")
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? (
+                      <EyeSlashIcon className="h-5 w-5" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirmar Contraseña *
+                </label>
+                <div className="relative">
+                  <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
                     }
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                      errors.confirmPassword ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Repita la contraseña"
                     disabled={loading}
-                  >
-                    {step > 1 ? "Anterior" : "Volver al Login"}
-                  </button>
-
+                  />
                   <button
                     type="button"
-                    onClick={step === 3 ? handleSubmit : handleNextStep}
-                    disabled={loading}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {loading ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Procesando...
-                      </div>
-                    ) : step === 3 ? (
-                      "Completar Registro"
+                    {showConfirmPassword ? (
+                      <EyeSlashIcon className="h-5 w-5" />
                     ) : (
-                      "Siguiente"
+                      <EyeIcon className="h-5 w-5" />
                     )}
                   </button>
                 </div>
-              )}
-            </div>
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.confirmPassword}
+                  </p>
+                )}
+              </div>
 
-            {/* Footer */}
-            <div className="text-center mt-8">
-              <p className="text-sm text-gray-600">
-                ¿Ya tienes una cuenta?{" "}
-                <Link
-                  href="/paciente/login"
-                  className="text-amber-600 hover:text-amber-500 font-medium"
+              {/* Optional fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Teléfono
+                  </label>
+                  <div className="relative">
+                    <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      placeholder="+54 11 1234-5678"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Nacimiento
+                  </label>
+                  <div className="relative">
+                    <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) =>
+                        handleInputChange("dateOfBirth", e.target.value)
+                      }
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Género
+                </label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                  disabled={loading}
                 >
-                  Iniciar sesión
-                </Link>
-              </p>
+                  <option value="">Seleccionar género</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading || googleLoading}
+                className="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-md hover:shadow-lg"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Registrando...
+                  </div>
+                ) : (
+                  "Crear Cuenta"
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-8">
+            <p className="text-sm text-gray-600">
+              ¿Ya tienes una cuenta?{" "}
+              <Link
+                href="/paciente/login"
+                className="text-amber-600 hover:text-amber-500 font-medium"
+              >
+                Iniciar sesión
+              </Link>
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/"
+                className="inline-flex items-center text-sm text-gray-600 hover:text-amber-600 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Volver al inicio
+              </Link>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right side - Hero */}
-        <div className="hidden lg:block lg:w-1/2 bg-gradient-to-br from-amber-600 via-yellow-600 to-orange-600 relative overflow-hidden">
-          <div className="absolute inset-0 bg-black bg-opacity-10"></div>
-          <div className="relative h-full flex items-center justify-center p-12">
-            <div className="text-center text-white">
-              <h2 className="text-4xl font-bold mb-6">
-                Tu Salud, Nuestra Prioridad
-              </h2>
-              <p className="text-xl mb-8 text-amber-100">
-                Únete a miles de pacientes que confían en nuestra plataforma
-              </p>
-              <div className="grid grid-cols-2 gap-6 text-left">
-                <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
-                  <h3 className="font-semibold mb-2">📅 Citas Online</h3>
-                  <p className="text-sm text-amber-100">
-                    Agenda tus consultas de manera rápida y sencilla
-                  </p>
+      {/* Right side - Hero */}
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        <div className="absolute inset-0 h-full w-full bg-gradient-to-br from-blue-400 via-cyan-500 to-teal-500">
+          {/* Overlay pattern */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/90 to-cyan-600/90"></div>
+
+          {/* Background image overlay */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+            style={{
+              backgroundImage: "url('/img/doctor-3.jpg')",
+            }}
+          ></div>
+
+          {/* Content */}
+          <div className="relative z-10 flex flex-col justify-center h-full px-12 xl:px-16">
+            {/* Logo */}
+            <div className="mb-8">
+              <img className="h-16 w-auto" src="/logo.png" alt="Logo" />
+            </div>
+
+            {/* Título principal */}
+            <h1 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
+              Tu Salud,
+              <br />
+              <span className="text-cyan-100">Nuestra Prioridad</span>
+            </h1>
+
+            {/* Descripción */}
+            <p className="text-xl text-cyan-50 mb-8 leading-relaxed max-w-md">
+              Únete a miles de pacientes que confían en nuestra plataforma
+              médica integral
+            </p>
+
+            {/* Features Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+                <div className="flex items-center mb-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-white">Citas Online</h3>
                 </div>
-                <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
-                  <h3 className="font-semibold mb-2">📋 Historial Digital</h3>
-                  <p className="text-sm text-amber-100">
-                    Accede a tu historial médico desde cualquier lugar
-                  </p>
-                </div>
-                <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
-                  <h3 className="font-semibold mb-2">💊 Recetas Digitales</h3>
-                  <p className="text-sm text-amber-100">
-                    Descarga y gestiona tus prescripciones médicas
-                  </p>
-                </div>
-                <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
-                  <h3 className="font-semibold mb-2">🔔 Recordatorios</h3>
-                  <p className="text-sm text-amber-100">
-                    Nunca olvides una cita o medicación importante
-                  </p>
-                </div>
+                <p className="text-sm text-cyan-100">
+                  Agenda consultas de manera rápida y sencilla
+                </p>
               </div>
+
+              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+                <div className="flex items-center mb-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                      <path
+                        fillRule="evenodd"
+                        d="M4 5a2 2 0 012-2v1a2 2 0 002 2h2a2 2 0 002-2V3a2 2 0 012 2v6h-3a2 2 0 100 4h3v2a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm8 5H8v2h4v-2z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-white">
+                    Historial Digital
+                  </h3>
+                </div>
+                <p className="text-sm text-cyan-100">
+                  Tu historial médico siempre disponible
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+                <div className="flex items-center mb-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-white">
+                    Recetas Digitales
+                  </h3>
+                </div>
+                <p className="text-sm text-cyan-100">
+                  Gestiona tus prescripciones fácilmente
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+                <div className="flex items-center mb-2">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-white">Recordatorios</h3>
+                </div>
+                <p className="text-sm text-cyan-100">
+                  Nunca olvides citas o medicación
+                </p>
+              </div>
+            </div>
+
+            {/* Decorative elements */}
+            <div className="absolute bottom-12 right-12 opacity-10">
+              <svg
+                className="w-24 h-24 text-white"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
             </div>
           </div>
         </div>

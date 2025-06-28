@@ -12,6 +12,7 @@ import {
 import { db } from "../../lib/firebase";
 import PatientLayout from "../../components/paciente/PatientLayout";
 import ProtectedPatientRoute from "../../components/paciente/ProtectedPatientRoute";
+import CompleteProfileModal from "../../components/paciente/CompleteProfileModal";
 import {
   UserCircleIcon,
   CalendarIcon,
@@ -23,6 +24,7 @@ import {
   PlusIcon,
   StarIcon,
   CheckCircleIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
 
 export default function PatientDashboard() {
@@ -33,6 +35,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
 
   useEffect(() => {
     async function loadPatientData() {
@@ -53,6 +56,19 @@ export default function PatientDashboard() {
           const patientDoc = patientsSnapshot.docs[0];
           const patient = { id: patientDoc.id, ...patientDoc.data() };
           setPatientData(patient);
+
+          // Check if profile is incomplete
+          const isIncomplete = !patient.dataComplete || 
+                              !patient.phone || 
+                              !patient.dateOfBirth || 
+                              !patient.gender || 
+                              !patient.address || 
+                              !patient.emergencyContact || 
+                              !patient.emergencyPhone;
+          
+          if (isIncomplete) {
+            setShowCompleteProfileModal(true);
+          }
 
           // Get doctor data
           if (patient.doctorId) {
@@ -106,6 +122,11 @@ export default function PatientDashboard() {
 
     loadPatientData();
   }, [currentUser, router]);
+
+  const handleCompleteProfile = (updatedData) => {
+    setPatientData(prev => ({ ...prev, ...updatedData }));
+    setShowCompleteProfileModal(false);
+  };
 
   if (loading) {
     return (
@@ -255,6 +276,21 @@ export default function PatientDashboard() {
                   </button>
 
                   <button
+                    onClick={() => router.push("/paciente/medical-records")}
+                    className="w-full flex items-center p-3 text-left bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200"
+                  >
+                    <ClipboardDocumentListIcon className="h-5 w-5 text-green-600 mr-3" />
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        Historial Médico
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Ver registros y archivos
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
                     onClick={() => router.push("/paciente/reviews")}
                     className="w-full flex items-center p-3 text-left bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors duration-200"
                   >
@@ -398,6 +434,14 @@ export default function PatientDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Complete Profile Modal */}
+        <CompleteProfileModal
+          isOpen={showCompleteProfileModal}
+          patientData={patientData}
+          onClose={() => setShowCompleteProfileModal(false)}
+          onComplete={handleCompleteProfile}
+        />
       </PatientLayout>
     </ProtectedPatientRoute>
   );

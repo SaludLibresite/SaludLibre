@@ -7,6 +7,7 @@ import {
   CalendarIcon,
   UserIcon,
   StarIcon,
+  ClipboardDocumentListIcon,
   Bars3Icon,
   XMarkIcon,
   ChevronLeftIcon,
@@ -22,6 +23,12 @@ const menuItems = [
     href: "/paciente/appointments",
     icon: CalendarIcon,
     description: "Ver y gestionar mis citas médicas",
+  },
+  {
+    name: "Historial Médico",
+    href: "/paciente/medical-records",
+    icon: ClipboardDocumentListIcon,
+    description: "Registros, archivos y prescripciones",
   },
   {
     name: "Perfil",

@@ -19,6 +19,7 @@ import {
   updateAppointmentStatus,
 } from "../../lib/appointmentsService";
 import { getPatientById, addMedicalNote } from "../../lib/patientsService";
+import AppointmentDocuments from "./AppointmentDocuments";
 
 export default function AppointmentDetail({ appointmentId }) {
   const { currentUser } = useAuth();
@@ -475,17 +476,7 @@ export default function AppointmentDetail({ appointmentId }) {
         )}
 
         {activeTab === "Documentos" && (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Documentos
-            </h3>
-            <div className="text-center py-8">
-              <DocumentIcon className="mx-auto h-8 w-8 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500">
-                Funcionalidad de documentos próximamente disponible
-              </p>
-            </div>
-          </div>
+          <AppointmentDocuments appointmentId={appointmentId} />
         )}
       </div>
     </div>

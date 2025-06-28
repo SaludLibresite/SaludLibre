@@ -3,6 +3,7 @@ import AdminLayout from "../../components/admin/AdminLayout";
 import DashboardStats from "../../components/admin/DashboardStats";
 import RecentAppointments from "../../components/admin/RecentAppointments";
 import UpcomingAppointments from "../../components/admin/UpcomingAppointments";
+import PendingAppointments from "../../components/admin/PendingAppointments";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
@@ -47,6 +48,11 @@ export default function AdminDashboard() {
           </div>
 
           <DashboardStats />
+
+          {/* Pending Appointments - Full Width */}
+          <div className="mt-8">
+            <PendingAppointments />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
             <RecentAppointments />
