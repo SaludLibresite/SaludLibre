@@ -1,7 +1,7 @@
 # Sistema de Creación de Pacientes con Firebase Auth y Resend
 
 ## 📋 Descripción General
-
+y
 Este sistema permite a los doctores crear cuentas de pacientes automáticamente en Firebase Auth, almacenar sus datos en Firestore, y enviar emails de bienvenida con credenciales temporales usando Resend.
 
 ## 🏗️ Arquitectura del Sistema
