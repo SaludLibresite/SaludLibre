@@ -2,65 +2,30 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-const specialties = [
-  {
-    id: 1,
-    name: "Cardiología",
-    href: "/especialidades/cardiologia",
-  },
-  {
-    id: 2,
-    name: "Neurología",
-    href: "/especialidades/neurologia",
-  },
-  {
-    id: 3,
-    name: "Pediatría",
-    href: "/especialidades/pediatria",
-  },
-  {
-    id: 4,
-    name: "Dermatología",
-    href: "/especialidades/dermatologia",
-  },
-  {
-    id: 5,
-    name: "Traumatología",
-    href: "/especialidades/traumatologia",
-  },
-  {
-    id: 6,
-    name: "Oftalmología",
-    href: "/especialidades/oftalmologia",
-  },
-  {
-    id: 7,
-    name: "Ginecología",
-    href: "/especialidades/ginecologia",
-  },
-  {
-    id: 8,
-    name: "Odontología",
-    href: "/especialidades/odontologia",
-  },
+const platformLinks = [
+  { name: "Inicio", href: "/" },
+  { name: "Buscar Doctores", href: "/doctores" },
+  { name: "Portal Pacientes", href: "/paciente/" },
+  { name: "Portal Doctores", href: "/admin/" },
+  { name: "Beneficios", href: "/beneficios" },
 ];
 
-const quickLinks = [
-  { name: "Encontrar médico", href: "/buscar-medico" },
-  { name: "Agendar cita", href: "/agendar" },
-  { name: "Emergencias", href: "/emergencias" },
-  { name: "Telemedicina", href: "/telemedicina" },
+const supportLinks = [
+  { name: "Preguntas frecuentes", href: "/preguntas-frecuentes" },
+  { name: "Términos y condiciones", href: "/terminos" },
+  { name: "Política de privacidad", href: "/privacidad" },
+  { name: "Política de cookies", href: "/cookies" },
 ];
 
 const contactInfo = [
   { label: "Teléfono", value: "+54 11 4444-5555" },
-  { label: "Email", value: "contacto@doctores-ar.com" },
+  { label: "Email", value: "contacto@saludlibre.com.ar" },
   { label: "Dirección", value: "Av. Principal 1234, CABA" },
 ];
 
 export default function Footer() {
   return (
-    <footer className=" mt-8 bg-gradient-to-br from-white via-blue-50/30 to-white rounded-2xl border-t border-gray-100">
+    <footer className=" mt-8 bg-gradient-to-br bg-white rounded-2xl border-t border-gray-100">
       <div className="mx-auto max-w-7xl px-6 pb-8 pt-16 sm:pt-20 lg:px-8">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           {/* Logo y descripción */}
@@ -68,7 +33,7 @@ export default function Footer() {
             <div className="flex items-center">
               <Image
                 src="/logo.png"
-                alt="Doctores AR"
+                alt="Salud Libre"
                 width={800}
                 height={800}
                 className="h-14 w-auto"
@@ -123,43 +88,41 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Enlaces y especialidades */}
-          <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-            <div className="md:grid md:grid-cols-2 md:gap-8">
-              <div>
-                <h3 className="text-sm font-semibold leading-6 text-gray-900">
-                  Especialidades
-                </h3>
-                <ul role="list" className="mt-6 space-y-4">
-                  {specialties.map((specialty) => (
-                    <li key={specialty.id}>
-                      <Link
-                        href={specialty.href}
-                        className="text-sm leading-6 text-gray-600 hover:text-gray-900"
-                      >
-                        {specialty.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-10 md:mt-0">
-                <h3 className="text-sm font-semibold leading-6 text-gray-900">
-                  Enlaces rápidos
-                </h3>
-                <ul role="list" className="mt-6 space-y-4">
-                  {quickLinks.map((link) => (
-                    <li key={link.name}>
-                      <Link
-                        href={link.href}
-                        className="text-sm leading-6 text-gray-600 hover:text-gray-900"
-                      >
-                        {link.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          {/* Enlaces principales */}
+          <div className="mt-16 grid grid-cols-1 gap-8 xl:col-span-2 xl:mt-0 xl:grid-cols-3">
+            <div>
+              <h3 className="text-sm font-semibold leading-6 text-gray-900">
+                Plataforma
+              </h3>
+              <ul role="list" className="mt-6 space-y-4">
+                {platformLinks.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="text-sm leading-6 text-gray-600 hover:text-gray-900"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold leading-6 text-gray-900">
+                Soporte y Legal
+              </h3>
+              <ul role="list" className="mt-6 space-y-4">
+                {supportLinks.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="text-sm leading-6 text-gray-600 hover:text-gray-900"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
             <div>
               <h3 className="text-sm font-semibold leading-6 text-gray-900">
@@ -182,33 +145,13 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Copyright y links legales */}
+        {/* Copyright */}
         <div className="mt-16 border-t border-gray-900/10 pt-8 sm:mt-20 lg:mt-24">
-          <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="text-center">
             <p className="text-xs leading-5 text-gray-500">
-              &copy; {new Date().getFullYear()} Doctores AR. Todos los derechos
+              &copy; {new Date().getFullYear()} Salud Libre. Todos los derechos
               reservados.
             </p>
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <Link
-                href="/privacidad"
-                className="text-xs leading-5 text-gray-600 hover:text-gray-900"
-              >
-                Política de privacidad
-              </Link>
-              <Link
-                href="/terminos"
-                className="text-xs leading-5 text-gray-600 hover:text-gray-900"
-              >
-                Términos y condiciones
-              </Link>
-              <Link
-                href="/cookies"
-                className="text-xs leading-5 text-gray-600 hover:text-gray-900"
-              >
-                Política de cookies
-              </Link>
-            </div>
           </div>
         </div>
       </div>

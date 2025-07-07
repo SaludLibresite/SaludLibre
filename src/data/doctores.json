@@ -12,7 +12,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": false,
-    "ubicacion": "Palermo"
+    "ubicacion": "Palermo",
+    "prepagas": ["OSDE", "Swiss Medical", "Galeno"]
   },
   {
     "id": 2,
@@ -27,7 +28,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": true,
-    "ubicacion": "Recoleta"
+    "ubicacion": "Recoleta",
+    "prepagas": ["OSDE", "Swiss Medical", "Medicus", "Galeno", "Sancor Salud"]
   },
   {
     "id": 3,
@@ -42,7 +44,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": true,
-    "ubicacion": "Belgrano"
+    "ubicacion": "Belgrano",
+    "prepagas": ["OSDE", "Swiss Medical", "Medicus", "Galeno"]
   },
   {
     "id": 4,
@@ -57,7 +60,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": false,
-    "ubicacion": "San Telmo"
+    "ubicacion": "San Telmo",
+    "prepagas": ["OSDE", "Galeno", "IOMA"]
   },
   {
     "id": 5,
@@ -72,7 +76,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": true,
-    "ubicacion": "Palermo"
+    "ubicacion": "Palermo",
+    "prepagas": ["Swiss Medical", "Medicus", "Sancor Salud"]
   },
   {
     "id": 6,
@@ -87,7 +92,8 @@
     "horario": "Lunes a Viernes, 10:00 AM - 6:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Recoleta"
+    "ubicacion": "Recoleta",
+    "prepagas": ["OSDE", "Swiss Medical", "Galeno", "IOMA", "PAMI"]
   },
   {
     "id": 7,
@@ -102,7 +108,8 @@
     "horario": "Martes a Sábado, 9:00 AM - 5:00 PM",
     "genero": "Femenino",
     "consultaOnline": false,
-    "ubicacion": "Belgrano"
+    "ubicacion": "Belgrano",
+    "prepagas": ["OSDE", "Medicus", "Galeno", "Sancor Salud"]
   },
   {
     "id": 8,
@@ -117,7 +124,15 @@
     "horario": "Lunes a Viernes, 8:00 AM - 4:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Palermo"
+    "ubicacion": "Palermo",
+    "prepagas": [
+      "OSDE",
+      "Swiss Medical",
+      "Medicus",
+      "Galeno",
+      "Sancor Salud",
+      "IOMA"
+    ]
   },
   {
     "id": 9,
@@ -132,7 +147,8 @@
     "horario": "Lunes a Sábado, 9:00 AM - 3:00 PM",
     "genero": "Masculino",
     "consultaOnline": false,
-    "ubicacion": "Belgrano"
+    "ubicacion": "Belgrano",
+    "prepagas": ["Swiss Medical", "Galeno", "OSDE"]
   },
   {
     "id": 10,
@@ -147,7 +163,8 @@
     "horario": "Martes a Viernes, 10:00 AM - 6:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Recoleta"
+    "ubicacion": "Recoleta",
+    "prepagas": ["OSDE", "Swiss Medical", "Medicus", "Galeno", "Sancor Salud"]
   },
   {
     "id": 11,
@@ -162,7 +179,8 @@
     "horario": "Lunes a Viernes, 11:00 AM - 7:00 PM",
     "genero": "Masculino",
     "consultaOnline": true,
-    "ubicacion": "San Telmo"
+    "ubicacion": "San Telmo",
+    "prepagas": ["OSDE", "Medicus", "Galeno", "IOMA"]
   },
   {
     "id": 12,
@@ -177,7 +195,15 @@
     "horario": "Lunes a Jueves, 8:30 AM - 4:30 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Palermo"
+    "ubicacion": "Palermo",
+    "prepagas": [
+      "OSDE",
+      "Swiss Medical",
+      "Medicus",
+      "Galeno",
+      "Sancor Salud",
+      "PAMI"
+    ]
   },
   {
     "id": 13,
@@ -192,7 +218,8 @@
     "horario": "Miércoles a Domingo, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": false,
-    "ubicacion": "Belgrano"
+    "ubicacion": "Belgrano",
+    "prepagas": ["Galeno", "Sancor Salud", "IOMA"]
   },
   {
     "id": 14,
@@ -207,7 +234,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Recoleta"
+    "ubicacion": "Recoleta",
+    "prepagas": ["OSDE", "Swiss Medical", "Medicus", "Galeno", "IOMA", "PAMI"]
   },
   {
     "id": 15,
@@ -222,7 +250,8 @@
     "horario": "Lunes a Sábado, 8:00 AM - 4:00 PM",
     "genero": "Masculino",
     "consultaOnline": true,
-    "ubicacion": "San Telmo"
+    "ubicacion": "San Telmo",
+    "prepagas": ["Swiss Medical", "Medicus", "Galeno", "Sancor Salud"]
   },
   {
     "id": 16,
@@ -237,7 +266,8 @@
     "horario": "Martes a Sábado, 10:00 AM - 6:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Palermo"
+    "ubicacion": "Palermo",
+    "prepagas": ["OSDE", "Swiss Medical", "Medicus", "Galeno", "Sancor Salud"]
   },
   {
     "id": 17,
@@ -252,7 +282,8 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Masculino",
     "consultaOnline": false,
-    "ubicacion": "Belgrano"
+    "ubicacion": "Belgrano",
+    "prepagas": ["OSDE", "Galeno", "IOMA", "PAMI"]
   },
   {
     "id": 18,
@@ -267,7 +298,8 @@
     "horario": "Lunes a Jueves, 11:00 AM - 7:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Recoleta"
+    "ubicacion": "Recoleta",
+    "prepagas": ["OSDE", "Swiss Medical", "Medicus", "Galeno", "Sancor Salud"]
   },
   {
     "id": 19,
@@ -282,7 +314,8 @@
     "horario": "Miércoles a Domingo, 8:30 AM - 4:30 PM",
     "genero": "Masculino",
     "consultaOnline": true,
-    "ubicacion": "San Telmo"
+    "ubicacion": "San Telmo",
+    "prepagas": ["Swiss Medical", "Medicus", "Galeno", "Sancor Salud", "IOMA"]
   },
   {
     "id": 20,
@@ -297,7 +330,15 @@
     "horario": "Lunes a Viernes, 9:00 AM - 5:00 PM",
     "genero": "Femenino",
     "consultaOnline": true,
-    "ubicacion": "Palermo"
+    "ubicacion": "Palermo",
+    "prepagas": [
+      "OSDE",
+      "Swiss Medical",
+      "Medicus",
+      "Galeno",
+      "Sancor Salud",
+      "IOMA"
+    ]
   },
   {
     "id": 21,
@@ -312,6 +353,7 @@
     "horario": "Lunes a Sábado, 10:00 AM - 6:00 PM",
     "genero": "Masculino",
     "consultaOnline": false,
-    "ubicacion": "Belgrano"
+    "ubicacion": "Belgrano",
+    "prepagas": ["Galeno", "Sancor Salud", "IOMA", "PAMI"]
   }
 ]

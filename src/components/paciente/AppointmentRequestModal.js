@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { getAllDoctors } from "../../lib/doctorsService";
-import { requestAppointment, getAvailableTimeSlots } from "../../lib/appointmentsService";
+import {
+  requestAppointment,
+  getAvailableTimeSlots,
+} from "../../lib/appointmentsService";
 import {
   XMarkIcon,
   CalendarIcon,
@@ -12,7 +15,12 @@ import {
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 
-export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, patientId }) {
+export default function AppointmentRequestModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  patientId,
+}) {
   const { currentUser } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -57,21 +65,28 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showDoctorDropdown && !event.target.closest('.doctor-search-container')) {
+      if (
+        showDoctorDropdown &&
+        !event.target.closest(".doctor-search-container")
+      ) {
         setShowDoctorDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showDoctorDropdown]);
 
   const loadDoctors = async () => {
     try {
       const doctorsList = await getAllDoctors();
-      setDoctors(doctorsList);
+      // Only show verified doctors
+      const verifiedDoctors = doctorsList.filter(
+        (doctor) => doctor.verified === true
+      );
+      setDoctors(verifiedDoctors);
     } catch (error) {
       console.error("Error loading doctors:", error);
       setMessage("Error al cargar la lista de doctores");
@@ -80,7 +95,9 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
 
   // Get unique specialties from doctors
   const getSpecialties = () => {
-    const specialties = [...new Set(doctors.map(doctor => doctor.especialidad))];
+    const specialties = [
+      ...new Set(doctors.map((doctor) => doctor.especialidad)),
+    ];
     return specialties.sort();
   };
 
@@ -89,15 +106,18 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
     let filtered = doctors;
 
     if (selectedSpecialty) {
-      filtered = filtered.filter(doctor => doctor.especialidad === selectedSpecialty);
+      filtered = filtered.filter(
+        (doctor) => doctor.especialidad === selectedSpecialty
+      );
     }
 
     if (doctorSearchTerm.trim()) {
       const searchLower = doctorSearchTerm.toLowerCase();
-      filtered = filtered.filter(doctor => 
-        doctor.nombre.toLowerCase().includes(searchLower) ||
-        doctor.especialidad.toLowerCase().includes(searchLower) ||
-        doctor.ubicacion.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        (doctor) =>
+          doctor.nombre.toLowerCase().includes(searchLower) ||
+          doctor.especialidad.toLowerCase().includes(searchLower) ||
+          doctor.ubicacion.toLowerCase().includes(searchLower)
       );
     }
 
@@ -112,7 +132,10 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
 
   const loadAvailableSlots = async () => {
     try {
-      const slots = await getAvailableTimeSlots(formData.doctorId, new Date(formData.date));
+      const slots = await getAvailableTimeSlots(
+        formData.doctorId,
+        new Date(formData.date)
+      );
       setAvailableSlots(slots);
     } catch (error) {
       console.error("Error loading available slots:", error);
@@ -121,20 +144,20 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
 
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [field]: "",
       }));
     }
 
     if (field === "date" || field === "doctorId") {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         time: "",
       }));
@@ -144,10 +167,10 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
   const handleSpecialtyChange = (specialty) => {
     setSelectedSpecialty(specialty);
     setDoctorSearchTerm("");
-    setFormData(prev => ({ ...prev, doctorId: "" }));
+    setFormData((prev) => ({ ...prev, doctorId: "" }));
     setShowDoctorDropdown(false);
     if (errors.specialty) {
-      setErrors(prev => ({ ...prev, specialty: "" }));
+      setErrors((prev) => ({ ...prev, specialty: "" }));
     }
   };
 
@@ -209,8 +232,8 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
       setLoading(true);
       setMessage("");
 
-      const selectedDoctor = doctors.find(d => d.id === formData.doctorId);
-      
+      const selectedDoctor = doctors.find((d) => d.id === formData.doctorId);
+
       const appointmentData = {
         patientId,
         doctorId: formData.doctorId,
@@ -226,13 +249,12 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
       };
 
       await requestAppointment(appointmentData);
-      
+
       setMessage("¡Solicitud de cita enviada exitosamente!");
       setTimeout(() => {
         onSuccess && onSuccess();
         onClose();
       }, 2000);
-
     } catch (error) {
       console.error("Error requesting appointment:", error);
       setMessage("Error al enviar la solicitud. Intenta nuevamente.");
@@ -243,15 +265,15 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
 
   if (!isOpen) return null;
 
-  const selectedDoctor = doctors.find(d => d.id === formData.doctorId);
+  const selectedDoctor = doctors.find((d) => d.id === formData.doctorId);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
+  const minDate = tomorrow.toISOString().split("T")[0];
 
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 3);
-  const maxDateStr = maxDate.toISOString().split('T')[0];
+  const maxDateStr = maxDate.toISOString().split("T")[0];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -267,9 +289,7 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
                 <h2 className="text-xl font-bold text-gray-900">
                   Solicitar Cita Médica
                 </h2>
-                <p className="text-sm text-gray-600">
-                  Paso {step} de 2
-                </p>
+                <p className="text-sm text-gray-600">Paso {step} de 2</p>
               </div>
             </div>
             <button
@@ -286,17 +306,27 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step >= 1 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  step >= 1
+                    ? "bg-amber-500 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
                 1
               </div>
-              <div className={`flex-1 h-1 mx-2 ${
-                step >= 2 ? 'bg-amber-500' : 'bg-gray-200'
-              }`}></div>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step >= 2 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
+              <div
+                className={`flex-1 h-1 mx-2 ${
+                  step >= 2 ? "bg-amber-500" : "bg-gray-200"
+                }`}
+              ></div>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  step >= 2
+                    ? "bg-amber-500 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
                 2
               </div>
             </div>
@@ -308,11 +338,13 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
 
           {/* Message */}
           {message && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              message.includes("Error") 
-                ? "bg-red-100 text-red-700 border border-red-200"
-                : "bg-green-100 text-green-700 border border-green-200"
-            }`}>
+            <div
+              className={`mb-6 p-4 rounded-lg ${
+                message.includes("Error")
+                  ? "bg-red-100 text-red-700 border border-red-200"
+                  : "bg-green-100 text-green-700 border border-green-200"
+              }`}
+            >
               <div className="flex items-center">
                 {message.includes("Error") ? (
                   <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
@@ -347,111 +379,130 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
                   ))}
                 </select>
                 {errors.specialty && (
-                  <p className="text-red-500 text-sm mt-1">{errors.specialty}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.specialty}
+                  </p>
                 )}
               </div>
 
-                             {/* Doctor Search and Selection */}
-               {selectedSpecialty && (
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     Buscar y Seleccionar Doctor *
-                   </label>
-                   <div className="relative doctor-search-container">
-                     <div className="relative">
-                       <input
-                         type="text"
-                         value={doctorSearchTerm}
-                         onChange={(e) => {
-                           setDoctorSearchTerm(e.target.value);
-                           setShowDoctorDropdown(true);
-                           // Clear selection if search term changes and doesn't match current selection
-                           if (formData.doctorId) {
-                             const selectedDoctor = doctors.find(d => d.id === formData.doctorId);
-                             if (selectedDoctor && !e.target.value.includes(selectedDoctor.nombre)) {
-                               setFormData(prev => ({ ...prev, doctorId: "" }));
-                             }
-                           }
-                         }}
-                         onFocus={() => setShowDoctorDropdown(true)}
-                         className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 ${
-                           errors.doctorId ? "border-red-500" : "border-gray-300"
-                         }`}
-                         placeholder={`Buscar doctor en ${selectedSpecialty}...`}
-                       />
-                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center">
-                         <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 mr-1" />
-                         <ChevronDownIcon className={`h-4 w-4 text-gray-400 transition-transform ${
-                           showDoctorDropdown ? 'rotate-180' : ''
-                         }`} />
-                       </div>
-                     </div>
+              {/* Doctor Search and Selection */}
+              {selectedSpecialty && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Buscar y Seleccionar Doctor *
+                  </label>
+                  <div className="relative doctor-search-container">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={doctorSearchTerm}
+                        onChange={(e) => {
+                          setDoctorSearchTerm(e.target.value);
+                          setShowDoctorDropdown(true);
+                          // Clear selection if search term changes and doesn't match current selection
+                          if (formData.doctorId) {
+                            const selectedDoctor = doctors.find(
+                              (d) => d.id === formData.doctorId
+                            );
+                            if (
+                              selectedDoctor &&
+                              !e.target.value.includes(selectedDoctor.nombre)
+                            ) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                doctorId: "",
+                              }));
+                            }
+                          }
+                        }}
+                        onFocus={() => setShowDoctorDropdown(true)}
+                        className={`w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 ${
+                          errors.doctorId ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder={`Buscar doctor en ${selectedSpecialty}...`}
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center">
+                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 mr-1" />
+                        <ChevronDownIcon
+                          className={`h-4 w-4 text-gray-400 transition-transform ${
+                            showDoctorDropdown ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </div>
 
-                     {/* Dropdown with filtered doctors */}
-                     {showDoctorDropdown && (
-                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                         {getFilteredDoctors().length > 0 ? (
-                           getFilteredDoctors().map((doctor) => (
-                             <button
-                               key={doctor.id}
-                               type="button"
-                               onClick={() => handleDoctorSelect(doctor)}
-                               className="w-full px-4 py-3 text-left hover:bg-amber-50 border-b border-gray-100 last:border-b-0 focus:bg-amber-50 focus:outline-none"
-                             >
-                               <div className="flex items-center justify-between">
-                                 <div>
-                                   <p className="font-medium text-gray-900">
-                                     Dr. {doctor.nombre}
-                                   </p>
-                                   <p className="text-sm text-gray-600">
-                                     {doctor.especialidad} • {doctor.ubicacion}
-                                   </p>
-                                   {doctor.consultaOnline && (
-                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
-                                       Consulta Online
-                                     </span>
-                                   )}
-                                 </div>
-                                 <div className="text-right">
-                                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                     doctor.rango === "VIP" 
-                                       ? "bg-purple-100 text-purple-800"
-                                       : doctor.rango === "Intermedio"
-                                       ? "bg-blue-100 text-blue-800"
-                                       : "bg-gray-100 text-gray-800"
-                                   }`}>
-                                     {doctor.rango}
-                                   </span>
-                                 </div>
-                               </div>
-                             </button>
-                           ))
-                         ) : (
-                           <div className="px-4 py-3 text-center text-gray-500">
-                             No se encontraron doctores en {selectedSpecialty}
-                           </div>
-                         )}
-                       </div>
-                     )}
-                   </div>
-                   {errors.doctorId && (
-                     <p className="text-red-500 text-sm mt-1">{errors.doctorId}</p>
-                   )}
-                 </div>
-               )}
-
-              {/* Show message if no doctors available in selected specialty */}
-              {selectedSpecialty && doctors.filter(d => d.especialidad === selectedSpecialty).length === 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 mr-2" />
-                    <p className="text-yellow-800 text-sm">
-                      No hay doctores disponibles para la especialidad <strong>{selectedSpecialty}</strong>.
-                      Por favor, selecciona otra especialidad.
-                    </p>
+                    {/* Dropdown with filtered doctors */}
+                    {showDoctorDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {getFilteredDoctors().length > 0 ? (
+                          getFilteredDoctors().map((doctor) => (
+                            <button
+                              key={doctor.id}
+                              type="button"
+                              onClick={() => handleDoctorSelect(doctor)}
+                              className="w-full px-4 py-3 text-left hover:bg-amber-50 border-b border-gray-100 last:border-b-0 focus:bg-amber-50 focus:outline-none"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    Dr. {doctor.nombre}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {doctor.especialidad} • {doctor.ubicacion}
+                                  </p>
+                                  {doctor.consultaOnline && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                      Consulta Online
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                      doctor.rango === "VIP"
+                                        ? "bg-purple-100 text-purple-800"
+                                        : doctor.rango === "Intermedio"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {doctor.rango}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-center text-gray-500">
+                            No se encontraron doctores en {selectedSpecialty}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
+                  {errors.doctorId && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.doctorId}
+                    </p>
+                  )}
                 </div>
               )}
+
+              {/* Show message if no doctors available in selected specialty */}
+              {selectedSpecialty &&
+                doctors.filter((d) => d.especialidad === selectedSpecialty)
+                  .length === 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 mr-2" />
+                      <p className="text-yellow-800 text-sm">
+                        No hay doctores disponibles para la especialidad{" "}
+                        <strong>{selectedSpecialty}</strong>. Por favor,
+                        selecciona otra especialidad.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
               {/* Selected Doctor Info */}
               {selectedDoctor && (
@@ -464,8 +515,12 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
                       <h4 className="font-semibold text-gray-900">
                         Dr. {selectedDoctor.nombre}
                       </h4>
-                      <p className="text-gray-600 text-sm">{selectedDoctor.especialidad}</p>
-                      <p className="text-gray-500 text-xs">{selectedDoctor.ubicacion}</p>
+                      <p className="text-gray-600 text-sm">
+                        {selectedDoctor.especialidad}
+                      </p>
+                      <p className="text-gray-500 text-xs">
+                        {selectedDoctor.ubicacion}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -519,7 +574,8 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
                   </p>
                 ) : (
                   <p className="text-gray-500 text-sm p-3 bg-gray-50 rounded-lg">
-                    Selecciona una especialidad y un doctor para ver horarios disponibles
+                    Selecciona una especialidad y un doctor para ver horarios
+                    disponibles
                   </p>
                 )}
                 {errors.time && (
@@ -601,23 +657,40 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
 
               {/* Summary */}
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                <h4 className="font-medium text-gray-900 mb-2">Resumen de la Cita</h4>
+                <h4 className="font-medium text-gray-900 mb-2">
+                  Resumen de la Cita
+                </h4>
                 <div className="space-y-1 text-sm text-gray-600">
-                  <p><strong>Doctor:</strong> Dr. {selectedDoctor?.nombre}</p>
-                  <p><strong>Especialidad:</strong> {selectedDoctor?.especialidad}</p>
-                  <p><strong>Fecha:</strong> {formData.date && new Date(formData.date).toLocaleDateString('es-ES', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</p>
-                  <p><strong>Hora:</strong> {formData.time}</p>
-                  <p><strong>Tipo:</strong> {
-                    formData.type === 'consultation' ? 'Consulta General' :
-                    formData.type === 'followup' ? 'Control/Seguimiento' :
-                    formData.type === 'specialist' ? 'Consulta Especializada' :
-                    'Urgencia'
-                  }</p>
+                  <p>
+                    <strong>Doctor:</strong> Dr. {selectedDoctor?.nombre}
+                  </p>
+                  <p>
+                    <strong>Especialidad:</strong>{" "}
+                    {selectedDoctor?.especialidad}
+                  </p>
+                  <p>
+                    <strong>Fecha:</strong>{" "}
+                    {formData.date &&
+                      new Date(formData.date).toLocaleDateString("es-ES", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                  </p>
+                  <p>
+                    <strong>Hora:</strong> {formData.time}
+                  </p>
+                  <p>
+                    <strong>Tipo:</strong>{" "}
+                    {formData.type === "consultation"
+                      ? "Consulta General"
+                      : formData.type === "followup"
+                      ? "Control/Seguimiento"
+                      : formData.type === "specialist"
+                      ? "Consulta Especializada"
+                      : "Urgencia"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -675,4 +748,4 @@ export default function AppointmentRequestModal({ isOpen, onClose, onSuccess, pa
       </div>
     </div>
   );
-} 
+}

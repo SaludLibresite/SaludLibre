@@ -206,7 +206,7 @@ export default function AdminLayout({ children }) {
         className={`transition-all duration-300 ease-in-out ${contentMargin}`}
       >
         {/* Top header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/95">
+        <header className=" shadow-sm border-b border-gray-200 sticky top-0 z-30">
           <div className="flex h-16 items-center justify-between px-6">
             <div className="flex items-center space-x-4">
               {/* Mobile menu button */}
@@ -267,7 +267,7 @@ export default function AdminLayout({ children }) {
 
                 {/* User dropdown menu */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 backdrop-blur-sm bg-white/95">
+                  <div className="absolute right-0 mt-2 w-56  rounded-xl shadow-lg border border-gray-200 py-2 z-50 ">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">
                         {doctorData ? doctorData.nombre : "Cargando..."}

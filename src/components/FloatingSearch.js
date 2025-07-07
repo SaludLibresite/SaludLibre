@@ -78,6 +78,25 @@ const DoctorResult = ({ doctor }) => (
             {doctor.rango}
           </span>
         </div>
+        {doctor.prepagas && doctor.prepagas.length > 0 && (
+          <div className="mt-2">
+            <div className="flex flex-wrap gap-1">
+              {doctor.prepagas.slice(0, 3).map((prepaga, index) => (
+                <span
+                  key={index}
+                  className="inline-block px-2 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded"
+                >
+                  {prepaga}
+                </span>
+              ))}
+              {doctor.prepagas.length > 3 && (
+                <span className="inline-block px-2 py-0.5 bg-gray-50 text-gray-600 text-xs font-medium rounded">
+                  +{doctor.prepagas.length - 3}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   </motion.div>
@@ -88,7 +107,7 @@ const SearchFilters = ({ filters, isVisible }) => (
     initial={{ height: 0, opacity: 0 }}
     animate={{ height: isVisible ? "auto" : 0, opacity: isVisible ? 1 : 0 }}
     transition={{ duration: 0.3, ease: "easeInOut" }}
-    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-6 overflow-hidden"
+    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-6 overflow-hidden"
   >
     {filters.map((filter) => (
       <div key={filter.id} className="space-y-2">
@@ -138,7 +157,11 @@ const SearchModal = ({
     const loadDoctors = async () => {
       try {
         const doctors = await getAllDoctors();
-        setDoctoresData(doctors);
+        // Only show verified doctors
+        const verifiedDoctors = doctors.filter(
+          (doctor) => doctor.verified === true
+        );
+        setDoctoresData(verifiedDoctors);
       } catch (error) {
         console.error("Error loading doctors:", error);
       }
@@ -163,7 +186,11 @@ const SearchModal = ({
         const results = doctoresData.filter(
           (d) =>
             d.nombre.toLowerCase().includes(modalSearch.toLowerCase()) ||
-            d.especialidad.toLowerCase().includes(modalSearch.toLowerCase())
+            d.especialidad.toLowerCase().includes(modalSearch.toLowerCase()) ||
+            (d.prepagas &&
+              d.prepagas.some((prepaga) =>
+                prepaga.toLowerCase().includes(modalSearch.toLowerCase())
+              ))
         );
         setTimeout(() => {
           setSearchResults(results);
@@ -229,7 +256,7 @@ const SearchModal = ({
                   type="text"
                   value={modalSearch}
                   onChange={(e) => setModalSearch(e.target.value)}
-                  placeholder="Buscar por nombre o especialidad..."
+                  placeholder="Buscar por nombre, especialidad o prepaga..."
                   className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -300,13 +327,13 @@ const FloatingSearch = ({ search, setSearch, filters }) => {
     <>
       <motion.div layout className="z-50 relative">
         <motion.div layout id="searchBar" className="container mx-auto mb-12">
-          <div className="p-6 md:p-8 bg-white shadow-2xl rounded-xl ring-1 ring-slate-200/50">
+          <div className="p-6  bg-white shadow-2xl rounded-xl ring-1 ring-slate-200/50">
             <div className="relative">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre o especialidad..."
+                placeholder="Buscar por nombre, especialidad o prepaga..."
                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               />
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">

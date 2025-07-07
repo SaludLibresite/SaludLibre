@@ -6,11 +6,12 @@ import DoctorInfo from "../../components/doctoresPage/DoctorInfo";
 import DoctorGallery from "../../components/doctoresPage/DoctorGallery";
 import DoctorReviews from "../../components/doctoresPage/DoctorReviews";
 import AgendarCita from "../../components/doctoresPage/AgendarCita";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/Footer";
 import DoctorCard from "../../components/doctoresPage/DoctorCard";
 import { getDoctorBySlug, getAllDoctors } from "../../lib/doctorsService";
 import { createAppointment } from "../../lib/appointmentsService";
+import { useAuth } from "../../context/AuthContext";
 
 // Animation variants
 const fadeInUp = {
@@ -50,6 +51,8 @@ export default function DoctorDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { currentUser } = useAuth();
 
   // Handle appointment submission
   const handleAppointmentSubmit = async (appointmentData) => {
@@ -62,6 +65,21 @@ export default function DoctorDetailPage() {
     }
   };
 
+  // Handle appointment button click
+  const handleAppointmentClick = () => {
+    if (currentUser) {
+      setIsModalOpen(true);
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
+  // Handle login redirect
+  const handleLoginRedirect = () => {
+    setShowLoginModal(false);
+    router.push("/paciente/login");
+  };
+
   // Load doctor data
   useEffect(() => {
     async function loadDoctor() {
@@ -72,6 +90,13 @@ export default function DoctorDetailPage() {
 
         // Get doctor by slug
         const doctorData = await getDoctorBySlug(id);
+
+        // Check if doctor is verified
+        if (doctorData.verified !== true) {
+          router.push("/doctores"); // Redirect if not verified
+          return;
+        }
+
         setDoctor(doctorData);
 
         // Get all doctors to find related ones
@@ -81,7 +106,7 @@ export default function DoctorDetailPage() {
             (d) =>
               d.id !== doctorData.id &&
               d.especialidad === doctorData.especialidad &&
-              d.verified !== false
+              d.verified === true
           )
           .sort((a, b) => {
             // Prioritize VIP doctors
@@ -138,23 +163,7 @@ export default function DoctorDetailPage() {
 
   return (
     <main className="bg-gray-50 min-h-screen">
-      <NavBar
-        links={[
-          { href: "/", label: "Inicio" },
-          { href: "/doctores", label: "Doctores" },
-          { href: "/beneficios", label: "Beneficios" },
-        ]}
-        button={{
-          text: "Agendar Cita",
-          onClick: () => {
-            // Scroll to appointment form
-            const sidebar = document.querySelector(".sticky");
-            sidebar?.scrollIntoView({ behavior: "smooth" });
-          },
-          className:
-            "bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200",
-        }}
-      />
+      <NavBar />
 
       <motion.div
         className="max-w-6xl mx-auto px-4 py-8"
@@ -405,11 +414,11 @@ export default function DoctorDetailPage() {
 
               {/* Appointment Button */}
               <button
-                onClick={() => setIsModalOpen(true)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 shadow-sm flex items-center justify-center gap-2"
+                onClick={handleAppointmentClick}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 group"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-5 h-5 group-hover:scale-110 transition-transform"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -421,14 +430,35 @@ export default function DoctorDetailPage() {
                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                Agendar Cita
+                {currentUser ? "Agendar Cita" : "Iniciar Sesión para Agendar"}
               </button>
 
               {/* Quick info */}
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-blue-800">
+                    {currentUser
+                      ? "Proceso rápido y sencillo"
+                      : "Cuenta requerida"}
+                  </span>
+                </div>
                 <p className="text-sm text-blue-700 text-center">
-                  Completa el formulario y te contactaremos para confirmar tu
-                  cita
+                  {currentUser
+                    ? "Completa el formulario y te contactaremos para confirmar tu cita"
+                    : "Crea una cuenta para poder agendar tu cita médica"}
                 </p>
               </div>
             </motion.div>
@@ -527,6 +557,77 @@ export default function DoctorDetailPage() {
         doctor={doctor}
         onSubmit={handleAppointmentSubmit}
       />
+
+      {/* Login Required Modal */}
+      <AnimatePresence>
+        {showLoginModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="text-center">
+                {/* Icon */}
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                  <svg
+                    className="h-6 w-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Cuenta requerida
+                </h3>
+
+                {/* Message */}
+                <p className="text-gray-600 mb-6">
+                  Debes crear una cuenta de paciente para poder agendar citas
+                  médicas.
+                </p>
+
+                {/* Actions */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowLoginModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleLoginRedirect}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Crear Cuenta
+                  </button>
+                </div>
+
+                {/* Additional info */}
+                <p className="text-sm text-gray-500 mt-4">
+                  ¿Ya tienes cuenta?{" "}
+                  <button
+                    onClick={handleLoginRedirect}
+                    className="text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Inicia sesión
+                  </button>
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </main>

@@ -6,21 +6,32 @@ import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
 import { getAllDoctors } from "../../lib/doctorsService";
 import Link from "next/link";
+import Footer from "../../components/Footer";
+import { useRouter } from "next/router";
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
 
 export default function DoctoresPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoria, setCategoria] = useState("");
   const [selectedGenero, setSelectedGenero] = useState("");
   const [selectedConsultaOnline, setSelectedConsultaOnline] = useState("");
   const [selectedRango, setSelectedRango] = useState("");
   const [selectedUbicacion, setSelectedUbicacion] = useState("");
+  const [selectedPrepaga, setSelectedPrepaga] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [doctoresData, setDoctoresData] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
+
+  // Read search parameter from URL
+  useEffect(() => {
+    if (router.isReady && router.query.search) {
+      setSearch(router.query.search);
+    }
+  }, [router.isReady, router.query.search]);
 
   // Load doctors from Firebase
   useEffect(() => {
@@ -28,15 +39,11 @@ export default function DoctoresPage() {
       try {
         setInitialLoading(true);
         const doctors = await getAllDoctors();
-        // Only show verified doctors or add a verification flag check
-        // const verifiedDoctors = doctors.filter(
-        //   (doctor) => doctor.verified !== false
-        // );
-        // setDoctoresData(verifiedDoctors);
-
-        // TEMPORAL: Mostrar todos los doctores para desarrollo
-        // Cambiar a verifiedDoctors cuando esté en producción
-        setDoctoresData(doctors);
+        // Only show verified doctors
+        const verifiedDoctors = doctors.filter(
+          (doctor) => doctor.verified === true
+        );
+        setDoctoresData(verifiedDoctors);
       } catch (error) {
         console.error("Error loading doctors:", error);
         setDoctoresData([]);
@@ -55,6 +62,9 @@ export default function DoctoresPage() {
   const generos = [...new Set(doctoresData.map((d) => d.genero))].sort();
   const rangos = ["VIP", "Intermedio", "Normal"];
   const ubicaciones = [...new Set(doctoresData.map((d) => d.ubicacion))].sort();
+  const prepagas = [
+    ...new Set(doctoresData.flatMap((d) => d.prepagas || [])),
+  ].sort();
 
   const filters = [
     {
@@ -95,6 +105,15 @@ export default function DoctoresPage() {
       setter: setSelectedUbicacion,
       options: ubicaciones,
     },
+    {
+      id: "prepaga",
+      label: "Prepaga",
+      value: selectedPrepaga,
+      setter: setSelectedPrepaga,
+      options: prepagas,
+      iconPath:
+        "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+    },
   ];
 
   const filteredDoctors = doctoresData.filter((d) => {
@@ -110,6 +129,9 @@ export default function DoctoresPage() {
     const rangoMatch = selectedRango === "" || d.rango === selectedRango;
     const ubicacionMatch =
       selectedUbicacion === "" || d.ubicacion === selectedUbicacion;
+    const prepagaMatch =
+      selectedPrepaga === "" ||
+      (d.prepagas && d.prepagas.includes(selectedPrepaga));
 
     return (
       searchMatch &&
@@ -117,7 +139,8 @@ export default function DoctoresPage() {
       generoMatch &&
       consultaOnlineMatch &&
       rangoMatch &&
-      ubicacionMatch
+      ubicacionMatch &&
+      prepagaMatch
     );
   });
 
@@ -140,6 +163,7 @@ export default function DoctoresPage() {
     selectedConsultaOnline,
     selectedRango,
     selectedUbicacion,
+    selectedPrepaga,
   ]);
 
   const totalPages = Math.ceil(filteredDoctors.length / DOCTORS_PER_PAGE);
@@ -164,20 +188,14 @@ export default function DoctoresPage() {
     selectedConsultaOnline,
     selectedRango,
     selectedUbicacion,
+    selectedPrepaga,
   ]);
 
   // Show initial loading screen
   if (initialLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
-        <NavBar
-          links={[
-            { href: "/", label: "Inicio" },
-            { href: "/doctores", label: "Doctores" },
-            { href: "/beneficios", label: "Beneficios" },
-          ]}
-          button={{ text: "Iniciar Sesión", href: "/auth/login" }}
-        />
+        <NavBar />
         <div className="container mx-auto px-6 py-24">
           <LoaderComponent />
         </div>
@@ -186,15 +204,8 @@ export default function DoctoresPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
-      <NavBar
-        links={[
-          { href: "/", label: "Inicio" },
-          { href: "/doctores", label: "Doctores" },
-          { href: "/beneficios", label: "Beneficios" },
-        ]}
-        button={{ text: "Iniciar Sesión", href: "/auth/login" }}
-      />
+    <div>
+      <NavBar />
 
       <main className="pb-24">
         {/* Hero Section */}
@@ -271,6 +282,7 @@ export default function DoctoresPage() {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --background-white: #ffffff;
 }
 
 @theme inline {
@@ -15,12 +16,34 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
+    --background-white: #1f1e1e;
     --foreground: #ededed;
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  ul,
+  label,
+  input,
+  textarea,
+  select,
+  a,
+  li {
+    color: var(--foreground);
+  }
+}
+
+.bg-white {
+  background-color: var(--background-white) !important;
 }
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
 }
 
 /* React Big Calendar Styles */
@@ -43,4 +66,8 @@ body {
   100% {
     background-position: 0% 50%;
   }
+}
+
+.container {
+  max-width: 85% !important;
 }

@@ -2,7 +2,7 @@ import Image from "next/image";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
+export default function HeroCarousel({ images }) {
   const [current, setCurrent] = React.useState(0);
   const [query, setQuery] = React.useState("");
   const [direction, setDirection] = React.useState(0);
@@ -14,6 +14,14 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
     }, 5000);
     return () => clearInterval(interval);
   }, [images.length]);
+
+  const handleSearch = (searchQuery) => {
+    if (searchQuery.trim()) {
+      window.location.href = `/doctores?search=${encodeURIComponent(
+        searchQuery
+      )}`;
+    }
+  };
 
   const slideVariants = {
     enter: (direction) => ({
@@ -104,7 +112,7 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
           className="flex w-full max-w-xl px-4"
           onSubmit={(e) => {
             e.preventDefault();
-            onSearch?.(query);
+            handleSearch(query);
           }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,7 +121,7 @@ export default function HeroCarousel({ images, onSearch, searchPlaceholder }) {
           <motion.input
             className="flex-1 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-l-xl outline-none text-lg shadow-lg"
             type="text"
-            placeholder={searchPlaceholder || "Buscar doctor, especialidad..."}
+            placeholder="Buscar doctor, especialidad, área..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             whileFocus={{ scale: 1.02 }}

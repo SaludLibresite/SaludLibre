@@ -87,7 +87,11 @@ export default function PatientRegister() {
         id: doc.id,
         ...doc.data(),
       }));
-      setAvailableDoctors(doctors);
+      // Only show verified doctors
+      const verifiedDoctors = doctors.filter(
+        (doctor) => doctor.verified === true
+      );
+      setAvailableDoctors(verifiedDoctors);
     } catch (error) {
       console.error("Error loading doctors:", error);
     }
@@ -101,7 +105,8 @@ export default function PatientRegister() {
       // For now, we'll just find a doctor with that code
       const doctorsQuery = query(
         collection(db, "doctors"),
-        where("referralCode", "==", code.toUpperCase())
+        where("referralCode", "==", code.toUpperCase()),
+        where("verified", "==", true)
       );
       const doctorsSnapshot = await getDocs(doctorsQuery);
 
@@ -280,7 +285,11 @@ export default function PatientRegister() {
         temporaryPassword: false,
         isActive: true,
         registrationMethod: "email",
-        dataComplete: !!(formData.phone && formData.dateOfBirth && formData.gender), // Check if basic data is complete
+        dataComplete: !!(
+          formData.phone &&
+          formData.dateOfBirth &&
+          formData.gender
+        ), // Check if basic data is complete
         doctorId: selectedDoctor?.id || "",
         referralCode: referralCode,
         createdAt: new Date(),
@@ -497,7 +506,9 @@ export default function PatientRegister() {
                   <input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                     className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
                       errors.password ? "border-red-500" : "border-gray-300"
                     }`}
@@ -534,7 +545,9 @@ export default function PatientRegister() {
                       handleInputChange("confirmPassword", e.target.value)
                     }
                     className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
-                      errors.confirmPassword ? "border-red-500" : "border-gray-300"
+                      errors.confirmPassword
+                        ? "border-red-500"
+                        : "border-gray-300"
                     }`}
                     placeholder="Repita la contraseña"
                     disabled={loading}
@@ -569,7 +582,9 @@ export default function PatientRegister() {
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                       placeholder="+54 11 1234-5678"
                       disabled={loading}

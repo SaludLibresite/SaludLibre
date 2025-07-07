@@ -2,45 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
+import { getAllSpecialties } from "../lib/specialtiesService";
 
 export default function GallerySection({ items }) {
-  // Define categories for the carousel
-  const categories = [
-    {
-      id: 1,
-      title: "Cardiología",
-      description:
-        "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
-      imageUrl: "/img/doctor-1.jpg",
-    },
-    {
-      id: 2,
-      title: "Neurología",
-      description: "Expertos en el sistema nervioso y trastornos cerebrales.",
-      imageUrl: "/img/doctor-2.jpg",
-    },
-    {
-      id: 3,
-      title: "Pediatría",
-      description:
-        "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
-      imageUrl: "/img/doctor-3.jpg",
-    },
-    {
-      id: 4,
-      title: "Dermatología",
-      description:
-        "Especialistas en el diagnóstico y tratamiento de afecciones de la piel.",
-      imageUrl: "/img/doctor-4.jpg",
-    },
-    {
-      id: 5,
-      title: "Traumatología",
-      description:
-        "Tratamiento de lesiones y enfermedades del sistema musculoesquelético.",
-      imageUrl: "/img/doctor-5.jpg",
-    },
-  ];
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
@@ -58,6 +24,52 @@ export default function GallerySection({ items }) {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
+
+  // Load specialties from Firebase
+  useEffect(() => {
+    const loadSpecialties = async () => {
+      try {
+        setLoading(true);
+        const specialties = await getAllSpecialties();
+        // Filter only active specialties
+        const activeSpecialties = specialties.filter(
+          (specialty) => specialty.isActive !== false
+        );
+        setCategories(activeSpecialties);
+      } catch (error) {
+        console.error("Error loading specialties:", error);
+        // Fallback to default categories if Firebase fails
+        const defaultCategories = [
+          {
+            id: "default-1",
+            title: "Cardiología",
+            description:
+              "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
+            imageUrl: "/img/doctor-1.jpg",
+          },
+          {
+            id: "default-2",
+            title: "Neurología",
+            description:
+              "Expertos en el sistema nervioso y trastornos cerebrales.",
+            imageUrl: "/img/doctor-2.jpg",
+          },
+          {
+            id: "default-3",
+            title: "Pediatría",
+            description:
+              "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
+            imageUrl: "/img/doctor-3.jpg",
+          },
+        ];
+        setCategories(defaultCategories);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSpecialties();
+  }, []);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -139,79 +151,91 @@ export default function GallerySection({ items }) {
           {/* Carousel wrapper */}
           <div className="overflow-hidden px-6 lg:px-8" ref={emblaRef}>
             <div className="flex -ml-4 pl-[5%] [&>:nth-child(1)]:ml-24">
-              {categories.map((category) => (
-                <motion.div
-                  key={category.id}
-                  className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <motion.div
-                    className="group relative h-[36rem] bg-white rounded-3xl overflow-hidden transition-all duration-300"
-                    whileHover={{
-                      boxShadow: "0 20px 60px -15px rgba(0,0,0,0.15)",
-                      transition: { duration: 0.3, ease: "easeOut" },
-                    }}
-                  >
-                    {/* Imagen y overlay */}
-                    <div className="absolute inset-0 z-0">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10 transition-opacity duration-300 opacity-60 group-hover:opacity-40" />
-                      <Image
-                        src={category.imageUrl}
-                        alt={category.title}
-                        fill
-                        className="object-cover transition-all duration-700"
-                        sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
-                        priority
-                      />
+              {loading
+                ? // Loading skeleton
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`skeleton-${index}`}
+                      className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                    >
+                      <div className="h-[36rem] bg-gray-200 rounded-3xl animate-pulse" />
                     </div>
+                  ))
+                : categories.map((category) => (
+                    <motion.div
+                      key={category.id}
+                      className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-100px" }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <motion.div
+                        className="group relative h-[36rem] bg-white rounded-3xl overflow-hidden transition-all duration-300"
+                        whileHover={{
+                          boxShadow: "0 20px 60px -15px rgba(0,0,0,0.15)",
+                          transition: { duration: 0.3, ease: "easeOut" },
+                        }}
+                      >
+                        {/* Imagen y overlay */}
+                        <div className="absolute inset-0 z-0">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10 transition-opacity duration-300 opacity-60 group-hover:opacity-40" />
+                          <Image
+                            src={category.imageUrl}
+                            alt={category.title}
+                            fill
+                            className="object-cover transition-all duration-700"
+                            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
+                            priority
+                          />
+                        </div>
 
-                    {/* Contenido */}
-                    <div className="relative h-full z-10 flex flex-col justify-end p-8">
-                      {/* Badge de categoría */}
-                      <div className="bg-amber-50 w-fit px-4 py-2 rounded-full mb-6 shadow-sm">
-                        <span className="text-sm font-medium text-amber-700">
-                          Especialidad médica
-                        </span>
-                      </div>
+                        {/* Contenido */}
+                        <div className="relative h-full z-10 flex flex-col justify-end p-8">
+                          {/* Badge de categoría */}
+                          <div className="bg-amber-50 w-fit px-4 py-2 rounded-full mb-6 shadow-sm">
+                            <span className="text-sm font-medium text-amber-700">
+                              Especialidad médica
+                            </span>
+                          </div>
 
-                      {/* Contenedor del texto principal */}
-                      <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-8 transition-transform duration-300 group-hover:translate-y-[-4px]">
-                        <h3 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
-                          {category.title}
-                        </h3>
-                        <p className="text-gray-600 text-base leading-relaxed mb-8 line-clamp-3">
-                          {category.description}
-                        </p>
+                          {/* Contenedor del texto principal */}
+                          <div className="bg-white rounded-2xl p-8 transition-transform duration-300 group-hover:translate-y-[-4px]">
+                            <h3 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
+                              {category.title}
+                            </h3>
+                            <p className="text-gray-600 text-base leading-relaxed mb-8 line-clamp-3">
+                              {category.description}
+                            </p>
 
-                        <motion.a
-                          href={`#${category.title.toLowerCase()}`}
-                          className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium text-sm hover:from-amber-600 hover:to-yellow-600 transition-all duration-300"
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          Ver especialistas
-                          <svg
-                            className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2.5}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </motion.a>
-                      </div>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              ))}
+                            <motion.a
+                              href={`/doctores?search=${encodeURIComponent(
+                                category.title
+                              )}`}
+                              className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium text-sm hover:from-amber-600 hover:to-yellow-600 transition-all duration-300"
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              Encuentra tu especialista
+                              <svg
+                                className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            </motion.a>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  ))}
 
               {/* Card "Ver más" */}
               <motion.div
@@ -245,18 +269,18 @@ export default function GallerySection({ items }) {
                       </svg>
                     </div>
                     <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                      Más especialidades
+                      ¿Buscas otro especialista?
                     </h3>
                     <p className="text-gray-600 text-base leading-relaxed mb-8">
-                      Descubre todas nuestras especialidades médicas y encuentra
-                      el especialista adecuado para ti
+                      Explora todos nuestros médicos especialistas y encuentra
+                      exactamente lo que necesitas para tu salud
                     </p>
                     <motion.a
-                      href="/especialidades"
+                      href="/doctores"
                       className="inline-flex items-center px-6 py-3 rounded-xl border-2 border-amber-200 text-amber-700 font-medium text-sm hover:bg-amber-50 transition-colors duration-300"
                       whileTap={{ scale: 0.98 }}
                     >
-                      Ver todas
+                      Ver todos los doctores
                       <svg
                         className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
                         xmlns="http://www.w3.org/2000/svg"

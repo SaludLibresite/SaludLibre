@@ -2,8 +2,18 @@ import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoginButton } from "./LoginButton";
 
-export default function NavBar({ logo = "/logo.png", links, button }) {
+export default function NavBar() {
+  const logo = "/logo.png";
+  const links = [
+    { href: "/", label: "Inicio" },
+    { href: "/doctores", label: "Doctores" },
+    { href: "/beneficios", label: "Beneficios" },
+    { href: "/preguntas-frecuentes", label: "Preguntas Frecuentes" },
+  ];
+  const button = { text: "Iniciar Sesión", href: "/paciente/login" };
+
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -67,10 +77,8 @@ export default function NavBar({ logo = "/logo.png", links, button }) {
 
   return (
     <motion.nav
-      className={`w-full sticky top-0 transition-all duration-300  z-[90] ${
-        scrolled
-          ? "bg-yellow-400/90 backdrop-blur-md shadow-lg"
-          : "bg-yellow-400"
+      className={`w-full sticky top-0 transition-all duration-300  z-[90] bg-white border-b border-gray-200 ${
+        scrolled ? "shadow-lg backdrop-blur-sm" : "bg-transparent"
       }`}
       initial="hidden"
       animate="visible"
@@ -85,7 +93,7 @@ export default function NavBar({ logo = "/logo.png", links, button }) {
           {logo && (
             <Link href="/">
               <Image
-                src={logo}
+                src="/logo.png"
                 alt="Logo"
                 width={200}
                 height={200}
@@ -119,20 +127,7 @@ export default function NavBar({ logo = "/logo.png", links, button }) {
         </div>
 
         <div className="flex items-center gap-4">
-          {button && (
-            <motion.button
-              className={button.className}
-              onClick={button.onClick}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
-              }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              {button.text}
-            </motion.button>
-          )}
+          <LoginButton />
 
           {/* Mobile menu button */}
           <motion.button
@@ -232,23 +227,7 @@ export default function NavBar({ logo = "/logo.png", links, button }) {
                     ))}
                 </div>
 
-                {button && (
-                  <motion.button
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg mt-4"
-                    onClick={() => {
-                      setOpen(false);
-                      button.onClick && button.onClick();
-                    }}
-                    whileHover={{
-                      scale: 1.05,
-                      boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
-                    }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    {button.text}
-                  </motion.button>
-                )}
+                <LoginButton />
               </div>
             </motion.div>
           </>

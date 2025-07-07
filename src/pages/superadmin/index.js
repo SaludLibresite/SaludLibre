@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/router";
-import { getAllDoctors, updateDoctor } from "../../lib/doctorsService";
+import { getAllDoctors } from "../../lib/doctorsService";
+import { getAllSpecialties } from "../../lib/specialtiesService";
 
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
@@ -9,10 +10,14 @@ const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
 export default function SuperAdminDashboard() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [doctors, setDoctors] = useState([]);
+  const [stats, setStats] = useState({
+    totalDoctors: 0,
+    pendingDoctors: 0,
+    verifiedDoctors: 0,
+    totalSpecialties: 0,
+    activeSpecialties: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState({});
-  const [filter, setFilter] = useState("all"); // all, pending, verified
 
   useEffect(() => {
     if (!authLoading) {
@@ -28,8 +33,8 @@ export default function SuperAdminDashboard() {
         return;
       }
 
-      // Si es superadmin, cargar los doctores
-      loadDoctors();
+      // Si es superadmin, cargar las estadísticas
+      loadStats();
     }
   }, [currentUser, authLoading, router]);
 
@@ -50,45 +55,34 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const loadDoctors = async () => {
+  const loadStats = async () => {
     try {
       setLoading(true);
+
+      // Cargar doctores para estadísticas
       const allDoctors = await getAllDoctors();
-      setDoctors(allDoctors);
+      const pendingDoctors = allDoctors.filter((d) => !d.verified).length;
+      const verifiedDoctors = allDoctors.filter((d) => d.verified).length;
+
+      // Cargar especialidades para estadísticas
+      const allSpecialties = await getAllSpecialties();
+      const activeSpecialties = allSpecialties.filter(
+        (s) => s.isActive !== false
+      ).length;
+
+      setStats({
+        totalDoctors: allDoctors.length,
+        pendingDoctors,
+        verifiedDoctors,
+        totalSpecialties: allSpecialties.length,
+        activeSpecialties,
+      });
     } catch (error) {
-      console.error("Error loading doctors:", error);
+      console.error("Error loading stats:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleVerifyDoctor = async (doctorId, verified) => {
-    try {
-      setUpdating((prev) => ({ ...prev, [doctorId]: true }));
-      await updateDoctor(doctorId, { verified });
-
-      // Actualizar el estado local
-      setDoctors((prev) =>
-        prev.map((doctor) =>
-          doctor.id === doctorId ? { ...doctor, verified } : doctor
-        )
-      );
-    } catch (error) {
-      console.error("Error updating doctor:", error);
-      alert("Error al actualizar el doctor");
-    } finally {
-      setUpdating((prev) => ({ ...prev, [doctorId]: false }));
-    }
-  };
-
-  const filteredDoctors = doctors.filter((doctor) => {
-    if (filter === "pending") return !doctor.verified;
-    if (filter === "verified") return doctor.verified;
-    return true;
-  });
-
-  const pendingCount = doctors.filter((d) => !d.verified).length;
-  const verifiedCount = doctors.filter((d) => d.verified).length;
 
   if (authLoading) {
     return (
@@ -164,7 +158,7 @@ export default function SuperAdminDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando doctores...</p>
+          <p className="mt-4 text-gray-600">Cargando estadísticas...</p>
         </div>
       </div>
     );
@@ -181,7 +175,7 @@ export default function SuperAdminDashboard() {
                 Panel de Superadmin
               </h1>
               <p className="text-gray-600">
-                Gestión de verificación de doctores
+                Dashboard principal para la gestión del sistema
               </p>
             </div>
             <button
@@ -195,178 +189,201 @@ export default function SuperAdminDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900">
               Total Doctores
             </h3>
-            <p className="text-3xl font-bold text-blue-600">{doctors.length}</p>
+            <p className="text-3xl font-bold text-blue-600">
+              {stats.totalDoctors}
+            </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900">Pendientes</h3>
-            <p className="text-3xl font-bold text-yellow-600">{pendingCount}</p>
+            <p className="text-3xl font-bold text-yellow-600">
+              {stats.pendingDoctors}
+            </p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900">Verificados</h3>
-            <p className="text-3xl font-bold text-green-600">{verifiedCount}</p>
+            <p className="text-3xl font-bold text-green-600">
+              {stats.verifiedDoctors}
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900">
+              Especialidades
+            </h3>
+            <p className="text-3xl font-bold text-purple-600">
+              {stats.totalSpecialties}
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-medium text-gray-900">Activas</h3>
+            <p className="text-3xl font-bold text-green-600">
+              {stats.activeSpecialties}
+            </p>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="flex space-x-4">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-md ${
-                filter === "all"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Todos ({doctors.length})
-            </button>
-            <button
-              onClick={() => setFilter("pending")}
-              className={`px-4 py-2 rounded-md ${
-                filter === "pending"
-                  ? "bg-yellow-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Pendientes ({pendingCount})
-            </button>
-            <button
-              onClick={() => setFilter("verified")}
-              className={`px-4 py-2 rounded-md ${
-                filter === "verified"
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Verificados ({verifiedCount})
-            </button>
+        {/* Management Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Doctors Management Card */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+              <h2 className="text-xl font-bold text-white">
+                Gestión de Doctores
+              </h2>
+              <p className="text-blue-100">
+                Administra y verifica los perfiles de doctores
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Total de doctores:</span>
+                  <span className="font-semibold text-blue-600">
+                    {stats.totalDoctors}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">
+                    Pendientes de verificación:
+                  </span>
+                  <span className="font-semibold text-yellow-600">
+                    {stats.pendingDoctors}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Verificados:</span>
+                  <span className="font-semibold text-green-600">
+                    {stats.verifiedDoctors}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push("/superadmin/doctors")}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Gestionar Doctores →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Specialties Management Card */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
+              <h2 className="text-xl font-bold text-white">
+                Gestión de Especialidades
+              </h2>
+              <p className="text-purple-100">
+                Administra las especialidades médicas disponibles
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">
+                    Total de especialidades:
+                  </span>
+                  <span className="font-semibold text-purple-600">
+                    {stats.totalSpecialties}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Activas:</span>
+                  <span className="font-semibold text-green-600">
+                    {stats.activeSpecialties}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Inactivas:</span>
+                  <span className="font-semibold text-red-600">
+                    {stats.totalSpecialties - stats.activeSpecialties}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push("/superadmin/specialties")}
+                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  Gestionar Especialidades →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Doctors List */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">
-              Lista de Doctores
-            </h2>
-          </div>
+        {/* Quick Actions */}
+        <div className="mt-8 bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Acciones Rápidas
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => router.push("/superadmin/doctors?filter=pending")}
+              className="flex items-center justify-center px-4 py-3 border border-yellow-300 rounded-lg text-yellow-700 hover:bg-yellow-50 transition-colors"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Ver Doctores Pendientes
+            </button>
 
-          {filteredDoctors.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="text-gray-500">No hay doctores para mostrar</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Doctor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Especialidad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha Registro
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredDoctors.map((doctor) => (
-                    <tr key={doctor.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <img
-                            className="h-10 w-10 rounded-full object-cover"
-                            src={
-                              doctor.photoURL ||
-                              `/${doctor.imagen}` ||
-                              "/img/doctor-1.jpg"
-                            }
-                            alt={doctor.nombre}
-                            onError={(e) => {
-                              e.target.src = "/img/doctor-1.jpg";
-                            }}
-                          />
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {doctor.nombre}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {doctor.ubicacion}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {doctor.especialidad}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {doctor.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            doctor.verified
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {doctor.verified ? "Verificado" : "Pendiente"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {doctor.createdAt?.toDate?.()?.toLocaleDateString() ||
-                          "N/A"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        {doctor.verified ? (
-                          <button
-                            onClick={() => handleVerifyDoctor(doctor.id, false)}
-                            disabled={updating[doctor.id]}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          >
-                            {updating[doctor.id] ? "..." : "Revocar"}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleVerifyDoctor(doctor.id, true)}
-                            disabled={updating[doctor.id]}
-                            className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                          >
-                            {updating[doctor.id] ? "..." : "Verificar"}
-                          </button>
-                        )}
-                        <button
-                          onClick={() =>
-                            router.push(`/doctores/${doctor.slug}`)
-                          }
-                          className="text-blue-600 hover:text-blue-900 ml-2"
-                        >
-                          Ver Perfil
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            <button
+              onClick={() => router.push("/superadmin/specialties")}
+              className="flex items-center justify-center px-4 py-3 border border-purple-300 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              Crear Especialidad
+            </button>
+
+            <button
+              onClick={() => window.open("/", "_blank")}
+              className="flex items-center justify-center px-4 py-3 border border-blue-300 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              Vista Previa del Sitio
+            </button>
+          </div>
         </div>
       </div>
     </div>

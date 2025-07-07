@@ -123,10 +123,11 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white/20 
                 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
               />
-              <img
-                src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
-                alt={doctor.nombre}
-                className={`rounded-2xl object-cover shadow-md transition-transform duration-300
+              {(doctor.rango === "VIP" || doctor.rango === "Intermedio") && (
+                <img
+                  src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
+                  alt={doctor.nombre}
+                  className={`rounded-2xl object-cover shadow-md transition-transform duration-300
                   ${
                     doctor.rango === "VIP"
                       ? "w-40 h-40 md:w-44 md:h-44"
@@ -134,10 +135,11 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                       ? "w-32 h-32"
                       : "w-28 h-28"
                   }`}
-                onError={(e) => {
-                  e.target.src = "/img/doctor-1.jpg";
-                }}
-              />
+                  onError={(e) => {
+                    e.target.src = "/img/doctor-1.jpg";
+                  }}
+                />
+              )}
             </div>
 
             {/* Doctor Info */}
@@ -230,6 +232,45 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 >
                   {doctor.descripcion}
                 </p>
+              )}
+
+              {/* Prepagas Section */}
+              {doctor.prepagas && doctor.prepagas.length > 0 && (
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg
+                      className="w-4 h-4 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-700">
+                      Acepta:
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {doctor.prepagas.slice(0, 4).map((prepaga, index) => (
+                      <span
+                        key={index}
+                        className="inline-block px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-md"
+                      >
+                        {prepaga}
+                      </span>
+                    ))}
+                    {doctor.prepagas.length > 4 && (
+                      <span className="inline-block px-2.5 py-1 bg-gray-50 text-gray-600 text-xs font-medium rounded-md">
+                        +{doctor.prepagas.length - 4} más
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>

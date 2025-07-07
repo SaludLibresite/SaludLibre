@@ -107,14 +107,7 @@ export default function Beneficios() {
 
   return (
     <div className="min-h-screen bg-white">
-      <NavBar
-        links={[
-          { href: "/", label: "Inicio" },
-          { href: "/doctores", label: "Doctores" },
-          { href: "/beneficios", label: "Beneficios" },
-        ]}
-        button={{ text: "Iniciar Sesión", href: "/auth/login" }}
-      />
+       <NavBar />
 
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 py-24">
