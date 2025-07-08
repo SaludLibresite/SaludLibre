@@ -1,5 +1,5 @@
-import AdminLayout from "../../components/admin/AdminLayout";
-import PatientsList from "../../components/admin/PatientsList";
+import AdminLayout from "@/components/admin/AdminLayout";
+import PatientsList from "@/components/admin/PatientsList";
 
 export default function PatientsPage() {
   return (

@@ -18,6 +18,7 @@ import {
   Bars3Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -30,6 +31,11 @@ const navigation = [
     name: "Referencias",
     href: "/admin/referrals",
     icon: ArrowRightOnRectangleIcon,
+  },
+  {
+    name: "Video Consulta",
+    href: "/admin/video-consultation",
+    icon: VideoCameraIcon,
   },
 ];
 
@@ -206,7 +212,7 @@ export default function AdminLayout({ children }) {
         className={`transition-all duration-300 ease-in-out ${contentMargin}`}
       >
         {/* Top header */}
-        <header className=" shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
           <div className="flex h-16 items-center justify-between px-6">
             <div className="flex items-center space-x-4">
               {/* Mobile menu button */}
@@ -235,21 +241,13 @@ export default function AdminLayout({ children }) {
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               </div>
 
-              {/* Notification button */}
-              <button className="relative p-2 text-gray-400 hover:text-amber-600 transition-colors duration-200">
-                <BellIcon className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* Settings button */}
-              <button className="p-2 text-gray-400 hover:text-amber-600 transition-colors duration-200">
-                <Cog6ToothIcon className="h-5 w-5" />
-              </button>
-
               {/* User menu */}
               <div className="relative">
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowUserMenu(!showUserMenu);
+                  }}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                 >
                   <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center shadow-md">
@@ -267,7 +265,10 @@ export default function AdminLayout({ children }) {
 
                 {/* User dropdown menu */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56  rounded-xl shadow-lg border border-gray-200 py-2 z-50 ">
+                  <div
+                    className="absolute right-0 mt-2 w-56 rounded-xl shadow-lg border border-gray-200 py-2 z-50 bg-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">
                         {doctorData ? doctorData.nombre : "Cargando..."}
@@ -385,7 +386,7 @@ export default function AdminLayout({ children }) {
       {/* Click outside to close menus */}
       {showUserMenu && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-30"
           onClick={() => setShowUserMenu(false)}
         />
       )}

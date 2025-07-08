@@ -6,6 +6,7 @@ import {
   PencilIcon,
   ArrowDownTrayIcon,
   ExclamationTriangleIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -14,13 +15,20 @@ import {
   deleteAppointmentDocument,
   updateAppointmentDocumentTitle,
 } from "../../lib/appointmentsService";
+import {
+  getPrescriptionsByAppointmentId,
+  deletePrescription,
+} from "../../lib/prescriptionsService";
+import PrescriptionModal from "./PrescriptionModal";
 
-export default function AppointmentDocuments({ appointmentId }) {
+export default function AppointmentDocuments({ appointmentId, patientId }) {
   const { currentUser } = useAuth();
   const [documents, setDocuments] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [newDocumentTitle, setNewDocumentTitle] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [editingDocument, setEditingDocument] = useState(null);
@@ -35,8 +43,12 @@ export default function AppointmentDocuments({ appointmentId }) {
   const loadDocuments = async () => {
     try {
       setLoading(true);
-      const docs = await getAppointmentDocuments(appointmentId);
+      const [docs, presc] = await Promise.all([
+        getAppointmentDocuments(appointmentId),
+        getPrescriptionsByAppointmentId(appointmentId),
+      ]);
       setDocuments(docs);
+      setPrescriptions(presc);
     } catch (error) {
       console.error("Error loading documents:", error);
     } finally {
@@ -65,12 +77,12 @@ export default function AppointmentDocuments({ appointmentId }) {
         newDocumentTitle.trim(),
         currentUser.uid
       );
-      
+
       // Reset form
       setSelectedFile(null);
       setNewDocumentTitle("");
       setShowUploadModal(false);
-      
+
       // Reload documents
       await loadDocuments();
     } catch (error) {
@@ -102,13 +114,35 @@ export default function AppointmentDocuments({ appointmentId }) {
     }
 
     try {
-      await updateAppointmentDocumentTitle(editingDocument.id, editTitle.trim());
+      await updateAppointmentDocumentTitle(
+        editingDocument.id,
+        editTitle.trim()
+      );
       setEditingDocument(null);
       setEditTitle("");
       await loadDocuments();
     } catch (error) {
       console.error("Error updating title:", error);
       alert("Error al actualizar el título");
+    }
+  };
+
+  const handlePrescriptionSuccess = () => {
+    // Reload documents to show the new prescription PDF
+    loadDocuments();
+  };
+
+  const handleDeletePrescription = async (prescriptionId) => {
+    if (!confirm("¿Está seguro de que desea eliminar esta receta médica?")) {
+      return;
+    }
+
+    try {
+      await deletePrescription(prescriptionId);
+      await loadDocuments();
+    } catch (error) {
+      console.error("Error deleting prescription:", error);
+      alert("Error al eliminar la receta médica");
     }
   };
 
@@ -147,27 +181,86 @@ export default function AppointmentDocuments({ appointmentId }) {
         <h3 className="text-lg font-medium text-gray-900">
           Documentos de la Cita
         </h3>
-        <button
-          onClick={() => setShowUploadModal(true)}
-          className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 flex items-center space-x-2"
-        >
-          <PlusIcon className="h-4 w-4" />
-          <span>Subir Documento</span>
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowPrescriptionModal(true)}
+            disabled={!patientId}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <DocumentTextIcon className="h-4 w-4" />
+            <span>Crear Receta Médica</span>
+          </button>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 flex items-center space-x-2"
+          >
+            <PlusIcon className="h-4 w-4" />
+            <span>Subir Documento</span>
+          </button>
+        </div>
       </div>
 
-      {documents.length === 0 ? (
+      {documents.length === 0 && prescriptions.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <DocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">
             No hay documentos
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Suba el primer documento para esta cita
+            Suba el primer documento o cree una receta médica para esta cita
           </p>
         </div>
       ) : (
         <div className="grid gap-4">
+          {/* Prescriptions */}
+          {prescriptions.map((prescription) => (
+            <div
+              key={prescription.id}
+              className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">📋</span>
+                <div>
+                  <h4 className="text-sm font-medium text-green-900">
+                    Receta Médica
+                  </h4>
+                  <p className="text-xs text-green-700">
+                    {prescription.createdAt?.toDate
+                      ? prescription.createdAt
+                          .toDate()
+                          .toLocaleDateString("es-ES")
+                      : new Date(prescription.createdAt).toLocaleDateString(
+                          "es-ES"
+                        )}
+                    {" • "}
+                    {prescription.medications?.length || 0} medicamento(s)
+                    {" • "}
+                    Dr. {prescription.doctorInfo?.nombre}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <a
+                  href={`/api/prescriptions/${prescription.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-green-600 hover:text-green-700"
+                  title="Ver receta en PDF"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                </a>
+                <button
+                  onClick={() => handleDeletePrescription(prescription.id)}
+                  className="p-2 text-red-400 hover:text-red-600"
+                  title="Eliminar receta"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Regular Documents */}
           {documents.map((doc) => (
             <div
               key={doc.id}
@@ -253,12 +346,12 @@ export default function AppointmentDocuments({ appointmentId }) {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Subir Nuevo Documento
             </h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -285,7 +378,8 @@ export default function AppointmentDocuments({ appointmentId }) {
                 />
                 {selectedFile && (
                   <p className="mt-2 text-sm text-gray-600">
-                    Archivo seleccionado: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                    Archivo seleccionado: {selectedFile.name} (
+                    {formatFileSize(selectedFile.size)})
                   </p>
                 )}
               </div>
@@ -319,7 +413,9 @@ export default function AppointmentDocuments({ appointmentId }) {
               </button>
               <button
                 onClick={handleUpload}
-                disabled={uploading || !selectedFile || !newDocumentTitle.trim()}
+                disabled={
+                  uploading || !selectedFile || !newDocumentTitle.trim()
+                }
                 className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading ? "Subiendo..." : "Subir Documento"}
@@ -328,6 +424,15 @@ export default function AppointmentDocuments({ appointmentId }) {
           </div>
         </div>
       )}
+
+      {/* Prescription Modal */}
+      <PrescriptionModal
+        isOpen={showPrescriptionModal}
+        onClose={() => setShowPrescriptionModal(false)}
+        appointmentId={appointmentId}
+        patientId={patientId}
+        onSuccess={handlePrescriptionSuccess}
+      />
     </div>
   );
-} 
+}

@@ -332,20 +332,18 @@ export default function PatientsList() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
-                        onClick={() => {
-                          // View patient details
-                          console.log("View patient:", patient.id);
-                        }}
+                        onClick={() =>
+                          router.push(`/admin/patients/${patient.id}`)
+                        }
                         className="text-gray-600 hover:text-amber-600 p-1 rounded-lg hover:bg-amber-50 transition-colors duration-200"
                         title="Ver detalles"
                       >
                         <EyeIcon className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => {
-                          // Edit patient
-                          console.log("Edit patient:", patient.id);
-                        }}
+                        onClick={() =>
+                          router.push(`/admin/patients/${patient.id}`)
+                        }
                         className="text-gray-600 hover:text-amber-600 p-1 rounded-lg hover:bg-amber-50 transition-colors duration-200"
                         title="Editar"
                       >

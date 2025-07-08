@@ -4,6 +4,7 @@ import FloatingSearch from "../../components/FloatingSearch";
 import LoaderComponent from "../../components/doctoresPage/LoaderComponent";
 import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
+import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import { getAllDoctors } from "../../lib/doctorsService";
 import Link from "next/link";
 import Footer from "../../components/Footer";
@@ -21,10 +22,14 @@ export default function DoctoresPage() {
   const [selectedRango, setSelectedRango] = useState("");
   const [selectedUbicacion, setSelectedUbicacion] = useState("");
   const [selectedPrepaga, setSelectedPrepaga] = useState("");
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [doctoresData, setDoctoresData] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [nearbyDoctors, setNearbyDoctors] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [showingNearby, setShowingNearby] = useState(false);
 
   // Read search parameter from URL
   useEffect(() => {
@@ -92,6 +97,19 @@ export default function DoctoresPage() {
       ],
     },
     {
+      id: "ageGroup",
+      label: "Grupo de Edad",
+      value: selectedAgeGroup,
+      setter: setSelectedAgeGroup,
+      options: [
+        { value: "menores", label: "Solo Menores" },
+        { value: "adultos", label: "Solo Adultos" },
+        { value: "ambos", label: "Menores y Adultos" },
+      ],
+      iconPath:
+        "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+    },
+    {
       id: "rango",
       label: "Rango",
       value: selectedRango,
@@ -116,7 +134,34 @@ export default function DoctoresPage() {
     },
   ];
 
-  const filteredDoctors = doctoresData.filter((d) => {
+  // Handler for nearby doctors
+  const handleNearbyDoctorsFound = (doctors, location) => {
+    setNearbyDoctors(doctors);
+    setUserLocation(location);
+    setShowingNearby(true);
+    // Reset filters when showing nearby results
+    setSearch("");
+    setCategoria("");
+    setSelectedGenero("");
+    setSelectedConsultaOnline("");
+    setSelectedAgeGroup("");
+    setSelectedRango("");
+    setSelectedUbicacion("");
+    setSelectedPrepaga("");
+    setCurrentPage(1);
+  };
+
+  const handleResetToAllDoctors = () => {
+    setNearbyDoctors(null);
+    setUserLocation(null);
+    setShowingNearby(false);
+    setCurrentPage(1);
+  };
+
+  // Use nearby doctors if available, otherwise use filtered doctors
+  const doctorsToShow = showingNearby ? nearbyDoctors : doctoresData;
+
+  const filteredDoctors = doctorsToShow.filter((d) => {
     const searchMatch =
       d.nombre?.toLowerCase().includes(search.toLowerCase()) ||
       d.especialidad?.toLowerCase().includes(search.toLowerCase());
@@ -126,6 +171,10 @@ export default function DoctoresPage() {
       selectedConsultaOnline === "" ||
       (selectedConsultaOnline === "true" && d.consultaOnline) ||
       (selectedConsultaOnline === "false" && !d.consultaOnline);
+    const ageGroupMatch =
+      selectedAgeGroup === "" ||
+      d.ageGroup === selectedAgeGroup ||
+      (!d.ageGroup && selectedAgeGroup === "ambos"); // Default to "ambos" for doctors without ageGroup set
     const rangoMatch = selectedRango === "" || d.rango === selectedRango;
     const ubicacionMatch =
       selectedUbicacion === "" || d.ubicacion === selectedUbicacion;
@@ -138,6 +187,7 @@ export default function DoctoresPage() {
       categoriaMatch &&
       generoMatch &&
       consultaOnlineMatch &&
+      ageGroupMatch &&
       rangoMatch &&
       ubicacionMatch &&
       prepagaMatch
@@ -161,6 +211,7 @@ export default function DoctoresPage() {
     categoria,
     selectedGenero,
     selectedConsultaOnline,
+    selectedAgeGroup,
     selectedRango,
     selectedUbicacion,
     selectedPrepaga,
@@ -186,6 +237,7 @@ export default function DoctoresPage() {
     categoria,
     selectedGenero,
     selectedConsultaOnline,
+    selectedAgeGroup,
     selectedRango,
     selectedUbicacion,
     selectedPrepaga,
@@ -215,13 +267,35 @@ export default function DoctoresPage() {
             <div className="mx-auto max-w-4xl text-center">
               {/* Main heading */}
               <h1 className="mb-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Encuentra tu especialista médico
+                {showingNearby
+                  ? "Doctores cerca de tu ubicación"
+                  : "Encuentra tu especialista médico"}
               </h1>
-              <p className="text-lg text-slate-600">
-                {doctoresData.length > 0
-                  ? `${doctoresData.length} profesionales de la salud disponibles`
-                  : "Cargando profesionales..."}
-              </p>
+
+              {showingNearby && nearbyDoctors ? (
+                <div className="mb-4">
+                  <p className="text-lg text-slate-600 mb-2">
+                    {nearbyDoctors.length} doctores encontrados en un radio de
+                    25km
+                  </p>
+                  <div className="flex justify-center">
+                    <NearbyDoctorsButton onReset={handleResetToAllDoctors} />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-lg text-slate-600">
+                    {doctoresData.length > 0
+                      ? `${doctoresData.length} profesionales de la salud disponibles`
+                      : "Cargando profesionales..."}
+                  </p>
+                  <div className="flex justify-center">
+                    <NearbyDoctorsButton
+                      onNearbyDoctorsFound={handleNearbyDoctorsFound}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

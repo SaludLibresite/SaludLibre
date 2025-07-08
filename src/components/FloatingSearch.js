@@ -60,7 +60,7 @@ const DoctorResult = ({ doctor }) => (
       <div className="flex-1">
         <h3 className="font-semibold text-gray-900">Dr. {doctor.nombre}</h3>
         <p className="text-sm text-gray-600">{doctor.especialidad}</p>
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-2 flex-wrap">
           {doctor.consultaOnline && (
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
               Consulta Online
@@ -77,6 +77,15 @@ const DoctorResult = ({ doctor }) => (
           >
             {doctor.rango}
           </span>
+          {doctor.ageGroup && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
+              {doctor.ageGroup === "menores"
+                ? "Solo Menores"
+                : doctor.ageGroup === "adultos"
+                ? "Solo Adultos"
+                : "Menores y Adultos"}
+            </span>
+          )}
         </div>
         {doctor.prepagas && doctor.prepagas.length > 0 && (
           <div className="mt-2">
@@ -107,10 +116,10 @@ const SearchFilters = ({ filters, isVisible }) => (
     initial={{ height: 0, opacity: 0 }}
     animate={{ height: isVisible ? "auto" : 0, opacity: isVisible ? 1 : 0 }}
     transition={{ duration: 0.3, ease: "easeInOut" }}
-    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-6 overflow-hidden"
+    className="flex flex-wrap gap-4 mt-6 overflow-hidden"
   >
     {filters.map((filter) => (
-      <div key={filter.id} className="space-y-2">
+      <div key={filter.id} className="space-y-2 xl:flex-1">
         <label className="flex items-center text-sm font-medium text-gray-700">
           <FilterIcon
             path={
@@ -190,7 +199,15 @@ const SearchModal = ({
             (d.prepagas &&
               d.prepagas.some((prepaga) =>
                 prepaga.toLowerCase().includes(modalSearch.toLowerCase())
-              ))
+              )) ||
+            (d.ageGroup &&
+              ((d.ageGroup === "menores" &&
+                modalSearch.toLowerCase().includes("menor")) ||
+                (d.ageGroup === "adultos" &&
+                  modalSearch.toLowerCase().includes("adult")) ||
+                (d.ageGroup === "ambos" &&
+                  (modalSearch.toLowerCase().includes("ambos") ||
+                    modalSearch.toLowerCase().includes("todo")))))
         );
         setTimeout(() => {
           setSearchResults(results);

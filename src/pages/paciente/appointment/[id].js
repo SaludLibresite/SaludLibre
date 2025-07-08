@@ -150,7 +150,7 @@ export default function PatientAppointmentDetail() {
   return (
     <ProtectedPatientRoute>
       <PatientLayout>
-        <div className="max-w-6xl mx-auto">
+        <div className="px-10 py-5">
           {/* Header */}
           <div className="mb-6">
             <button
@@ -160,7 +160,9 @@ export default function PatientAppointmentDetail() {
               <ArrowLeftIcon className="h-4 w-4" />
               <span>Volver a Mis Citas</span>
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Detalle de Cita</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Detalle de Cita
+            </h1>
           </div>
 
           {/* Appointment Header */}
@@ -302,9 +304,12 @@ export default function PatientAppointmentDetail() {
               )}
 
               {activeTab === "Documentos" && (
-                <AppointmentDocumentsPatient 
-                  appointmentId={id} 
-                  readOnly={appointment.status === "completed" || appointment.status === "cancelled"}
+                <AppointmentDocumentsPatient
+                  appointmentId={id}
+                  readOnly={
+                    appointment.status === "completed" ||
+                    appointment.status === "cancelled"
+                  }
                 />
               )}
             </div>
@@ -313,4 +318,4 @@ export default function PatientAppointmentDetail() {
       </PatientLayout>
     </ProtectedPatientRoute>
   );
-} 
+}

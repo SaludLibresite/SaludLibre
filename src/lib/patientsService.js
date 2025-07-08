@@ -52,7 +52,7 @@ export async function getPatientById(id) {
         ...docSnap.data(),
       };
     } else {
-      throw new Error("Patient not found");
+      throw new Error("Paciente no encontrado");
     }
   } catch (error) {
     console.error("Error getting patient:", error);
@@ -78,7 +78,7 @@ export async function createPatient(patientData, doctorId, doctorUserId) {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.message || "Error creating patient");
+      throw new Error(result.message || "Error al crear paciente");
     }
 
     return result;

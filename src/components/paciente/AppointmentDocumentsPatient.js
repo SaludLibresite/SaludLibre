@@ -4,16 +4,22 @@ import {
   PlusIcon,
   ArrowDownTrayIcon,
   ExclamationTriangleIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../context/AuthContext";
 import {
   uploadAppointmentDocument,
   getAppointmentDocuments,
 } from "../../lib/appointmentsService";
+import { getPrescriptionsByAppointmentId } from "../../lib/prescriptionsService";
 
-export default function AppointmentDocumentsPatient({ appointmentId, readOnly = false }) {
+export default function AppointmentDocumentsPatient({
+  appointmentId,
+  readOnly = false,
+}) {
   const { currentUser } = useAuth();
   const [documents, setDocuments] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -29,8 +35,12 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
   const loadDocuments = async () => {
     try {
       setLoading(true);
-      const docs = await getAppointmentDocuments(appointmentId);
+      const [docs, presc] = await Promise.all([
+        getAppointmentDocuments(appointmentId),
+        getPrescriptionsByAppointmentId(appointmentId),
+      ]);
       setDocuments(docs);
+      setPrescriptions(presc);
     } catch (error) {
       console.error("Error loading documents:", error);
     } finally {
@@ -40,7 +50,8 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file && file.size <= 10 * 1024 * 1024) { // 10MB limit
+    if (file && file.size <= 10 * 1024 * 1024) {
+      // 10MB limit
       setSelectedFile(file);
     } else {
       alert("El archivo debe ser menor a 10MB");
@@ -60,14 +71,14 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
         appointmentId,
         newDocumentTitle.trim(),
         currentUser.uid,
-        { uploadedByRole: 'patient' }
+        { uploadedByRole: "patient" }
       );
-      
+
       // Reset form
       setSelectedFile(null);
       setNewDocumentTitle("");
       setShowUploadModal(false);
-      
+
       // Reload documents
       await loadDocuments();
     } catch (error) {
@@ -124,18 +135,66 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
         )}
       </div>
 
-      {documents.length === 0 ? (
+      {documents.length === 0 && prescriptions.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <DocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">
             No hay documentos
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            {readOnly ? "No se han subido documentos para esta cita" : "Suba el primer documento para esta cita"}
+            {readOnly
+              ? "No se han subido documentos para esta cita"
+              : "Suba el primer documento para esta cita"}
           </p>
         </div>
       ) : (
         <div className="grid gap-4">
+          {/* Prescriptions */}
+          {prescriptions.map((prescription) => (
+            <div
+              key={prescription.id}
+              className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center space-x-3">
+                <DocumentTextIcon className="h-6 w-6 text-green-600" />
+                <div>
+                  <h4 className="text-sm font-medium text-green-900">
+                    Receta Médica
+                  </h4>
+                  <p className="text-xs text-green-700">
+                    {prescription.createdAt?.toDate
+                      ? prescription.createdAt
+                          .toDate()
+                          .toLocaleDateString("es-ES")
+                      : new Date(prescription.createdAt).toLocaleDateString(
+                          "es-ES"
+                        )}
+                    {" • "}
+                    {prescription.medications?.length || 0} medicamento(s)
+                    {prescription.doctorInfo?.nombre && (
+                      <>
+                        {" • "}
+                        Dr. {prescription.doctorInfo.nombre}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <a
+                  href={`/api/prescriptions/${prescription.id}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-green-600 hover:text-green-700"
+                  title="Ver receta en PDF"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          ))}
+
+          {/* Regular Documents */}
           {documents.map((doc) => (
             <div
               key={doc.id}
@@ -152,7 +211,7 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
                     {doc.uploadedAt?.toDate
                       ? doc.uploadedAt.toDate().toLocaleDateString("es-ES")
                       : new Date(doc.uploadedAt).toLocaleDateString("es-ES")}
-                    {doc.uploadedByRole === 'patient' && (
+                    {doc.uploadedByRole === "patient" && (
                       <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                         Subido por paciente
                       </span>
@@ -183,7 +242,7 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Subir Nuevo Documento
             </h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -210,7 +269,8 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
                 />
                 {selectedFile && (
                   <p className="mt-2 text-sm text-gray-600">
-                    Archivo seleccionado: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                    Archivo seleccionado: {selectedFile.name} (
+                    {formatFileSize(selectedFile.size)})
                   </p>
                 )}
               </div>
@@ -222,11 +282,10 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
                     <p className="text-sm text-blue-800">
                       Tipos de archivo permitidos: PDF, DOC, DOCX, JPG, PNG, TXT
                     </p>
-                    <p className="text-sm text-blue-800">
-                      Tamaño máximo: 10MB
-                    </p>
+                    <p className="text-sm text-blue-800">Tamaño máximo: 10MB</p>
                     <p className="text-sm text-blue-800 mt-1">
-                      Suba estudios médicos, análisis o documentos relevantes para su consulta
+                      Suba estudios médicos, análisis o documentos relevantes
+                      para su consulta
                     </p>
                   </div>
                 </div>
@@ -247,7 +306,9 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
               </button>
               <button
                 onClick={handleUpload}
-                disabled={uploading || !selectedFile || !newDocumentTitle.trim()}
+                disabled={
+                  uploading || !selectedFile || !newDocumentTitle.trim()
+                }
                 className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading ? "Subiendo..." : "Subir Documento"}
@@ -258,4 +319,4 @@ export default function AppointmentDocumentsPatient({ appointmentId, readOnly = 
       )}
     </div>
   );
-} 
+}

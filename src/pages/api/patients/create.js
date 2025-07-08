@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+    return res.status(405).json({ message: "Método no permitido" });
   }
 
   try {
@@ -13,7 +13,8 @@ export default async function handler(req, res) {
 
     if (!patientData || !doctorId || !doctorUserId) {
       return res.status(400).json({
-        message: "Missing required fields: patientData, doctorId, doctorUserId",
+        message:
+          "Faltan campos requeridos: patientData, doctorId, doctorUserId",
       });
     }
 
@@ -21,7 +22,9 @@ export default async function handler(req, res) {
     try {
       await adminAuth.getUser(doctorUserId);
     } catch (error) {
-      return res.status(401).json({ message: "Unauthorized: Invalid doctor" });
+      return res
+        .status(401)
+        .json({ message: "No autorizado: Doctor inválido" });
     }
 
     // Generate a temporary password for the patient
@@ -65,7 +68,8 @@ export default async function handler(req, res) {
       success: true,
       patientId: patientRef.id,
       userId: userRecord.uid,
-      message: "Patient created successfully and welcome email sent",
+      temporaryPassword: temporaryPassword,
+      message: "Paciente creado exitosamente y correo de bienvenida enviado",
     });
   } catch (error) {
     console.error("Error creating patient:", error);
@@ -79,9 +83,35 @@ export default async function handler(req, res) {
       }
     }
 
+    // Translate Firebase errors to Spanish
+    let errorMessage = "Error al crear paciente";
+
+    if (error.code) {
+      switch (error.code) {
+        case "auth/email-already-exists":
+          errorMessage = "Ya existe una cuenta con este correo electrónico";
+          break;
+        case "auth/invalid-email":
+          errorMessage = "El correo electrónico no es válido";
+          break;
+        case "auth/weak-password":
+          errorMessage = "La contraseña es muy débil";
+          break;
+        default:
+          errorMessage = error.message || "Error al crear paciente";
+      }
+    } else if (
+      error.message &&
+      error.message.includes("email address is already in use")
+    ) {
+      errorMessage = "Ya existe una cuenta con este correo electrónico";
+    } else {
+      errorMessage = error.message || "Error al crear paciente";
+    }
+
     res.status(500).json({
       success: false,
-      message: "Error creating patient: " + error.message,
+      message: errorMessage,
     });
   }
 }
@@ -126,7 +156,7 @@ async function sendWelcomeEmail({
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Bienvenido a MédicsAR</title>
+        <title>Bienvenido a Salud Libre</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: linear-gradient(135deg, #f59e0b, #eab308); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
@@ -139,7 +169,7 @@ async function sendWelcomeEmail({
       </head>
       <body>
         <div class="header">
-          <h1>¡Bienvenido a MédicsAR!</h1>
+          <h1>¡Bienvenido a Salud Libre!</h1>
           <p>Su cuenta de paciente ha sido creada exitosamente</p>
         </div>
         
@@ -196,7 +226,7 @@ async function sendWelcomeEmail({
         process.env.RESEND_FROM_EMAIL ||
         "MédicsAR <noreply@email.jhernandez.mx>",
       to: [patientEmail],
-      subject: `¡Bienvenido a MédicsAR! - Cuenta creada por ${doctorName}`,
+      subject: `¡Bienvenido a Salud Libre! - Cuenta creada por ${doctorName}`,
       html: emailHtml,
     });
 

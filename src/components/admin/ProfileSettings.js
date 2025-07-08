@@ -9,11 +9,14 @@ import {
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
+import GoogleMapsLocationPicker from "./GoogleMapsLocationPicker";
 
 export default function ProfileSettings() {
   const { currentUser } = useAuth();
   const fileInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const signatureInputRef = useRef(null);
+  const stampInputRef = useRef(null);
   const [profile, setProfile] = useState({
     nombre: "",
     email: "",
@@ -23,10 +26,16 @@ export default function ProfileSettings() {
     horario: "",
     genero: "",
     ubicacion: "",
+    latitude: null,
+    longitude: null,
+    formattedAddress: "",
     consultaOnline: false,
     rango: "Normal",
+    ageGroup: "ambos", // New field: menores, adultos, ambos
     photoURL: "",
     galleryImages: [],
+    signatureURL: "",
+    stampURL: "",
     workingHours: {
       monday: { start: "09:00", end: "17:00", enabled: true },
       tuesday: { start: "09:00", end: "17:00", enabled: true },
@@ -43,6 +52,8 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [uploadingStamp, setUploadingStamp] = useState(false);
   const [message, setMessage] = useState("");
 
   // Load doctor profile on component mount
@@ -88,6 +99,17 @@ export default function ProfileSettings() {
           [field]: value,
         },
       },
+    }));
+  };
+
+  const handleLocationSelect = (locationData) => {
+    setProfile((prev) => ({
+      ...prev,
+      latitude: locationData.lat,
+      longitude: locationData.lng,
+      formattedAddress: locationData.address,
+      // Keep the old ubicacion field for backward compatibility
+      ubicacion: locationData.address,
     }));
   };
 
@@ -272,6 +294,152 @@ export default function ProfileSettings() {
     const files = event.target.files;
     if (files && files.length > 0) {
       handleGalleryUpload(files);
+    }
+  };
+
+  const handleSignatureUpload = async (file) => {
+    if (!file || !currentUser) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setMessage(
+        "Por favor selecciona un archivo de imagen válido para la firma"
+      );
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("La imagen de la firma no puede superar los 2MB");
+      return;
+    }
+
+    try {
+      setUploadingSignature(true);
+      setMessage("");
+
+      // Create a reference to the file location in Firebase Storage
+      const fileName = `signatures/${currentUser.uid}/${Date.now()}-${
+        file.name
+      }`;
+      const storageRef = ref(storage, fileName);
+
+      // Delete old signature if exists
+      if (profile.signatureURL) {
+        try {
+          const url = new URL(profile.signatureURL);
+          const pathParts = url.pathname.split("/o/")[1];
+          if (pathParts) {
+            const oldPath = decodeURIComponent(pathParts.split("?")[0]);
+            const oldRef = ref(storage, oldPath);
+            await deleteObject(oldRef);
+          }
+        } catch (error) {
+          console.log("Old signature not found or couldn't be deleted:", error);
+        }
+      }
+
+      // Upload the file
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // Update profile state
+      setProfile((prev) => ({
+        ...prev,
+        signatureURL: downloadURL,
+      }));
+
+      // Save to database if doctorId exists
+      if (doctorId) {
+        await updateDoctor(doctorId, { signatureURL: downloadURL });
+      }
+
+      setMessage("Firma subida correctamente");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Error uploading signature:", error);
+      setMessage("Error al subir la firma");
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleStampUpload = async (file) => {
+    if (!file || !currentUser) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setMessage(
+        "Por favor selecciona un archivo de imagen válido para el sello"
+      );
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("La imagen del sello no puede superar los 2MB");
+      return;
+    }
+
+    try {
+      setUploadingStamp(true);
+      setMessage("");
+
+      // Create a reference to the file location in Firebase Storage
+      const fileName = `stamps/${currentUser.uid}/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, fileName);
+
+      // Delete old stamp if exists
+      if (profile.stampURL) {
+        try {
+          const url = new URL(profile.stampURL);
+          const pathParts = url.pathname.split("/o/")[1];
+          if (pathParts) {
+            const oldPath = decodeURIComponent(pathParts.split("?")[0]);
+            const oldRef = ref(storage, oldPath);
+            await deleteObject(oldRef);
+          }
+        } catch (error) {
+          console.log("Old stamp not found or couldn't be deleted:", error);
+        }
+      }
+
+      // Upload the file
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // Update profile state
+      setProfile((prev) => ({
+        ...prev,
+        stampURL: downloadURL,
+      }));
+
+      // Save to database if doctorId exists
+      if (doctorId) {
+        await updateDoctor(doctorId, { stampURL: downloadURL });
+      }
+
+      setMessage("Sello subido correctamente");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Error uploading stamp:", error);
+      setMessage("Error al subir el sello");
+    } finally {
+      setUploadingStamp(false);
+    }
+  };
+
+  const handleSignatureFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleSignatureUpload(file);
+    }
+  };
+
+  const handleStampFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleStampUpload(file);
     }
   };
 
@@ -465,30 +633,29 @@ export default function ProfileSettings() {
                       <option value="Otro">Otro</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ubicación
-                    </label>
-                    <select
-                      value={profile.ubicacion}
-                      onChange={(e) =>
-                        handleInputChange("ubicacion", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    >
-                      <option value="">Seleccionar ubicación</option>
-                      <option value="Palermo">Palermo</option>
-                      <option value="Recoleta">Recoleta</option>
-                      <option value="Belgrano">Belgrano</option>
-                      <option value="San Telmo">San Telmo</option>
-                      <option value="Puerto Madero">Puerto Madero</option>
-                      <option value="Villa Crespo">Villa Crespo</option>
-                      <option value="Caballito">Caballito</option>
-                      <option value="Barracas">Barracas</option>
-                      <option value="La Boca">La Boca</option>
-                      <option value="Retiro">Retiro</option>
-                    </select>
-                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ubicación del Consultorio
+                  </label>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Selecciona la ubicación exacta de tu consultorio en el mapa.
+                    Esto ayudará a los pacientes a encontrarte más fácilmente.
+                  </p>
+                  <GoogleMapsLocationPicker
+                    initialLocation={
+                      profile.latitude && profile.longitude
+                        ? {
+                            lat: profile.latitude,
+                            lng: profile.longitude,
+                            address:
+                              profile.formattedAddress || profile.ubicacion,
+                          }
+                        : null
+                    }
+                    onLocationSelect={handleLocationSelect}
+                  />
                 </div>
 
                 <div>
@@ -572,6 +739,28 @@ export default function ProfileSettings() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Grupo de Edad que Atiende
+                    </label>
+                    <select
+                      value={profile.ageGroup}
+                      onChange={(e) =>
+                        handleInputChange("ageGroup", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    >
+                      <option value="ambos">Menores y Adultos</option>
+                      <option value="menores">Solo Menores (Pediatría)</option>
+                      <option value="adultos">Solo Adultos</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Especifica qué grupo de edad atiendes en tu consulta
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Horarios de atención
@@ -585,6 +774,129 @@ export default function ProfileSettings() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="Ej: Lunes a Viernes, 9:00 AM - 5:00 PM"
                   />
+                </div>
+
+                {/* Signature and Stamp Section */}
+                <div className="mt-8">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">
+                    Firma y Sello Profesional
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Sube tu firma y sello profesional para ser incluidos
+                    automáticamente en las recetas médicas.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Signature Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Firma Digital
+                      </label>
+                      <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                        {profile.signatureURL ? (
+                          <div className="text-center">
+                            <img
+                              src={profile.signatureURL}
+                              alt="Firma"
+                              className="max-h-20 max-w-full object-contain mb-3"
+                            />
+                            <p className="text-sm text-gray-600 mb-3">
+                              Firma actual
+                            </p>
+                            <button
+                              onClick={() => signatureInputRef.current?.click()}
+                              disabled={uploadingSignature}
+                              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                            >
+                              {uploadingSignature
+                                ? "Subiendo..."
+                                : "Cambiar Firma"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-sm font-medium text-gray-900 mb-1">
+                              Sube tu firma
+                            </p>
+                            <p className="text-xs text-gray-500 mb-4">
+                              PNG, JPG hasta 2MB
+                            </p>
+                            <button
+                              onClick={() => signatureInputRef.current?.click()}
+                              disabled={uploadingSignature}
+                              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                            >
+                              {uploadingSignature
+                                ? "Subiendo..."
+                                : "Seleccionar Archivo"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        ref={signatureInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSignatureFileChange}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {/* Stamp Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Sello Profesional
+                      </label>
+                      <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                        {profile.stampURL ? (
+                          <div className="text-center">
+                            <img
+                              src={profile.stampURL}
+                              alt="Sello"
+                              className="max-h-20 max-w-full object-contain mb-3"
+                            />
+                            <p className="text-sm text-gray-600 mb-3">
+                              Sello actual
+                            </p>
+                            <button
+                              onClick={() => stampInputRef.current?.click()}
+                              disabled={uploadingStamp}
+                              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                            >
+                              {uploadingStamp ? "Subiendo..." : "Cambiar Sello"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-sm font-medium text-gray-900 mb-1">
+                              Sube tu sello
+                            </p>
+                            <p className="text-xs text-gray-500 mb-4">
+                              PNG, JPG hasta 2MB
+                            </p>
+                            <button
+                              onClick={() => stampInputRef.current?.click()}
+                              disabled={uploadingStamp}
+                              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                            >
+                              {uploadingStamp
+                                ? "Subiendo..."
+                                : "Seleccionar Archivo"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        ref={stampInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleStampFileChange}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

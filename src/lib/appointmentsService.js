@@ -10,11 +10,11 @@ import {
   where,
   orderBy,
 } from "firebase/firestore";
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL, 
-  deleteObject 
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 
@@ -59,7 +59,7 @@ export async function getAppointmentById(id) {
         ...docSnap.data(),
       };
     } else {
-      throw new Error("Appointment not found");
+      throw new Error("Cita no encontrada");
     }
   } catch (error) {
     console.error("Error getting appointment:", error);
@@ -356,10 +356,10 @@ export async function getAvailableTimeSlots(doctorId, date) {
       where("date", "==", date),
       where("status", "in", ["scheduled", "pending"])
     );
-    
+
     const querySnapshot = await getDocs(q);
     const bookedSlots = [];
-    
+
     querySnapshot.forEach((doc) => {
       const appointment = doc.data();
       if (appointment.time) {
@@ -370,13 +370,15 @@ export async function getAvailableTimeSlots(doctorId, date) {
     // Generate available slots (assuming 9 AM to 6 PM, 30-minute intervals)
     const allSlots = [];
     for (let hour = 9; hour < 18; hour++) {
-      allSlots.push(`${hour.toString().padStart(2, '0')}:00`);
-      allSlots.push(`${hour.toString().padStart(2, '0')}:30`);
+      allSlots.push(`${hour.toString().padStart(2, "0")}:00`);
+      allSlots.push(`${hour.toString().padStart(2, "0")}:30`);
     }
 
     // Filter out booked slots
-    const availableSlots = allSlots.filter(slot => !bookedSlots.includes(slot));
-    
+    const availableSlots = allSlots.filter(
+      (slot) => !bookedSlots.includes(slot)
+    );
+
     return availableSlots;
   } catch (error) {
     console.error("Error getting available time slots:", error);
@@ -385,7 +387,11 @@ export async function getAvailableTimeSlots(doctorId, date) {
 }
 
 // Cancel appointment
-export async function cancelAppointment(id, reason = "", cancelledBy = "patient") {
+export async function cancelAppointment(
+  id,
+  reason = "",
+  cancelledBy = "patient"
+) {
   try {
     const updateData = {
       status: "cancelled",
@@ -430,7 +436,13 @@ export async function rescheduleAppointment(id, newDate, newTime, reason = "") {
 }
 
 // Upload document for appointment
-export async function uploadAppointmentDocument(file, appointmentId, title, uploadedBy, metadata = {}) {
+export async function uploadAppointmentDocument(
+  file,
+  appointmentId,
+  title,
+  uploadedBy,
+  metadata = {}
+) {
   try {
     const fileName = `${Date.now()}_${file.name}`;
     const filePath = `appointment-documents/${appointmentId}/${fileName}`;
@@ -454,7 +466,10 @@ export async function uploadAppointmentDocument(file, appointmentId, title, uplo
       ...metadata,
     };
 
-    const docRef = await addDoc(collection(db, APPOINTMENT_DOCUMENTS_COLLECTION), documentData);
+    const docRef = await addDoc(
+      collection(db, APPOINTMENT_DOCUMENTS_COLLECTION),
+      documentData
+    );
 
     return {
       id: docRef.id,

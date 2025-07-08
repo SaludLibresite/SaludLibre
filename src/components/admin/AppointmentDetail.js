@@ -10,13 +10,14 @@ import {
   ClockIcon,
   UserIcon,
   MapPinIcon,
-  IdentificationIcon,
+  EnvelopeIcon,
   HeartIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../context/AuthContext";
 import {
   getAppointmentById,
   updateAppointmentStatus,
+  getAppointmentsByPatientId,
 } from "../../lib/appointmentsService";
 import { getPatientById, addMedicalNote } from "../../lib/patientsService";
 import AppointmentDocuments from "./AppointmentDocuments";
@@ -27,6 +28,7 @@ export default function AppointmentDetail({ appointmentId }) {
   const [activeTab, setActiveTab] = useState("Información");
   const [appointment, setAppointment] = useState(null);
   const [patient, setPatient] = useState(null);
+  const [patientAppointments, setPatientAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [clinicalNotes, setClinicalNotes] = useState("");
@@ -57,6 +59,12 @@ export default function AppointmentDetail({ appointmentId }) {
           if (patientData) {
             setPatient(patientData);
             setClinicalNotes(patientData.medicalNotes || "");
+
+            // Load patient's appointment history
+            const patientHistory = await getAppointmentsByPatientId(
+              appointmentData.patientId
+            );
+            setPatientAppointments(patientHistory);
           }
         }
       } catch (error) {
@@ -70,7 +78,14 @@ export default function AppointmentDetail({ appointmentId }) {
     loadData();
   }, [appointmentId, currentUser]);
 
-  const tabs = ["Información", "Notas Médicas", "Historial", "Documentos"];
+  const tabs = [
+    "Información",
+    "Notas Médicas",
+    `Historial${
+      patientAppointments.length > 0 ? ` (${patientAppointments.length})` : ""
+    }`,
+    "Documentos",
+  ];
 
   const handleCompleteVisit = async () => {
     try {
@@ -178,7 +193,7 @@ export default function AppointmentDetail({ appointmentId }) {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                {appointment.patientName}
+                {patient ? patient.name : "Cargando paciente..."}
               </h2>
               <div className="flex items-center space-x-4 text-sm text-gray-500">
                 <span>{appointmentDate.toLocaleDateString("es-ES")}</span>
@@ -215,9 +230,9 @@ export default function AppointmentDetail({ appointmentId }) {
               </button>
             )}
 
-            {appointment.patientPhone && (
+            {patient?.phone && (
               <button
-                onClick={() => window.open(`tel:${appointment.patientPhone}`)}
+                onClick={() => window.open(`tel:${patient.phone}`)}
                 className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 <PhoneIcon className="h-4 w-4" />
@@ -225,14 +240,11 @@ export default function AppointmentDetail({ appointmentId }) {
               </button>
             )}
 
-            {appointment.patientPhone && (
+            {patient?.phone && (
               <button
                 onClick={() =>
                   window.open(
-                    `https://wa.me/${appointment.patientPhone.replace(
-                      /\D/g,
-                      ""
-                    )}`
+                    `https://wa.me/${patient.phone.replace(/\D/g, "")}`
                   )
                 }
                 className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -340,19 +352,19 @@ export default function AppointmentDetail({ appointmentId }) {
                   <div className="flex items-center space-x-3">
                     <UserIcon className="h-5 w-5 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {patient.firstName} {patient.lastName}
+                      {patient.name}
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <IdentificationIcon className="h-5 w-5 text-gray-400" />
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {patient.dni || "No especificado"}
+                      {patient.email || "No especificado"}
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <PhoneIcon className="h-5 w-5 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {patient.phone || appointment.patientPhone}
+                      {patient.phone || "No especificado"}
                     </span>
                   </div>
                   {patient.address && (
@@ -363,14 +375,14 @@ export default function AppointmentDetail({ appointmentId }) {
                       </span>
                     </div>
                   )}
-                  {patient.birthDate && (
+                  {patient.dateOfBirth && (
                     <div className="flex items-center space-x-3">
                       <CalendarIcon className="h-5 w-5 text-gray-400" />
                       <span className="text-sm text-gray-600">
                         Nacido el{" "}
-                        {new Date(
-                          patient.birthDate.toDate()
-                        ).toLocaleDateString("es-ES")}
+                        {new Date(patient.dateOfBirth).toLocaleDateString(
+                          "es-ES"
+                        )}
                       </span>
                     </div>
                   )}
@@ -453,30 +465,188 @@ export default function AppointmentDetail({ appointmentId }) {
           </div>
         )}
 
-        {activeTab === "Historial" && (
+        {activeTab.startsWith("Historial") && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Historial de Citas
-            </h3>
-            {patient ? (
-              <div className="text-center py-8">
-                <CalendarIcon className="mx-auto h-8 w-8 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-500">
-                  Funcionalidad de historial próximamente disponible
-                </p>
-              </div>
-            ) : (
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Historial de Citas
+              </h3>
+              {patientAppointments.length > 0 && (
+                <div className="flex items-center space-x-4 text-sm">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    <span className="text-gray-600">
+                      Completadas:{" "}
+                      {
+                        patientAppointments.filter(
+                          (a) => a.status === "completed"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                    <span className="text-gray-600">
+                      Pendientes:{" "}
+                      {
+                        patientAppointments.filter(
+                          (a) => a.status === "pending"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                    <span className="text-gray-600">
+                      Canceladas:{" "}
+                      {
+                        patientAppointments.filter(
+                          (a) => a.status === "cancelled"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            {!patient ? (
               <div className="bg-yellow-50 p-4 rounded-lg">
                 <p className="text-yellow-800">
                   El historial solo está disponible para pacientes registrados.
                 </p>
+              </div>
+            ) : patientAppointments.length === 0 ? (
+              <div className="text-center py-8">
+                <CalendarIcon className="mx-auto h-8 w-8 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">
+                  No se encontraron citas para este paciente
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {patientAppointments
+                  .sort((a, b) => {
+                    const dateA = a.date?.toDate
+                      ? a.date.toDate()
+                      : new Date(a.date);
+                    const dateB = b.date?.toDate
+                      ? b.date.toDate()
+                      : new Date(b.date);
+                    return dateB - dateA; // Most recent first
+                  })
+                  .map((appt) => {
+                    const appointmentDate = appt.date?.toDate
+                      ? appt.date.toDate()
+                      : new Date(appt.date);
+                    const isCurrentAppointment = appt.id === appointmentId;
+
+                    return (
+                      <div
+                        key={appt.id}
+                        className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                          isCurrentAppointment
+                            ? "border-amber-300 bg-amber-50"
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-4 mb-2">
+                              <div className="flex items-center space-x-2">
+                                <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                <span className="font-medium text-gray-900">
+                                  {appointmentDate.toLocaleDateString("es-ES", {
+                                    weekday: "long",
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <ClockIcon className="h-4 w-4 text-gray-400" />
+                                <span className="text-gray-600">
+                                  {appt.time}
+                                </span>
+                              </div>
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                                  appt.status
+                                )}`}
+                              >
+                                {appt.status === "confirmed"
+                                  ? "Confirmada"
+                                  : appt.status === "pending"
+                                  ? "Pendiente"
+                                  : appt.status === "cancelled"
+                                  ? "Cancelada"
+                                  : appt.status === "completed"
+                                  ? "Completada"
+                                  : appt.status}
+                              </span>
+                              {isCurrentAppointment && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                  Cita actual
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-gray-600">
+                                <strong>Motivo:</strong>{" "}
+                                {appt.reason || "Consulta general"}
+                              </p>
+                              {appt.doctorName && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>Doctor:</strong> {appt.doctorName}
+                                </p>
+                              )}
+                              {appt.doctorSpecialty && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>Especialidad:</strong>{" "}
+                                  {appt.doctorSpecialty}
+                                </p>
+                              )}
+                              {appt.notes && (
+                                <p className="text-sm text-gray-600">
+                                  <strong>Notas:</strong> {appt.notes}
+                                </p>
+                              )}
+                              {appt.urgency && appt.urgency !== "normal" && (
+                                <p className="text-sm text-red-600">
+                                  <strong>Urgencia:</strong>{" "}
+                                  {appt.urgency === "urgent"
+                                    ? "Urgente"
+                                    : appt.urgency}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4">
+                            {!isCurrentAppointment && (
+                              <button
+                                onClick={() =>
+                                  router.push(`/admin/appointment/${appt.id}`)
+                                }
+                                className="text-amber-600 hover:text-amber-700 px-3 py-1 rounded-lg border border-amber-200 hover:bg-amber-50 transition-colors duration-200 text-sm"
+                              >
+                                Ver detalles
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>
         )}
 
         {activeTab === "Documentos" && (
-          <AppointmentDocuments appointmentId={appointmentId} />
+          <AppointmentDocuments
+            appointmentId={appointmentId}
+            patientId={appointment?.patientId}
+          />
         )}
       </div>
     </div>
