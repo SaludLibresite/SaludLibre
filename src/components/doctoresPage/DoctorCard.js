@@ -116,7 +116,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
 
         {/* Card Content */}
         <div className="p-6">
-          <div className={`flex gap-6 ${inside ? "flex-col" : ""}`}>
+          <div className={`flex flex-col md:flex-row gap-6`}>
             {/* Doctor Image with Hover Effect */}
             <div className="relative shrink-0 group-hover:transform group-hover:scale-105 transition-transform duration-300">
               <div
@@ -127,13 +127,13 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 <img
                   src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
                   alt={doctor.nombre}
-                  className={`rounded-2xl object-cover shadow-md transition-transform duration-300
+                  className={`rounded-2xl mx-auto object-cover shadow-md transition-transform duration-300
                   ${
                     doctor.rango === "VIP"
-                      ? "w-40 h-40 md:w-44 md:h-44"
+                      ? "w-52 h-48 md:w-44 md:h-44"
                       : doctor.rango === "Intermedio"
-                      ? "w-32 h-32"
-                      : "w-28 h-28"
+                      ? "w-40 h-40"
+                      : "w-32 h-32"
                   }`}
                   onError={(e) => {
                     e.target.src = "/img/doctor-1.jpg";

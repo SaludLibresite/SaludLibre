@@ -1,16 +1,20 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import usersReview from "../../data/usersReview.json";
 import NavBar from "../../components/NavBar";
 import DoctorInfo from "../../components/doctoresPage/DoctorInfo";
 import DoctorGallery from "../../components/doctoresPage/DoctorGallery";
 import DoctorReviews from "../../components/doctoresPage/DoctorReviews";
 import AgendarCita from "../../components/doctoresPage/AgendarCita";
+import DoctorLocationMap from "../../components/doctoresPage/DoctorLocationMap";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/Footer";
 import DoctorCard from "../../components/doctoresPage/DoctorCard";
 import { getDoctorBySlug, getAllDoctors } from "../../lib/doctorsService";
 import { createAppointment } from "../../lib/appointmentsService";
+import {
+  getReviewsByDoctorId,
+  getDoctorAverageRating,
+} from "../../lib/reviewsService";
 import { useAuth } from "../../context/AuthContext";
 
 // Animation variants
@@ -52,6 +56,9 @@ export default function DoctorDetailPage() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [averageRating, setAverageRating] = useState(null);
   const { currentUser } = useAuth();
 
   // Handle appointment submission
@@ -80,6 +87,46 @@ export default function DoctorDetailPage() {
     router.push("/paciente/login");
   };
 
+  // Load doctor reviews
+  const loadDoctorReviews = async (doctorId) => {
+    try {
+      setReviewsLoading(true);
+
+      // Load reviews and average rating
+      const [doctorReviews, ratingData] = await Promise.all([
+        getReviewsByDoctorId(doctorId),
+        getDoctorAverageRating(doctorId),
+      ]);
+
+      // Transform reviews to match the expected format for DoctorReviews component
+      const transformedReviews = doctorReviews.map((review) => ({
+        id: review.id,
+        name: review.patientName,
+        photo: "/img/user2.png", // Default photo since we don't store patient photos
+        rating: review.rating,
+        date: review.createdAt?.toDate
+          ? review.createdAt.toDate().toISOString().split("T")[0]
+          : new Date(review.createdAt).toISOString().split("T")[0],
+        comment: review.comment || "",
+        verified: true, // All reviews from our system are verified
+        aspects: review.aspects,
+        wouldRecommend: review.wouldRecommend,
+        appointmentDate: review.appointmentDate?.toDate
+          ? review.appointmentDate.toDate()
+          : new Date(review.appointmentDate),
+      }));
+
+      setReviews(transformedReviews);
+      setAverageRating(ratingData);
+    } catch (error) {
+      console.error("Error loading doctor reviews:", error);
+      setReviews([]);
+      setAverageRating(null);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
   // Load doctor data
   useEffect(() => {
     async function loadDoctor() {
@@ -98,6 +145,9 @@ export default function DoctorDetailPage() {
         }
 
         setDoctor(doctorData);
+
+        // Load reviews for this doctor
+        await loadDoctorReviews(doctorData.id);
 
         // Get all doctors to find related ones
         const allDoctors = await getAllDoctors();
@@ -275,7 +325,14 @@ export default function DoctorDetailPage() {
                             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                           />
                         </svg>
-                        <span>{doctor.ubicacion}</span>
+                        <span>
+                          {doctor.formattedAddress || doctor.ubicacion}
+                        </span>
+                        {doctor.latitude && doctor.longitude && (
+                          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full ml-1">
+                            📍 Ubicación exacta
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1">
@@ -400,11 +457,20 @@ export default function DoctorDetailPage() {
               horario={doctor.horario}
             />
 
+            {/* Doctor Location Map */}
+            <motion.div variants={fadeInUp}>
+              <DoctorLocationMap doctor={doctor} />
+            </motion.div>
+
             {/* Doctor Gallery Component */}
             <DoctorGallery images={doctor.galleryImages || []} />
 
             {/* Doctor Reviews Component */}
-            <DoctorReviews reviews={usersReview} />
+            <DoctorReviews
+              reviews={reviews}
+              averageRating={averageRating}
+              loading={reviewsLoading}
+            />
           </div>
 
           {/* Sidebar */}
@@ -539,8 +605,39 @@ export default function DoctorDetailPage() {
                 </a>
               </div>
 
-              <div className="text-center text-sm text-gray-500 mt-4">
-                Horarios: {doctor.horario || "A consultar"}
+              <div className="text-center text-sm text-gray-500 mt-4 space-y-2">
+                <div>Horarios: {doctor.horario || "A consultar"}</div>
+                {doctor.latitude && doctor.longitude && (
+                  <div>
+                    <a
+                      href={`https://www.google.com/maps?q=${doctor.latitude},${doctor.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs"
+                    >
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      Ver ubicación en mapa
+                    </a>
+                  </div>
+                )}
               </div>
             </motion.div>
 

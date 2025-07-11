@@ -13,6 +13,7 @@ import { db } from "../../lib/firebase";
 import PatientLayout from "../../components/paciente/PatientLayout";
 import ProtectedPatientRoute from "../../components/paciente/ProtectedPatientRoute";
 import CompleteProfileModal from "../../components/paciente/CompleteProfileModal";
+import { getAppointmentsByPatientId } from "../../lib/appointmentsService";
 import {
   UserCircleIcon,
   CalendarIcon,
@@ -25,6 +26,7 @@ import {
   StarIcon,
   CheckCircleIcon,
   ClipboardDocumentListIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 
 export default function PatientDashboard() {
@@ -33,9 +35,11 @@ export default function PatientDashboard() {
   const [patientData, setPatientData] = useState(null);
   const [doctorData, setDoctorData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
-  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
+  const [showCompleteProfileModal, setShowCompleteProfileModal] =
+    useState(false);
 
   useEffect(() => {
     async function loadPatientData() {
@@ -58,14 +62,15 @@ export default function PatientDashboard() {
           setPatientData(patient);
 
           // Check if profile is incomplete
-          const isIncomplete = !patient.dataComplete || 
-                              !patient.phone || 
-                              !patient.dateOfBirth || 
-                              !patient.gender || 
-                              !patient.address || 
-                              !patient.emergencyContact || 
-                              !patient.emergencyPhone;
-          
+          const isIncomplete =
+            !patient.dataComplete ||
+            !patient.phone ||
+            !patient.dateOfBirth ||
+            !patient.gender ||
+            !patient.address ||
+            !patient.emergencyContact ||
+            !patient.emergencyPhone;
+
           if (isIncomplete) {
             setShowCompleteProfileModal(true);
           }
@@ -80,38 +85,8 @@ export default function PatientDashboard() {
             }
           }
 
-          // Get upcoming appointments
-          const appointmentsQuery = query(
-            collection(db, "appointments"),
-            where("patientId", "==", patient.id),
-            where("status", "==", "scheduled")
-          );
-          const appointmentsSnapshot = await getDocs(appointmentsQuery);
-          const appointments = appointmentsSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setUpcomingAppointments(appointments);
-
-          // Mock recent activity
-          setRecentActivity([
-            {
-              id: 1,
-              type: "appointment",
-              title: "Cita programada",
-              description: "Consulta general con Dr. García",
-              date: new Date(),
-              icon: CalendarIcon,
-            },
-            {
-              id: 2,
-              type: "prescription",
-              title: "Nueva receta",
-              description: "Medicación actualizada",
-              date: new Date(Date.now() - 86400000),
-              icon: DocumentTextIcon,
-            },
-          ]);
+          // Load appointments using the service
+          await loadAppointments(patient.id);
         }
       } catch (error) {
         console.error("Error loading patient data:", error);
@@ -123,8 +98,124 @@ export default function PatientDashboard() {
     loadPatientData();
   }, [currentUser, router]);
 
+  const loadAppointments = async (patientId) => {
+    try {
+      const appointmentsList = await getAppointmentsByPatientId(patientId);
+      console.log("Loaded appointments:", appointmentsList);
+      setAppointments(appointmentsList);
+
+      // Filter upcoming appointments
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Start of today
+
+      const upcoming = appointmentsList.filter((appointment) => {
+        const appointmentDate = appointment.date?.toDate
+          ? appointment.date.toDate()
+          : new Date(appointment.date);
+
+        console.log(`Appointment ${appointment.id}:`, {
+          date: appointmentDate,
+          status: appointment.status,
+          isAfterToday: appointmentDate >= now,
+          isScheduled: appointment.status === "scheduled",
+        });
+
+        return appointmentDate >= now && appointment.status === "scheduled";
+      });
+
+      console.log("Upcoming appointments:", upcoming);
+      setUpcomingAppointments(upcoming);
+
+      // Generate recent activity from appointments
+      const activities = appointmentsList
+        .sort((a, b) => {
+          const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+          const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+          return dateB - dateA; // Most recent first
+        })
+        .slice(0, 5)
+        .map((appointment) => {
+          const appointmentDate = appointment.date?.toDate
+            ? appointment.date.toDate()
+            : new Date(appointment.date);
+
+          let activityType = "appointment";
+          let title = "Cita programada";
+          let description = `${getAppointmentTypeText(
+            appointment.type
+          )} con Dr. ${appointment.doctorName || "Nombre no disponible"}`;
+          let icon = CalendarIcon;
+
+          if (appointment.status === "completed") {
+            title = "Cita completada";
+            icon = CheckCircleIcon;
+          } else if (appointment.status === "cancelled") {
+            title = "Cita cancelada";
+            icon = XCircleIcon;
+            activityType = "cancellation";
+          } else if (appointment.status === "pending") {
+            title = "Cita solicitada";
+            icon = ClockIcon;
+            description = `Solicitud de ${getAppointmentTypeText(
+              appointment.type
+            )} pendiente de aprobación`;
+          }
+
+          return {
+            id: appointment.id + "_activity",
+            type: activityType,
+            title,
+            description,
+            date: appointmentDate,
+            icon,
+          };
+        });
+
+      console.log("Recent activities:", activities);
+      setRecentActivity(activities);
+    } catch (error) {
+      console.error("Error loading appointments:", error);
+    }
+  };
+
+  const getAppointmentTypeText = (type) => {
+    switch (type) {
+      case "consultation":
+        return "Consulta General";
+      case "followup":
+        return "Control/Seguimiento";
+      case "specialist":
+        return "Consulta Especializada";
+      case "checkup":
+        return "Chequeo Médico";
+      case "procedure":
+        return "Procedimiento";
+      case "emergency":
+        return "Urgencia";
+      default:
+        return "Consulta General";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "scheduled":
+        return "text-green-600";
+      case "pending":
+        return "text-yellow-600";
+      case "completed":
+        return "text-blue-600";
+      case "cancelled":
+        return "text-red-600";
+      case "rejected":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
+    }
+  };
+
   const handleCompleteProfile = (updatedData) => {
-    setPatientData(prev => ({ ...prev, ...updatedData }));
+    setPatientData((prev) => ({ ...prev, ...updatedData }));
     setShowCompleteProfileModal(false);
   };
 
@@ -158,6 +249,31 @@ export default function PatientDashboard() {
       </PatientLayout>
     );
   }
+
+  // Calculate statistics
+  const completedAppointments = appointments.filter(
+    (a) => a.status === "completed"
+  ).length;
+  const cancelledAppointments = appointments.filter(
+    (a) => a.status === "cancelled"
+  ).length;
+  const pendingAppointments = appointments.filter(
+    (a) => a.status === "pending"
+  ).length;
+
+  // Debug statistics
+  console.log("Dashboard Statistics:", {
+    total: appointments.length,
+    upcoming: upcomingAppointments.length,
+    completed: completedAppointments,
+    pending: pendingAppointments,
+    cancelled: cancelledAppointments,
+    appointmentsData: appointments.map((a) => ({
+      id: a.id,
+      status: a.status,
+      date: a.date,
+    })),
+  });
 
   return (
     <ProtectedPatientRoute>
@@ -204,9 +320,9 @@ export default function PatientDashboard() {
                   <DocumentTextIcon className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm text-gray-600">Historial</p>
+                  <p className="text-sm text-gray-600">Completadas</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {patientData.medicalHistory?.length || 0}
+                    {completedAppointments}
                   </p>
                 </div>
               </div>
@@ -214,12 +330,14 @@ export default function PatientDashboard() {
 
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
               <div className="flex items-center">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <HeartIcon className="h-6 w-6 text-green-600" />
+                <div className="p-3 bg-yellow-100 rounded-lg">
+                  <ClockIcon className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm text-gray-600">Estado</p>
-                  <p className="text-lg font-semibold text-green-600">Activo</p>
+                  <p className="text-sm text-gray-600">Pendientes</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {pendingAppointments}
+                  </p>
                 </div>
               </div>
             </div>
@@ -230,8 +348,10 @@ export default function PatientDashboard() {
                   <StarIcon className="h-6 w-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm text-gray-600">Reseñas</p>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
+                  <p className="text-sm text-gray-600">Total Citas</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {appointments.length}
+                  </p>
                 </div>
               </div>
             </div>
@@ -365,13 +485,22 @@ export default function PatientDashboard() {
                         <CalendarIcon className="h-5 w-5 text-amber-600 mr-3" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">
-                            {appointment.type || "Consulta General"}
+                            {getAppointmentTypeText(appointment.type)}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {appointment.date &&
-                              new Date(
-                                appointment.date.toDate()
-                              ).toLocaleDateString("es-ES")}
+                            Dr.{" "}
+                            {appointment.doctorName || "Nombre no disponible"}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {(appointment.date?.toDate
+                              ? appointment.date.toDate()
+                              : new Date(appointment.date)
+                            ).toLocaleDateString("es-ES", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            - {appointment.time}
                           </div>
                         </div>
                         <CheckCircleIcon className="h-5 w-5 text-green-500" />
@@ -408,7 +537,13 @@ export default function PatientDashboard() {
                         className="flex items-center p-3 border border-gray-200 rounded-lg"
                       >
                         <div className="p-2 bg-amber-100 rounded-lg mr-3">
-                          <activity.icon className="h-4 w-4 text-amber-600" />
+                          <activity.icon
+                            className={`h-4 w-4 ${getStatusColor(
+                              activity.type === "cancellation"
+                                ? "cancelled"
+                                : "scheduled"
+                            )}`}
+                          />
                         </div>
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">

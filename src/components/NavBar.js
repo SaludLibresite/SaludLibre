@@ -84,7 +84,7 @@ export default function NavBar() {
       animate="visible"
       variants={navVariants}
     >
-      <div className="w-10/12 mx-auto flex items-center justify-between py-4 px-4 md:px-6">
+      <div className="lg:w-10/12 mx-auto flex items-center justify-between py-4 px-2 lg:px-4 md:px-6">
         <motion.div
           className="flex items-center gap-4"
           whileHover={{ scale: 1.05 }}
@@ -127,7 +127,10 @@ export default function NavBar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <LoginButton />
+          {/* Desktop LoginButton - only show on desktop */}
+          <div className="hidden md:block">
+            <LoginButton />
+          </div>
 
           {/* Mobile menu button */}
           <motion.button
@@ -180,8 +183,8 @@ export default function NavBar() {
                       <Image
                         src={logo}
                         alt="Logo"
-                        width={40}
-                        height={40}
+                        width={200}
+                        height={200}
                         className="object-contain cursor-pointer"
                       />
                     </Link>

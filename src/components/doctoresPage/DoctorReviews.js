@@ -164,6 +164,59 @@ const ReviewItem = ({ review, isCompact = false }) => (
       >
         "{review.comment}"
       </motion.p>
+
+      {/* Show recommendation status */}
+      {review.wouldRecommend !== undefined && !isCompact && (
+        <motion.div
+          className="mt-3 flex items-center gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <span
+            className={`text-xs px-2 py-1 rounded-full font-medium ${
+              review.wouldRecommend
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {review.wouldRecommend ? "✓ Recomendado" : "✗ No recomendado"}
+          </span>
+        </motion.div>
+      )}
+
+      {/* Show aspects ratings if available */}
+      {review.aspects && !isCompact && (
+        <motion.div
+          className="mt-3 grid grid-cols-2 gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          {Object.entries(review.aspects).map(([aspect, rating]) => (
+            <div
+              key={aspect}
+              className="flex items-center justify-between text-xs"
+            >
+              <span className="text-gray-600 capitalize">
+                {aspect === "punctuality"
+                  ? "Puntualidad"
+                  : aspect === "attention"
+                  ? "Atención"
+                  : aspect === "explanation"
+                  ? "Explicación"
+                  : aspect === "facilities"
+                  ? "Instalaciones"
+                  : aspect}
+              </span>
+              <div className="flex items-center gap-1">
+                <RatingStars rating={rating} size="small" />
+                <span className="text-gray-500">{rating}</span>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      )}
     </div>
   </motion.div>
 );
@@ -226,14 +279,75 @@ const ReviewsModal = ({ isOpen, onClose, reviews }) => (
   </AnimatePresence>
 );
 
-export default function DoctorReviews({ reviews }) {
+export default function DoctorReviews({
+  reviews,
+  averageRating,
+  loading = false,
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const reviewsWithRatings = reviews.map((review) => ({
-    ...review,
-    rating: Math.floor(Math.random() * 2) + 4,
-  }));
 
-  const displayedReviews = reviewsWithRatings.slice(0, 3);
+  // Use the actual reviews data without modification
+  const displayedReviews = reviews.slice(0, 3);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="relative bg-gradient-to-br from-white via-blue-50/30 to-white py-12 sm:py-16">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center mb-8">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-300 rounded w-1/4 mx-auto mb-2"></div>
+              <div className="h-8 bg-gray-300 rounded w-1/2 mx-auto"></div>
+            </div>
+          </div>
+          <div className="mx-auto max-w-2xl space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="flex items-start space-x-4 p-6 rounded-xl">
+                  <div className="h-16 w-16 bg-gray-300 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-300 rounded w-1/6"></div>
+                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No reviews state
+  if (!reviews.length) {
+    return (
+      <div className="relative bg-gradient-to-br from-white via-blue-50/30 to-white py-12 sm:py-16">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-sm font-semibold text-blue-600 mb-2">
+              Testimonios de Pacientes
+            </h2>
+            <p className="text-2xl font-bold tracking-tight text-gray-900 mb-8">
+              Lo que dicen nuestros pacientes
+            </p>
+            <div className="bg-gray-50 rounded-xl p-8">
+              <div className="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                <StarIcon className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Aún no hay reseñas
+              </h3>
+              <p className="text-gray-600">
+                Este doctor aún no tiene reseñas de pacientes. ¡Sé el primero en
+                dejar una reseña después de tu consulta!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative bg-gradient-to-br from-white via-blue-50/30 to-white py-12 sm:py-16">
@@ -287,10 +401,33 @@ export default function DoctorReviews({ reviews }) {
             <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/10">
               {reviews.length}
             </span>
+            {averageRating && averageRating.totalReviews > 0 && (
+              <div className="flex items-center gap-1">
+                <RatingStars
+                  rating={Math.round(averageRating.averageRating)}
+                  size="small"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  {averageRating.averageRating.toFixed(1)}
+                </span>
+              </div>
+            )}
           </motion.div>
           <motion.p className="text-2xl font-bold tracking-tight text-gray-900">
             Lo que dicen nuestros pacientes
           </motion.p>
+          {averageRating && averageRating.totalReviews > 0 && (
+            <motion.div
+              className="mt-2 text-sm text-gray-600"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              Promedio: {averageRating.averageRating.toFixed(1)}/5 estrellas
+              basado en {averageRating.totalReviews} reseña
+              {averageRating.totalReviews !== 1 ? "s" : ""}
+            </motion.div>
+          )}
         </motion.div>
 
         <motion.div
@@ -311,35 +448,37 @@ export default function DoctorReviews({ reviews }) {
           ))}
         </motion.div>
 
-        <motion.div
-          className="mt-8 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.6 }}
-        >
-          <motion.button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-x-2 rounded-full bg-blue-600/10 px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-600/20 transition-colors duration-300"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+        {reviews.length > 3 && (
+          <motion.div
+            className="mt-8 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
           >
-            Ver todos los testimonios
-            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </motion.button>
-        </motion.div>
+            <motion.button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-x-2 rounded-full bg-blue-600/10 px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-600/20 transition-colors duration-300"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Ver todos los testimonios ({reviews.length})
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </motion.button>
+          </motion.div>
+        )}
       </div>
 
       <ReviewsModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        reviews={reviewsWithRatings}
+        reviews={reviews}
       />
     </div>
   );

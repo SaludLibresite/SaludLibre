@@ -101,7 +101,7 @@ export default function HeroCarousel({ images }) {
         transition={{ delay: 0.2 }}
       >
         <motion.h1
-          className="text-4xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg text-center px-4"
+          className="text-5xl lg:text-4xl md:text-6xl font-bold text-white mb-8 drop-shadow-lg text-center px-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
