@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/router";
+import Image from "next/image";
 import {
   getAllSpecialties,
   createSpecialty,
@@ -129,18 +130,24 @@ export default function SpecialtiesManagement() {
       const result = await testFirebaseStorage();
       if (result.success) {
         alert(
-          `✅ Firebase Storage funciona correctamente!\nURL de prueba: ${result.url}`
+          `✅ Firebase Storage funciona correctamente!\n\nURL de prueba: ${result.url}\n\nBucket: ${result.bucket}`
         );
+        // Open the URL in a new tab to test accessibility
+        window.open(result.url, "_blank");
       } else {
         alert(
-          `❌ Error en Firebase Storage: ${result.error}\nCódigo: ${
+          `❌ Error en Firebase Storage: ${result.error}\n\nCódigo: ${
             result.code || "N/A"
-          }`
+          }\nBucket: ${
+            result.bucket || "No configurado"
+          }\n\nRevisa la consola para más detalles.`
         );
       }
     } catch (error) {
       console.error("Error testing Firebase Storage:", error);
-      alert(`❌ Error al probar Firebase Storage: ${error.message}`);
+      alert(
+        `❌ Error al probar Firebase Storage: ${error.message}\n\nRevisa la consola para más detalles.`
+      );
     }
   };
 
@@ -450,16 +457,27 @@ export default function SpecialtiesManagement() {
                   alt={specialty.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    console.log("Image failed to load:", specialty.imageUrl);
+                    console.log("❌ Image failed to load:", {
+                      url: specialty.imageUrl,
+                      specialty: specialty.title,
+                      fallback: "/img/doctor-1.jpg",
+                    });
                     e.target.src = "/img/doctor-1.jpg";
                   }}
                   onLoad={() => {
-                    console.log(
-                      "Image loaded successfully:",
-                      specialty.imageUrl
-                    );
+                    console.log("✅ Image loaded successfully:", {
+                      url: specialty.imageUrl,
+                      specialty: specialty.title,
+                    });
                   }}
                 />
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === "development" &&
+                  specialty.imageUrl && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-1 truncate">
+                      {specialty.imageUrl}
+                    </div>
+                  )}
                 <div className="absolute top-2 right-2">
                   <span
                     className={`px-2 py-1 text-xs font-semibold rounded-full ${
