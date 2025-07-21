@@ -452,25 +452,47 @@ export default function SpecialtiesManagement() {
               className="bg-white rounded-lg shadow-md overflow-hidden"
             >
               <div className="relative h-48">
-                <img
-                  src={specialty.imageUrl || "/img/doctor-1.jpg"}
-                  alt={specialty.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    console.log("❌ Image failed to load:", {
-                      url: specialty.imageUrl,
-                      specialty: specialty.title,
-                      fallback: "/img/doctor-1.jpg",
-                    });
-                    e.target.src = "/img/doctor-1.jpg";
-                  }}
-                  onLoad={() => {
-                    console.log("✅ Image loaded successfully:", {
-                      url: specialty.imageUrl,
-                      specialty: specialty.title,
-                    });
-                  }}
-                />
+                {specialty.imageUrl && specialty.imageUrl.includes('firebasestorage.googleapis.com') ? (
+                  <Image
+                    src={specialty.imageUrl}
+                    alt={specialty.title}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      console.log("❌ Firebase Image failed to load:", {
+                        url: specialty.imageUrl,
+                        specialty: specialty.title,
+                      });
+                    }}
+                    onLoad={() => {
+                      console.log("✅ Firebase Image loaded successfully:", {
+                        url: specialty.imageUrl,
+                        specialty: specialty.title,
+                      });
+                    }}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                ) : (
+                  <img
+                    src={specialty.imageUrl || "/img/doctor-1.jpg"}
+                    alt={specialty.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.log("❌ Fallback image failed to load:", {
+                        url: specialty.imageUrl,
+                        specialty: specialty.title,
+                        fallback: "/img/doctor-1.jpg",
+                      });
+                      e.target.src = "/img/doctor-1.jpg";
+                    }}
+                    onLoad={() => {
+                      console.log("✅ Fallback image loaded successfully:", {
+                        url: specialty.imageUrl,
+                        specialty: specialty.title,
+                      });
+                    }}
+                  />
+                )}
                 {/* Debug info - remove in production */}
                 {process.env.NODE_ENV === "development" &&
                   specialty.imageUrl && (

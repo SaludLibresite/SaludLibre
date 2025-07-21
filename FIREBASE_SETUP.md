@@ -1,4 +1,4 @@
-# Configuración de Firebase para MedicosAR
+# Configuración de Firebase para Salud Libre
 
 ## Pasos para configurar Firebase
 

@@ -107,7 +107,7 @@ export default function Beneficios() {
 
   return (
     <div className="min-h-screen bg-white">
-       <NavBar />
+      <NavBar />
 
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 py-24">
@@ -144,7 +144,7 @@ export default function Beneficios() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              ¿Por qué elegir MedicosAR?
+              ¿Por qué elegir Salud Libre?
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
               Descubre las ventajas de formar parte de nuestra comunidad médica

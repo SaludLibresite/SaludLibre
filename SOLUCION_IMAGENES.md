@@ -7,18 +7,29 @@
 - **Después**: `doctore-eae95.appspot.com`
 - **Archivo**: `.env.local`
 
-### 2. ✅ Mejorado el manejo de errores
+### 2. ✅ Configurado Next.js para Firebase Storage
+- Agregado dominio de Firebase Storage a `remotePatterns`
+- Soporte para ambos formatos de URL de Firebase
+- **Archivo**: `next.config.mjs`
+
+### 3. ✅ Optimizado componente de imágenes
+- Uso de `next/image` para imágenes de Firebase Storage
+- Fallback a `<img>` para imágenes locales
+- Mejor manejo de errores y carga
+- **Archivo**: `src/pages/superadmin/specialties.js`
+
+### 4. ✅ Mejorado el manejo de errores
 - Agregado logging detallado en `uploadSpecialtyImage`
 - Verificación de URL generada
 - Test de accesibilidad de URL
 - **Archivo**: `src/lib/specialtiesService.js`
 
-### 3. ✅ Agregado debugging visual
+### 5. ✅ Agregado debugging visual
 - URLs de imágenes visibles en desarrollo
 - Logging detallado de carga/error de imágenes
 - **Archivo**: `src/pages/superadmin/specialties.js`
 
-### 4. ✅ Mejorado el test de Firebase Storage
+### 6. ✅ Mejorado el test de Firebase Storage
 - Test sin requerir autenticación (para reglas de prueba)
 - Información detallada del bucket
 - Apertura automática de URL de prueba
@@ -29,6 +40,7 @@
 ### Paso 1: Reiniciar el servidor de desarrollo
 ```bash
 # Detener el servidor actual (Ctrl+C)
+# Luego reiniciar (IMPORTANTE: necesario para que next.config.mjs tome efecto)
 npm run dev
 # o
 yarn dev
