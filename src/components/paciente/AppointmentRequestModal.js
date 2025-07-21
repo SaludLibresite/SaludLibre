@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { getAllDoctors } from "../../lib/doctorsService";
+import { getAllSpecialties } from "../../lib/specialtiesService";
 import {
   requestAppointment,
   getAvailableTimeSlots,
@@ -25,6 +26,7 @@ export default function AppointmentRequestModal({
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [doctorSearchTerm, setDoctorSearchTerm] = useState("");

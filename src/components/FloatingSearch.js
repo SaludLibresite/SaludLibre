@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAllDoctors } from "../lib/doctorsService";
+import { getAllSpecialties } from "../lib/specialtiesService";
 
 const SearchIcon = () => (
   <svg
@@ -111,6 +112,40 @@ const DoctorResult = ({ doctor }) => (
   </motion.div>
 );
 
+const SpecialtyResult = ({ specialty }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100 hover:border-amber-200 transition-all cursor-pointer"
+    onClick={() => (window.location.href = `/especialidades/${specialty.title.toLowerCase().replace(/\s+/g, '-')}`)}
+  >
+    <div className="flex gap-4">
+      <img
+        src={specialty.imageUrl || "/img/doctor-1.jpg"}
+        alt={specialty.title}
+        className="w-20 h-20 object-cover rounded-lg"
+        onError={(e) => {
+          e.target.src = "/img/doctor-1.jpg";
+        }}
+      />
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            Especialidad
+          </span>
+        </div>
+        <h3 className="font-semibold text-gray-900">{specialty.title}</h3>
+        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{specialty.description}</p>
+        {specialty.isActive !== false && (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 mt-2">
+            Disponible
+          </span>
+        )}
+      </div>
+    </div>
+  </motion.div>
+);
+
 const SearchFilters = ({ filters, isVisible }) => (
   <motion.div
     initial={{ height: 0, opacity: 0 }}
@@ -160,24 +195,36 @@ const SearchModal = ({
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [doctoresData, setDoctoresData] = useState([]);
+  const [specialtiesData, setSpecialtiesData] = useState([]);
 
-  // Load doctors data
+  // Load doctors and specialties data
   useEffect(() => {
-    const loadDoctors = async () => {
+    const loadData = async () => {
       try {
-        const doctors = await getAllDoctors();
+        const [doctors, specialties] = await Promise.all([
+          getAllDoctors(),
+          getAllSpecialties()
+        ]);
+        
         // Only show verified doctors
         const verifiedDoctors = doctors.filter(
           (doctor) => doctor.verified === true
         );
+        
+        // Only show active specialties
+        const activeSpecialties = specialties.filter(
+          (specialty) => specialty.isActive !== false
+        );
+        
         setDoctoresData(verifiedDoctors);
+        setSpecialtiesData(activeSpecialties);
       } catch (error) {
-        console.error("Error loading doctors:", error);
+        console.error("Error loading data:", error);
       }
     };
 
     if (isOpen) {
-      loadDoctors();
+      loadData();
     }
   }, [isOpen]);
 
@@ -190,27 +237,45 @@ const SearchModal = ({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (modalSearch.trim().length >= 3 && doctoresData.length > 0) {
+      if (modalSearch.trim().length >= 3 && (doctoresData.length > 0 || specialtiesData.length > 0)) {
         setIsSearching(true);
-        const results = doctoresData.filter(
+        
+        const searchTerm = modalSearch.toLowerCase();
+        
+        // Search doctors
+        const doctorResults = doctoresData.filter(
           (d) =>
-            d.nombre.toLowerCase().includes(modalSearch.toLowerCase()) ||
-            d.especialidad.toLowerCase().includes(modalSearch.toLowerCase()) ||
+            d.nombre.toLowerCase().includes(searchTerm) ||
+            d.especialidad.toLowerCase().includes(searchTerm) ||
             (d.prepagas &&
               d.prepagas.some((prepaga) =>
-                prepaga.toLowerCase().includes(modalSearch.toLowerCase())
+                prepaga.toLowerCase().includes(searchTerm)
               )) ||
             (d.ageGroup &&
               ((d.ageGroup === "menores" &&
-                modalSearch.toLowerCase().includes("menor")) ||
+                searchTerm.includes("menor")) ||
                 (d.ageGroup === "adultos" &&
-                  modalSearch.toLowerCase().includes("adult")) ||
+                  searchTerm.includes("adult")) ||
                 (d.ageGroup === "ambos" &&
-                  (modalSearch.toLowerCase().includes("ambos") ||
-                    modalSearch.toLowerCase().includes("todo")))))
+                  (searchTerm.includes("ambos") ||
+                    searchTerm.includes("todo")))))
         );
+
+        // Search specialties
+        const specialtyResults = specialtiesData.filter(
+          (s) =>
+            s.title.toLowerCase().includes(searchTerm) ||
+            s.description.toLowerCase().includes(searchTerm)
+        );
+
+        // Combine results with specialties first, then doctors
+        const combinedResults = [
+          ...specialtyResults.map(s => ({ ...s, type: 'specialty' })),
+          ...doctorResults.map(d => ({ ...d, type: 'doctor' }))
+        ];
+
         setTimeout(() => {
-          setSearchResults(results);
+          setSearchResults(combinedResults);
           setIsSearching(false);
         }, 500);
       } else {
@@ -219,7 +284,7 @@ const SearchModal = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [modalSearch, doctoresData]);
+  }, [modalSearch, doctoresData, specialtiesData]);
 
   return (
     <AnimatePresence>
@@ -297,9 +362,32 @@ const SearchModal = ({
                   </>
                 ) : modalSearch.trim().length >= 3 ? (
                   searchResults.length > 0 ? (
-                    searchResults.map((doctor) => (
-                      <DoctorResult key={doctor.id} doctor={doctor} />
-                    ))
+                    <>
+                      {searchResults.some(r => r.type === 'specialty') && (
+                        <div className="mb-4">
+                          <h3 className="text-sm font-medium text-gray-700 mb-2 px-2">
+                            Especialidades
+                          </h3>
+                          {searchResults
+                            .filter(r => r.type === 'specialty')
+                            .map((specialty) => (
+                              <SpecialtyResult key={`specialty-${specialty.id}`} specialty={specialty} />
+                            ))}
+                        </div>
+                      )}
+                      {searchResults.some(r => r.type === 'doctor') && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-700 mb-2 px-2">
+                            Doctores
+                          </h3>
+                          {searchResults
+                            .filter(r => r.type === 'doctor')
+                            .map((doctor) => (
+                              <DoctorResult key={`doctor-${doctor.id}`} doctor={doctor} />
+                            ))}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-gray-500">

@@ -9,6 +9,7 @@ import {
   uploadSpecialtyImage,
 } from "../../lib/specialtiesService";
 import { createInitialSpecialties } from "../../lib/initializeSpecialties";
+import { testFirebaseStorage } from "../../lib/testFirebaseStorage";
 import * as XLSX from "xlsx";
 
 // Lista de emails autorizados como superadmin
@@ -75,6 +76,8 @@ export default function SpecialtiesManagement() {
       }
       setShowSpecialtyModal(false);
       setEditingSpecialty(null);
+      // Reload specialties to get the updated data with new image URLs
+      await loadSpecialties();
     } catch (error) {
       console.error("Error saving specialty:", error);
       alert("Error al guardar la especialidad");
@@ -117,6 +120,27 @@ export default function SpecialtiesManagement() {
     } catch (error) {
       console.error("Error creating initial specialties:", error);
       alert("Error al crear especialidades por defecto");
+    }
+  };
+
+  const handleTestFirebaseStorage = async () => {
+    try {
+      console.log("Testing Firebase Storage...");
+      const result = await testFirebaseStorage();
+      if (result.success) {
+        alert(
+          `✅ Firebase Storage funciona correctamente!\nURL de prueba: ${result.url}`
+        );
+      } else {
+        alert(
+          `❌ Error en Firebase Storage: ${result.error}\nCódigo: ${
+            result.code || "N/A"
+          }`
+        );
+      }
+    } catch (error) {
+      console.error("Error testing Firebase Storage:", error);
+      alert(`❌ Error al probar Firebase Storage: ${error.message}`);
     }
   };
 
@@ -381,6 +405,12 @@ export default function SpecialtiesManagement() {
                 Crear Especialidades por Defecto
               </button>
             )}
+            <button
+              onClick={handleTestFirebaseStorage}
+              className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 text-sm"
+            >
+              🧪 Probar Storage
+            </button>
             <div className="flex gap-2">
               <button
                 onClick={downloadTemplate}
@@ -420,7 +450,14 @@ export default function SpecialtiesManagement() {
                   alt={specialty.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
+                    console.log("Image failed to load:", specialty.imageUrl);
                     e.target.src = "/img/doctor-1.jpg";
+                  }}
+                  onLoad={() => {
+                    console.log(
+                      "Image loaded successfully:",
+                      specialty.imageUrl
+                    );
                   }}
                 />
                 <div className="absolute top-2 right-2">
@@ -529,17 +566,22 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
       // Si hay un archivo seleccionado, subirlo primero
       if (selectedFile) {
         setUploadingImage(true);
+        console.log("Uploading image file:", selectedFile.name);
         const uploadResult = await uploadSpecialtyImage(selectedFile);
+        console.log("Upload result:", uploadResult);
 
         if (uploadResult.success) {
           finalFormData.imageUrl = uploadResult.url;
           finalFormData.imagePath = uploadResult.path;
+          console.log("Image uploaded successfully:", uploadResult.url);
         } else {
+          console.error("Upload failed:", uploadResult.error);
           alert(`Error al subir la imagen: ${uploadResult.error}`);
           return;
         }
       }
 
+      console.log("Final form data:", finalFormData);
       onSave(finalFormData);
     } catch (error) {
       console.error("Error saving specialty:", error);
@@ -567,6 +609,7 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
         alert(
           "Tipo de archivo no permitido. Solo se permiten imágenes JPG, PNG o WebP"
         );
+        e.target.value = ""; // Clear the input
         return;
       }
 
@@ -574,6 +617,7 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         alert("El archivo es demasiado grande. Máximo 5MB");
+        e.target.value = ""; // Clear the input
         return;
       }
 
@@ -590,11 +634,16 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
 
   const clearImageSelection = () => {
     setSelectedFile(null);
-    setImagePreview(formData.imageUrl || "");
+    setImagePreview(specialty?.imageUrl || formData.imageUrl || "");
+    // Clear the file input
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+      fileInput.value = "";
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
       <div className="bg-white rounded-lg max-w-md w-full">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">
@@ -644,7 +693,11 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
                   alt="Preview"
                   className="w-32 h-32 object-cover rounded-md border"
                   onError={(e) => {
+                    console.log("Preview image failed to load:", imagePreview);
                     e.target.src = "/img/doctor-1.jpg";
+                  }}
+                  onLoad={() => {
+                    console.log("Preview image loaded:", imagePreview);
                   }}
                 />
                 {selectedFile && (

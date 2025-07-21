@@ -177,6 +177,8 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
   try {
     if (!file) throw new Error("No file provided");
 
+    console.log("Starting image upload for file:", file.name, "Size:", file.size);
+
     // Validar tipo de archivo
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
@@ -199,14 +201,35 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
     )}`;
     const imagePath = `specialties/${fileName}`;
 
+    console.log("Upload path:", imagePath);
+    console.log("Storage bucket:", process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+
     // Crear referencia al archivo en Storage
     const imageRef = ref(storage, imagePath);
+    console.log("Storage reference created:", imageRef);
 
     // Subir archivo
+    console.log("Starting upload...");
     const snapshot = await uploadBytes(imageRef, file);
+    console.log("Upload completed, snapshot:", snapshot);
 
     // Obtener URL de descarga
+    console.log("Getting download URL...");
     const downloadURL = await getDownloadURL(snapshot.ref);
+    console.log("Download URL obtained:", downloadURL);
+
+    // Verificar que la URL sea válida
+    if (!downloadURL || !downloadURL.includes('googleapis.com')) {
+      throw new Error("URL de descarga inválida generada");
+    }
+
+    // Test the URL accessibility
+    try {
+      const testResponse = await fetch(downloadURL, { method: 'HEAD' });
+      console.log("URL accessibility test:", testResponse.status);
+    } catch (urlError) {
+      console.warn("URL test failed, but continuing:", urlError.message);
+    }
 
     return {
       success: true,
@@ -215,9 +238,28 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
     };
   } catch (error) {
     console.error("Error uploading image:", error);
+    console.error("Error details:", {
+      code: error.code,
+      message: error.message,
+      serverResponse: error.serverResponse,
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = error.message;
+    if (error.code === 'storage/unauthorized') {
+      errorMessage = "No tienes permisos para subir archivos. Verifica las reglas de Firebase Storage.";
+    } else if (error.code === 'storage/canceled') {
+      errorMessage = "La subida fue cancelada.";
+    } else if (error.code === 'storage/unknown') {
+      errorMessage = "Error desconocido. Verifica tu conexión a internet.";
+    } else if (error.code === 'storage/invalid-url') {
+      errorMessage = "URL de Firebase Storage inválida. Verifica la configuración del bucket.";
+    }
+    
     return {
       success: false,
-      error: error.message,
+      error: errorMessage,
+      code: error.code,
     };
   }
 };
