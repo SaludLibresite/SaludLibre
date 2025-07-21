@@ -9,6 +9,7 @@ import {
   uploadSpecialtyImage,
 } from "../../lib/specialtiesService";
 import { createInitialSpecialties } from "../../lib/initializeSpecialties";
+import * as XLSX from "xlsx";
 
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
@@ -20,6 +21,9 @@ export default function SpecialtiesManagement() {
   const [loading, setLoading] = useState(true);
   const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
   const [editingSpecialty, setEditingSpecialty] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importData, setImportData] = useState([]);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -116,6 +120,179 @@ export default function SpecialtiesManagement() {
     }
   };
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Process the data - skip header row and filter valid entries
+        const processedData = jsonData
+          .slice(1) // Skip header row
+          .filter(
+            (row) =>
+              row[0] &&
+              typeof row[0] === "string" &&
+              row[0].trim() !== "" &&
+              row[0].toLowerCase() !== "especialidad"
+          )
+          .map((row, index) => ({
+            id: `temp-${index}`,
+            title: row[0].trim(),
+            description:
+              row[1] && typeof row[1] === "string" && row[1].trim() !== ""
+                ? row[1].trim()
+                : `Especialidad médica en ${row[0].trim()}`,
+            isActive: true,
+            imageUrl: "",
+            imagePath: "",
+          }));
+
+        setImportData(processedData);
+        setShowImportModal(true);
+      } catch (error) {
+        console.error("Error reading Excel file:", error);
+        alert(
+          "Error al leer el archivo Excel. Asegúrate de que sea un archivo válido."
+        );
+      }
+    };
+    reader.readAsArrayBuffer(file);
+
+    // Reset file input
+    event.target.value = "";
+  };
+
+  const handleImportSpecialties = async () => {
+    if (importData.length === 0) return;
+
+    setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (const specialty of importData) {
+        try {
+          // Check if specialty already exists
+          const existingSpecialty = specialties.find(
+            (s) => s.title.toLowerCase() === specialty.title.toLowerCase()
+          );
+
+          if (!existingSpecialty) {
+            await createSpecialty({
+              title: specialty.title,
+              description: specialty.description,
+              isActive: specialty.isActive,
+              imageUrl: specialty.imageUrl,
+              imagePath: specialty.imagePath,
+            });
+            successCount++;
+          } else {
+            console.log(
+              `Specialty "${specialty.title}" already exists, skipping...`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `Error creating specialty "${specialty.title}":`,
+            error
+          );
+          errorCount++;
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        alert(
+          `Importación completada: ${successCount} especialidades creadas${
+            errorCount > 0 ? `, ${errorCount} errores` : ""
+          }`
+        );
+        await loadSpecialties();
+      } else if (errorCount > 0) {
+        alert(
+          `Error en la importación: ${errorCount} especialidades no pudieron ser creadas`
+        );
+      } else {
+        alert("No se importaron especialidades nuevas (todas ya existen)");
+      }
+
+      setShowImportModal(false);
+      setImportData([]);
+    } catch (error) {
+      console.error("Error during import:", error);
+      alert("Error durante la importación");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    // Create sample data for the template
+    const templateData = [
+      ["Especialidad", "Descripción (Opcional)"],
+      [
+        "Alergología",
+        "Especialidad médica que se ocupa del diagnóstico y tratamiento de las alergias",
+      ],
+      [
+        "Anestesiología",
+        "Especialidad médica dedicada al cuidado perioperatorio del paciente",
+      ],
+      [
+        "Cardiología",
+        "Especialidad médica que se ocupa de las afecciones del corazón y del aparato circulatorio",
+      ],
+      [
+        "Cirugía general",
+        "Especialidad médica de tipo quirúrgico que abarca operaciones del aparato digestivo",
+      ],
+      [
+        "Dermatología",
+        "Especialidad médica que se ocupa del conocimiento y estudio de la piel",
+      ],
+      [
+        "Endocrinología",
+        "Especialidad médica que estudia las hormonas y las glándulas que las producen",
+      ],
+      [
+        "Gastroenterología",
+        "Especialidad médica que se ocupa de todo lo relacionado con el aparato digestivo",
+      ],
+      [
+        "Ginecología",
+        "Especialidad médica que trata las enfermedades del sistema reproductor femenino",
+      ],
+      [
+        "Neurología",
+        "Especialidad médica que trata los trastornos del sistema nervioso",
+      ],
+    ];
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 25 }, // Column A (Especialidad)
+      { wch: 60 }, // Column B (Descripción)
+    ];
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Especialidades");
+
+    // Save file
+    XLSX.writeFile(wb, "plantilla_especialidades.xlsx");
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -204,6 +381,23 @@ export default function SpecialtiesManagement() {
                 Crear Especialidades por Defecto
               </button>
             )}
+            <div className="flex gap-2">
+              <button
+                onClick={downloadTemplate}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm"
+              >
+                📥 Descargar Plantilla
+              </button>
+              <label className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer">
+                📊 Importar Excel
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
             <button
               onClick={handleAddSpecialty}
               className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
@@ -289,6 +483,19 @@ export default function SpecialtiesManagement() {
               setEditingSpecialty(null);
             }}
             uploadSpecialtyImage={uploadSpecialtyImage}
+          />
+        )}
+
+        {/* Import Modal */}
+        {showImportModal && (
+          <ImportModal
+            importData={importData}
+            onImport={handleImportSpecialties}
+            onClose={() => {
+              setShowImportModal(false);
+              setImportData([]);
+            }}
+            importing={importing}
           />
         )}
       </div>
@@ -534,6 +741,121 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Import Modal Component
+function ImportModal({ importData, onImport, onClose, importing }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">
+            Vista Previa de Importación
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Se encontraron {importData.length} especialidades para importar
+          </p>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-96">
+          {importData.length > 0 ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <h4 className="font-medium text-blue-900 mb-2">
+                  📋 Instrucciones de Importación
+                </h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>
+                    • <strong>Columna A:</strong> Nombre de la especialidad
+                    (requerido)
+                  </li>
+                  <li>
+                    • <strong>Columna B:</strong> Descripción (opcional)
+                  </li>
+                  <li>
+                    • Se importarán solo las especialidades que no existan
+                  </li>
+                  <li>• Las especialidades duplicadas serán omitidas</li>
+                  <li>
+                    • Se generará una descripción automática si no se
+                    proporciona
+                  </li>
+                  <li>
+                    • Todas las especialidades se marcarán como activas por
+                    defecto
+                  </li>
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {importData.map((specialty, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                  >
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      {specialty.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {specialty.description}
+                    </p>
+                    <div className="flex items-center text-xs">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        Activa
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                No se encontraron especialidades para importar
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            {importData.length > 0 && (
+              <span>
+                Se importarán <strong>{importData.length}</strong>{" "}
+                especialidades
+              </span>
+            )}
+          </div>
+          <div className="flex space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={importing}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            {importData.length > 0 && (
+              <button
+                onClick={onImport}
+                disabled={importing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center"
+              >
+                {importing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Importando...
+                  </>
+                ) : (
+                  <>📊 Importar {importData.length} Especialidades</>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
