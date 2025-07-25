@@ -7,7 +7,7 @@ First, run the development server:
 ```bashaa
 npm run deva
 # ora
-yarn dev9a+a
+yarn dev9a+aa
 # ora
 pnpm dev
 # or
