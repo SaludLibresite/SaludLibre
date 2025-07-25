@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
+import { usePatientStore } from "../../store/patientStore";
 import {
   query,
   collection,
@@ -15,6 +16,7 @@ import ProtectedPatientRoute from "../../components/paciente/ProtectedPatientRou
 import AppointmentRequestModal from "../../components/paciente/AppointmentRequestModal";
 import {
   getAppointmentsByPatientId,
+  getAppointmentsByPrimaryPatientId,
   cancelAppointment,
   rescheduleAppointment,
 } from "../../lib/appointmentsService";
@@ -34,6 +36,12 @@ import {
 export default function PatientAppointments() {
   const router = useRouter();
   const { currentUser } = useAuth();
+  const {
+    activePatient,
+    primaryPatient,
+    getActivePatientForServices,
+    getActivePatientDisplayName,
+  } = usePatientStore();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, upcoming, past, cancelled
@@ -46,6 +54,16 @@ export default function PatientAppointments() {
       loadPatientData();
     }
   }, [currentUser]);
+
+  // Reload appointments when active patient changes
+  useEffect(() => {
+    if (patientData && activePatient) {
+      const patientId = activePatient.isPrimary
+        ? patientData.id
+        : activePatient.id;
+      loadAppointments(patientId);
+    }
+  }, [activePatient, patientData]);
 
   const loadPatientData = async () => {
     try {
@@ -76,7 +94,19 @@ export default function PatientAppointments() {
 
   const loadAppointments = async (patientId) => {
     try {
-      const appointmentsList = await getAppointmentsByPatientId(patientId);
+      let appointmentsList;
+
+      if (activePatient?.isPrimary) {
+        // For primary patient, load all appointments (theirs + family members)
+        appointmentsList = await getAppointmentsByPrimaryPatientId(patientId);
+      } else if (activePatient) {
+        // For family member, load only their appointments
+        appointmentsList = await getAppointmentsByPatientId(activePatient.id);
+      } else {
+        // Fallback to loading by provided patientId
+        appointmentsList = await getAppointmentsByPatientId(patientId);
+      }
+
       setAppointments(appointmentsList);
     } catch (error) {
       console.error("Error loading appointments:", error);

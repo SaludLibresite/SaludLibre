@@ -177,7 +177,12 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
   try {
     if (!file) throw new Error("No file provided");
 
-    console.log("Starting image upload for file:", file.name, "Size:", file.size);
+    console.log(
+      "Starting image upload for file:",
+      file.name,
+      "Size:",
+      file.size
+    );
 
     // Validar tipo de archivo
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -201,8 +206,12 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
     )}`;
     const imagePath = `specialties/${fileName}`;
 
-    console.log("Upload path:", imagePath);
-    console.log("Storage bucket:", process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+    console.log("Upload details:", {
+      path: imagePath,
+      bucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      fileType: file.type,
+      fileSize: file.size,
+    });
 
     // Crear referencia al archivo en Storage
     const imageRef = ref(storage, imagePath);
@@ -211,54 +220,166 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
     // Subir archivo
     console.log("Starting upload...");
     const snapshot = await uploadBytes(imageRef, file);
-    console.log("Upload completed, snapshot:", snapshot);
+    console.log("Upload completed successfully:", {
+      fullPath: snapshot.ref.fullPath,
+      bucket: snapshot.ref.bucket,
+      name: snapshot.ref.name,
+    });
 
     // Obtener URL de descarga
     console.log("Getting download URL...");
     const downloadURL = await getDownloadURL(snapshot.ref);
     console.log("Download URL obtained:", downloadURL);
 
-    // Verificar que la URL sea válida
-    if (!downloadURL || !downloadURL.includes('googleapis.com')) {
+    // Verificar que la URL sea válida y tenga el formato correcto
+    if (!downloadURL || !downloadURL.includes("googleapis.com")) {
       throw new Error("URL de descarga inválida generada");
     }
 
-    // Test the URL accessibility
-    try {
-      const testResponse = await fetch(downloadURL, { method: 'HEAD' });
-      console.log("URL accessibility test:", testResponse.status);
-    } catch (urlError) {
-      console.warn("URL test failed, but continuing:", urlError.message);
+    // Verificar que la URL use el bucket correcto
+    const expectedBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (expectedBucket && !downloadURL.includes(expectedBucket)) {
+      console.warn("⚠️ Warning: URL uses unexpected bucket:", {
+        url: downloadURL,
+        expected: expectedBucket,
+      });
     }
 
-    return {
+    // Test the URL accessibility con timeout
+    let urlTestResult = "not_tested";
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const testResponse = await fetch(downloadURL, {
+        method: "HEAD",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      urlTestResult = testResponse.status;
+      console.log("✅ URL accessibility test passed:", testResponse.status);
+    } catch (urlError) {
+      console.warn(
+        "⚠️ URL accessibility test failed (but continuing):",
+        urlError.message
+      );
+      urlTestResult = "failed";
+    }
+
+    const result = {
       success: true,
       url: downloadURL,
       path: imagePath,
+      bucket: snapshot.ref.bucket,
+      urlTest: urlTestResult,
     };
+
+    console.log("🎉 Image upload completed successfully:", result);
+    return result;
   } catch (error) {
-    console.error("Error uploading image:", error);
+    console.error("❌ Error uploading image:", error);
     console.error("Error details:", {
       code: error.code,
       message: error.message,
-      serverResponse: error.serverResponse,
+      name: error.name,
+      stack: error.stack?.split("\n").slice(0, 3), // First 3 lines of stack
     });
-    
+
     // Provide more specific error messages
     let errorMessage = error.message;
-    if (error.code === 'storage/unauthorized') {
-      errorMessage = "No tienes permisos para subir archivos. Verifica las reglas de Firebase Storage.";
-    } else if (error.code === 'storage/canceled') {
+    if (error.code === "storage/unauthorized") {
+      errorMessage =
+        "No tienes permisos para subir archivos. Verifica las reglas de Firebase Storage.";
+    } else if (error.code === "storage/canceled") {
       errorMessage = "La subida fue cancelada.";
-    } else if (error.code === 'storage/unknown') {
-      errorMessage = "Error desconocido. Verifica tu conexión a internet.";
-    } else if (error.code === 'storage/invalid-url') {
-      errorMessage = "URL de Firebase Storage inválida. Verifica la configuración del bucket.";
+    } else if (error.code === "storage/unknown") {
+      errorMessage =
+        "Error desconocido. Verifica tu conexión a internet y la configuración de Firebase.";
+    } else if (error.code === "storage/invalid-url") {
+      errorMessage =
+        "URL de Firebase Storage inválida. Verifica la configuración del bucket.";
+    } else if (error.code === "storage/quota-exceeded") {
+      errorMessage = "Se ha excedido la cuota de almacenamiento de Firebase.";
+    } else if (error.name === "AbortError") {
+      errorMessage = "La operación fue cancelada por timeout.";
     }
-    
+
     return {
       success: false,
       error: errorMessage,
+      code: error.code,
+      originalError: error.message,
+    };
+  }
+};
+
+// Función para validar y reparar URLs de imágenes
+export const validateAndFixImageUrl = (imageUrl) => {
+  if (!imageUrl || typeof imageUrl !== "string") {
+    return null;
+  }
+
+  // Si es una URL relativa o local, devolverla tal como está
+  if (imageUrl.startsWith("/") || imageUrl.startsWith("./")) {
+    return imageUrl;
+  }
+
+  let fixedUrl = imageUrl;
+
+  // Corregir URLs del bucket antiguo al nuevo (solo para Firebase Storage)
+  if (
+    fixedUrl.includes("firebasestorage.googleapis.com") &&
+    fixedUrl.includes("doctore-eae95.firebasestorage.app")
+  ) {
+    fixedUrl = fixedUrl.replace(
+      "doctore-eae95.firebasestorage.app",
+      "doctore-eae95.appspot.com"
+    );
+    console.log("🔧 Fixed URL from old bucket:", {
+      original: imageUrl,
+      fixed: fixedUrl,
+    });
+  }
+
+  // Asegurar que usa HTTPS
+  if (fixedUrl.startsWith("http://")) {
+    fixedUrl = fixedUrl.replace("http://", "https://");
+    console.log("🔧 Fixed URL to use HTTPS:", fixedUrl);
+  }
+
+  return fixedUrl;
+};
+
+// Función para probar si una URL de imagen es accesible
+export const testImageUrl = async (imageUrl, timeout = 5000) => {
+  if (!imageUrl) return { success: false, error: "No URL provided" };
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const response = await fetch(imageUrl, {
+      method: "HEAD",
+      signal: controller.signal,
+      cache: "no-cache",
+    });
+
+    clearTimeout(timeoutId);
+
+    return {
+      success: response.ok,
+      status: response.status,
+      headers: {
+        contentType: response.headers.get("content-type"),
+        contentLength: response.headers.get("content-length"),
+        cacheControl: response.headers.get("cache-control"),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.name === "AbortError" ? "timeout" : error.message,
       code: error.code,
     };
   }

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { usePatientStore } from "../../store/patientStore";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getAllSpecialties } from "../../lib/specialtiesService";
 import {
   requestAppointment,
+  requestAppointmentForFamilyMember,
   getAvailableTimeSlots,
 } from "../../lib/appointmentsService";
 import {
@@ -23,6 +25,8 @@ export default function AppointmentRequestModal({
   patientId,
 }) {
   const { currentUser } = useAuth();
+  const { activePatient, primaryPatient, getActivePatientForServices } =
+    usePatientStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState([]);
@@ -235,9 +239,14 @@ export default function AppointmentRequestModal({
       setMessage("");
 
       const selectedDoctor = doctors.find((d) => d.id === formData.doctorId);
+      const currentPatient = getActivePatientForServices();
 
-      const appointmentData = {
-        patientId,
+      if (!currentPatient) {
+        setMessage("Error: No se pudo obtener la información del paciente");
+        return;
+      }
+
+      const baseAppointmentData = {
         doctorId: formData.doctorId,
         doctorName: selectedDoctor?.nombre || "",
         doctorSpecialty: selectedDoctor?.especialidad || "",
@@ -250,9 +259,36 @@ export default function AppointmentRequestModal({
         patientUserId: currentUser.uid,
       };
 
-      await requestAppointment(appointmentData);
+      let result;
 
-      setMessage("¡Solicitud de cita enviada exitosamente!");
+      if (currentPatient.isPrimary) {
+        // Creating appointment for primary patient
+        const appointmentData = {
+          ...baseAppointmentData,
+          patientId: currentPatient.id,
+          patientName: currentPatient.name,
+          patientEmail: currentPatient.email,
+          patientPhone: currentPatient.phone,
+          primaryPatientId: currentPatient.id,
+        };
+
+        result = await requestAppointment(appointmentData);
+      } else {
+        // Creating appointment for family member
+        result = await requestAppointmentForFamilyMember(
+          baseAppointmentData,
+          currentPatient,
+          primaryPatient
+        );
+      }
+
+      const patientDisplayName = currentPatient.isPrimary
+        ? "su"
+        : `${currentPatient.name} (${currentPatient.relationship})`;
+
+      setMessage(
+        `¡Solicitud de cita para ${patientDisplayName} enviada exitosamente!`
+      );
       setTimeout(() => {
         onSuccess && onSuccess();
         onClose();

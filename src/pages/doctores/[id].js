@@ -61,6 +61,76 @@ export default function DoctorDetailPage() {
   const [averageRating, setAverageRating] = useState(null);
   const { currentUser } = useAuth();
 
+  // Function to check if today is doctor's birthday
+  const isBirthday = (fechaNacimiento) => {
+    if (!fechaNacimiento) return false;
+
+    // Parse the date string manually to avoid timezone issues
+    const dateParts = fechaNacimiento.split("-");
+    if (dateParts.length !== 3) return false;
+
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+    const day = parseInt(dateParts[2]);
+
+    const today = new Date();
+    const birthDate = new Date(year, month, day);
+
+    return (
+      today.getMonth() === birthDate.getMonth() &&
+      today.getDate() === birthDate.getDate()
+    );
+  };
+
+  // Function to calculate age
+  const calculateAge = (fechaNacimiento) => {
+    if (!fechaNacimiento) return null;
+
+    // Parse the date string manually to avoid timezone issues
+    const dateParts = fechaNacimiento.split("-");
+    if (dateParts.length !== 3) return null;
+
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+    const day = parseInt(dateParts[2]);
+
+    const today = new Date();
+    const birthDate = new Date(year, month, day);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  };
+
+  // Function to format birthday date
+  const formatBirthday = (fechaNacimiento) => {
+    if (!fechaNacimiento) return null;
+
+    // Parse the date string manually to avoid timezone issues
+    const dateParts = fechaNacimiento.split("-");
+    if (dateParts.length !== 3) return null;
+
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+    const day = parseInt(dateParts[2]);
+
+    // Create date with local timezone
+    const birthDate = new Date(year, month, day);
+    const options = {
+      day: "numeric",
+      month: "long",
+    };
+
+    return birthDate.toLocaleDateString("es-ES", options);
+  };
+
   // Handle appointment submission
   const handleAppointmentSubmit = async (appointmentData) => {
     try {
@@ -251,6 +321,11 @@ export default function DoctorDetailPage() {
                         Premium
                       </div>
                     )}
+                    {isBirthday(doctor.fechaNacimiento) && (
+                      <div className="absolute -top-2 -left-2 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                        🎉 Cumpleaños
+                      </div>
+                    )}
                   </div>
 
                   {/* Status indicators */}
@@ -303,6 +378,51 @@ export default function DoctorDetailPage() {
                     <p className="text-lg text-blue-600 font-medium mb-2">
                       {doctor.especialidad}
                     </p>
+
+                    {/* Birthday and age info */}
+                    {doctor.fechaNacimiento && (
+                      <div className="mb-3">
+                        {isBirthday(doctor.fechaNacimiento) ? (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-pink-100 text-pink-800 rounded-lg border border-pink-200">
+                            <span className="text-lg">🎂</span>
+                            <span className="text-sm font-medium">
+                              ¡Feliz cumpleaños! Hoy cumple{" "}
+                              {calculateAge(doctor.fechaNacimiento)} años
+                            </span>
+                          </div>
+                        ) : (
+                          calculateAge(doctor.fechaNacimiento) && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                <span>
+                                  {calculateAge(doctor.fechaNacimiento)} años de
+                                  edad
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-600 ml-6">
+                                <span className="font-medium">Cumpleaños:</span>
+                                <span>
+                                  {formatBirthday(doctor.fechaNacimiento)}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
@@ -404,6 +524,29 @@ export default function DoctorDetailPage() {
                     {doctor.descripcion ||
                       `Especialista en ${doctor.especialidad} con amplia experiencia en el área.`}
                   </p>
+
+                  {/* Professional info */}
+                  {doctor.dni && (
+                    <div className="pt-3 border-t border-gray-200">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                          />
+                        </svg>
+                        <span className="font-medium">DNI:</span>
+                        <span>{doctor.dni}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Contact info */}
                   <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-200">

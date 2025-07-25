@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { usePatientStore } from "../../store/patientStore";
 import PatientLayout from "../../components/paciente/PatientLayout";
+import FamilyManagement from "../../components/paciente/FamilyManagement";
 import {
   UserIcon,
+  UserGroupIcon,
   EnvelopeIcon,
   PhoneIcon,
   MapPinIcon,
@@ -17,9 +20,11 @@ import {
 
 export default function PatientProfile() {
   const { currentUser } = useAuth();
+  const { activePatient, primaryPatient } = usePatientStore();
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("profile");
 
   const [profileData, setProfileData] = useState({
     name: "Juan Pérez",
@@ -157,401 +162,444 @@ export default function PatientProfile() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <div className="text-center">
-                <div className="relative inline-block">
-                  <div className="h-24 w-24 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-bold text-white">
-                      {profileData.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </span>
-                  </div>
-                  <button className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <CameraIcon className="h-4 w-4 text-gray-600" />
-                  </button>
-                </div>
+        {/* Tab Navigation - Only show for primary patient */}
+        {primaryPatient && (
+          <div className="mb-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab("profile")}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === "profile"
+                      ? "border-amber-500 text-amber-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <UserIcon className="h-5 w-5 inline mr-2" />
+                  Mi Perfil
+                </button>
+                <button
+                  onClick={() => setActiveTab("family")}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === "family"
+                      ? "border-amber-500 text-amber-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <UserGroupIcon className="h-5 w-5 inline mr-2" />
+                  Gestión de Familiares
+                </button>
+              </nav>
+            </div>
+          </div>
+        )}
 
-                <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                  {profileData.name}
+        {/* Tab Content */}
+        {activeTab === "profile" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Profile Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <div className="text-center">
+                  <div className="relative inline-block">
+                    <div className="h-24 w-24 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-2xl font-bold text-white">
+                        {profileData.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
+                      </span>
+                    </div>
+                    <button className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                      <CameraIcon className="h-4 w-4 text-gray-600" />
+                    </button>
+                  </div>
+
+                  <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                    {profileData.name}
+                  </h3>
+                  <p className="text-gray-600 mb-4">{profileData.email}</p>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-amber-50 rounded-lg p-3">
+                      <div className="font-medium text-gray-900">Edad</div>
+                      <div className="text-amber-600">
+                        {calculateAge(profileData.dateOfBirth)} años
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="font-medium text-gray-900">Género</div>
+                      <div className="text-blue-600">{profileData.gender}</div>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <div className="font-medium text-gray-900">
+                        Tipo de Sangre
+                      </div>
+                      <div className="text-green-600">
+                        {profileData.bloodType}
+                      </div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-3">
+                      <div className="font-medium text-gray-900">Seguro</div>
+                      <div className="text-purple-600">
+                        {profileData.insuranceProvider}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Personal Information */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Información Personal
                 </h3>
-                <p className="text-gray-600 mb-4">{profileData.email}</p>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-amber-50 rounded-lg p-3">
-                    <div className="font-medium text-gray-900">Edad</div>
-                    <div className="text-amber-600">
-                      {calculateAge(profileData.dateOfBirth)} años
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre Completo
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.name}
+                        onChange={(e) =>
+                          handleInputChange("name", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.name}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-blue-50 rounded-lg p-3">
-                    <div className="font-medium text-gray-900">Género</div>
-                    <div className="text-blue-600">{profileData.gender}</div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    {editing ? (
+                      <input
+                        type="email"
+                        value={editData.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.email}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-green-50 rounded-lg p-3">
-                    <div className="font-medium text-gray-900">
-                      Tipo de Sangre
-                    </div>
-                    <div className="text-green-600">
-                      {profileData.bloodType}
-                    </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono
+                    </label>
+                    {editing ? (
+                      <input
+                        type="tel"
+                        value={editData.phone}
+                        onChange={(e) =>
+                          handleInputChange("phone", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.phone}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-purple-50 rounded-lg p-3">
-                    <div className="font-medium text-gray-900">Seguro</div>
-                    <div className="text-purple-600">
-                      {profileData.insuranceProvider}
-                    </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha de Nacimiento
+                    </label>
+                    {editing ? (
+                      <input
+                        type="date"
+                        value={editData.dateOfBirth}
+                        onChange={(e) =>
+                          handleInputChange("dateOfBirth", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <CalendarIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>
+                          {new Date(profileData.dateOfBirth).toLocaleDateString(
+                            "es-ES"
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Dirección
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.address}
+                        onChange={(e) =>
+                          handleInputChange("address", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <MapPinIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Medical Information */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Información Médica
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Alergias
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.allergies}
+                        onChange={(e) =>
+                          handleInputChange("allergies", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                        placeholder="Penicilina, Polen, etc."
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.allergies || "Ninguna"}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Medicaciones Actuales
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.currentMedications}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "currentMedications",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                        placeholder="Losartán 50mg, etc."
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>
+                          {profileData.currentMedications || "Ninguna"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Peso (kg)
+                    </label>
+                    {editing ? (
+                      <input
+                        type="number"
+                        value={editData.weight}
+                        onChange={(e) =>
+                          handleInputChange("weight", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-50 rounded-lg">
+                        <span>{profileData.weight} kg</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Altura (cm)
+                    </label>
+                    {editing ? (
+                      <input
+                        type="number"
+                        value={editData.height}
+                        onChange={(e) =>
+                          handleInputChange("height", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-50 rounded-lg">
+                        <span>{profileData.height} cm</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Historial Médico
+                    </label>
+                    {editing ? (
+                      <textarea
+                        value={editData.medicalHistory}
+                        onChange={(e) =>
+                          handleInputChange("medicalHistory", e.target.value)
+                        }
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                        placeholder="Condiciones médicas relevantes..."
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-50 rounded-lg">
+                        <span>
+                          {profileData.medicalHistory ||
+                            "Sin historial registrado"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Contacto de Emergencia
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre del Contacto
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.emergencyContact}
+                        onChange={(e) =>
+                          handleInputChange("emergencyContact", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.emergencyContact}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono de Emergencia
+                    </label>
+                    {editing ? (
+                      <input
+                        type="tel"
+                        value={editData.emergencyPhone}
+                        onChange={(e) =>
+                          handleInputChange("emergencyPhone", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.emergencyPhone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Insurance Information */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Información del Seguro
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Obra Social/Prepaga
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.insuranceProvider}
+                        onChange={(e) =>
+                          handleInputChange("insuranceProvider", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <ShieldCheckIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.insuranceProvider}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Número de Afiliado
+                    </label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={editData.insuranceNumber}
+                        onChange={(e) =>
+                          handleInputChange("insuranceNumber", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      />
+                    ) : (
+                      <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                        <ShieldCheckIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span>{profileData.insuranceNumber}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Profile Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Personal Information */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Información Personal
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre Completo
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.name}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  {editing ? (
-                    <input
-                      type="email"
-                      value={editData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.email}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono
-                  </label>
-                  {editing ? (
-                    <input
-                      type="tel"
-                      value={editData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.phone}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Nacimiento
-                  </label>
-                  {editing ? (
-                    <input
-                      type="date"
-                      value={editData.dateOfBirth}
-                      onChange={(e) =>
-                        handleInputChange("dateOfBirth", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <CalendarIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>
-                        {new Date(profileData.dateOfBirth).toLocaleDateString(
-                          "es-ES"
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dirección
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.address}
-                      onChange={(e) =>
-                        handleInputChange("address", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <MapPinIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.address}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Medical Information */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Información Médica
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Alergias
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.allergies}
-                      onChange={(e) =>
-                        handleInputChange("allergies", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                      placeholder="Penicilina, Polen, etc."
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.allergies || "Ninguna"}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Medicaciones Actuales
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.currentMedications}
-                      onChange={(e) =>
-                        handleInputChange("currentMedications", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                      placeholder="Losartán 50mg, etc."
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.currentMedications || "Ninguna"}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Peso (kg)
-                  </label>
-                  {editing ? (
-                    <input
-                      type="number"
-                      value={editData.weight}
-                      onChange={(e) =>
-                        handleInputChange("weight", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-lg">
-                      <span>{profileData.weight} kg</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Altura (cm)
-                  </label>
-                  {editing ? (
-                    <input
-                      type="number"
-                      value={editData.height}
-                      onChange={(e) =>
-                        handleInputChange("height", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-lg">
-                      <span>{profileData.height} cm</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Historial Médico
-                  </label>
-                  {editing ? (
-                    <textarea
-                      value={editData.medicalHistory}
-                      onChange={(e) =>
-                        handleInputChange("medicalHistory", e.target.value)
-                      }
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                      placeholder="Condiciones médicas relevantes..."
-                    />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-lg">
-                      <span>
-                        {profileData.medicalHistory ||
-                          "Sin historial registrado"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Emergency Contact */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Contacto de Emergencia
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre del Contacto
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.emergencyContact}
-                      onChange={(e) =>
-                        handleInputChange("emergencyContact", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.emergencyContact}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono de Emergencia
-                  </label>
-                  {editing ? (
-                    <input
-                      type="tel"
-                      value={editData.emergencyPhone}
-                      onChange={(e) =>
-                        handleInputChange("emergencyPhone", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.emergencyPhone}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Insurance Information */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Información del Seguro
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Obra Social/Prepaga
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.insuranceProvider}
-                      onChange={(e) =>
-                        handleInputChange("insuranceProvider", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <ShieldCheckIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.insuranceProvider}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Número de Afiliado
-                  </label>
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={editData.insuranceNumber}
-                      onChange={(e) =>
-                        handleInputChange("insuranceNumber", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                    />
-                  ) : (
-                    <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                      <ShieldCheckIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span>{profileData.insuranceNumber}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : (
+          /* Family Management Tab */
+          <FamilyManagement primaryPatientId={primaryPatient?.id} />
+        )}
       </div>
     </PatientLayout>
   );

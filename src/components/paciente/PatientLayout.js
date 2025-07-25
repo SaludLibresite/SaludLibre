@@ -3,6 +3,11 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
 import { useSidebarStore } from "../../store/sidebarStore";
+import { usePatientStore } from "../../store/patientStore";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../lib/firebase";
+import { getFamilyMembersByPrimaryPatientId } from "../../lib/familyService";
+import PatientSelector from "./PatientSelector";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarIcon,
@@ -49,24 +54,61 @@ export default function PatientLayout({ children }) {
   const router = useRouter();
   const { currentUser, logout } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebarStore();
+  const {
+    initializePatientData,
+    clearPatientData,
+    activePatient,
+    getActivePatientDisplayName,
+  } = usePatientStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [patientData, setPatientData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load patient data
+  // Load patient and family data
   useEffect(() => {
-    // This would load patient data from Firestore
-    // For now, we'll use mock data
-    if (currentUser) {
-      setPatientData({
-        name: currentUser.displayName || "Paciente",
-        email: currentUser.email,
-        avatar: null,
-      });
+    async function loadPatientData() {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Get primary patient data
+        const patientsQuery = query(
+          collection(db, "patients"),
+          where("userId", "==", currentUser.uid)
+        );
+        const patientsSnapshot = await getDocs(patientsQuery);
+
+        if (!patientsSnapshot.empty) {
+          const patientDoc = patientsSnapshot.docs[0];
+          const primaryPatientData = {
+            id: patientDoc.id,
+            ...patientDoc.data(),
+          };
+          setPatientData(primaryPatientData);
+
+          // Load family members
+          const familyMembers = await getFamilyMembersByPrimaryPatientId(
+            patientDoc.id
+          );
+
+          // Initialize patient store
+          initializePatientData(primaryPatientData, familyMembers);
+        }
+      } catch (error) {
+        console.error("Error loading patient data:", error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [currentUser]);
+
+    loadPatientData();
+  }, [currentUser, initializePatientData]);
 
   const handleLogout = async () => {
     try {
+      clearPatientData(); // Clear patient store
       await logout();
       router.push("/paciente/login");
     } catch (error) {
@@ -158,12 +200,24 @@ export default function PatientLayout({ children }) {
             </button>
             <div className="flex flex-1 justify-between px-4 sm:px-6">
               <div className="flex flex-1">
-                <div className="flex items-center">
+                <div className="flex items-center space-x-4">
                   <h1 className="text-lg font-semibold text-gray-900">
                     Portal de Pacientes
                   </h1>
+                  {/* Patient Selector */}
+                  <PatientSelector />
                 </div>
               </div>
+
+              {/* Active Patient Context Info */}
+              {activePatient && !activePatient.isPrimary && (
+                <div className="hidden md:flex items-center px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
+                  <UserIcon className="h-4 w-4 text-blue-600 mr-2" />
+                  <span className="text-sm text-blue-700">
+                    Viendo como: {getActivePatientDisplayName()}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </header>

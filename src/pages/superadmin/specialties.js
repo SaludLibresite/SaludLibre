@@ -11,6 +11,7 @@ import {
 } from "../../lib/specialtiesService";
 import { createInitialSpecialties } from "../../lib/initializeSpecialties";
 import { testFirebaseStorage } from "../../lib/testFirebaseStorage";
+import { migrateImageUrls, checkOldUrls } from "../../lib/migrateImageUrls";
 import * as XLSX from "xlsx";
 
 // Lista de emails autorizados como superadmin
@@ -60,8 +61,11 @@ export default function SpecialtiesManagement() {
   };
 
   const handleSaveSpecialty = async (specialtyData) => {
+    console.log("🔄 handleSaveSpecialty called with:", specialtyData);
+
     try {
       if (editingSpecialty) {
+        console.log("📝 Updating existing specialty:", editingSpecialty.id);
         const oldImagePath = editingSpecialty.imagePath;
         await updateSpecialty(editingSpecialty.id, specialtyData, oldImagePath);
         setSpecialties((prev) =>
@@ -71,17 +75,24 @@ export default function SpecialtiesManagement() {
               : specialty
           )
         );
+        console.log("✅ Specialty updated successfully");
       } else {
+        console.log("➕ Creating new specialty");
         const newSpecialty = await createSpecialty(specialtyData);
+        console.log("📄 New specialty created:", newSpecialty);
         setSpecialties((prev) => [...prev, newSpecialty]);
+        console.log("✅ New specialty added to state");
       }
       setShowSpecialtyModal(false);
       setEditingSpecialty(null);
+      console.log("🔄 Reloading specialties...");
       // Reload specialties to get the updated data with new image URLs
       await loadSpecialties();
+      console.log("✅ Specialties reloaded");
     } catch (error) {
-      console.error("Error saving specialty:", error);
-      alert("Error al guardar la especialidad");
+      console.error("❌ Error saving specialty:", error);
+      alert(`Error al guardar la especialidad: ${error.message}`);
+      throw error; // Re-throw to be caught by the modal
     }
   };
 
@@ -148,6 +159,47 @@ export default function SpecialtiesManagement() {
       alert(
         `❌ Error al probar Firebase Storage: ${error.message}\n\nRevisa la consola para más detalles.`
       );
+    }
+  };
+
+  const handleCheckOldUrls = async () => {
+    try {
+      const result = await checkOldUrls();
+      if (result.count > 0) {
+        alert(
+          `🔍 Se encontraron ${result.count} especialidades con URLs antiguas.\n\nRevisa la consola para ver los detalles.`
+        );
+      } else {
+        alert(
+          "✅ No se encontraron URLs antiguas. Todas las imágenes están actualizadas."
+        );
+      }
+    } catch (error) {
+      console.error("Error checking old URLs:", error);
+      alert(`❌ Error al verificar URLs: ${error.message}`);
+    }
+  };
+
+  const handleMigrateUrls = async () => {
+    if (
+      !confirm(
+        "¿Estás seguro de que quieres migrar todas las URLs de imágenes al nuevo bucket?\n\nEsto actualizará todas las especialidades con URLs antiguas."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await migrateImageUrls();
+      if (result.success) {
+        alert(`✅ ${result.message}`);
+        await loadSpecialties(); // Reload specialties
+      } else {
+        alert(`❌ Error en migración: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Error migrating URLs:", error);
+      alert(`❌ Error al migrar URLs: ${error.message}`);
     }
   };
 
@@ -418,6 +470,34 @@ export default function SpecialtiesManagement() {
             >
               🧪 Probar Storage
             </button>
+            <button
+              onClick={() => {
+                console.log(
+                  "🧪 Testing uploadSpecialtyImage function:",
+                  typeof uploadSpecialtyImage
+                );
+                if (typeof uploadSpecialtyImage === "function") {
+                  alert("✅ uploadSpecialtyImage function is available");
+                } else {
+                  alert("❌ uploadSpecialtyImage function is not available");
+                }
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+            >
+              🔧 Test Upload Fn
+            </button>
+            <button
+              onClick={handleCheckOldUrls}
+              className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 text-sm"
+            >
+              🔍 Verificar URLs
+            </button>
+            <button
+              onClick={handleMigrateUrls}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
+            >
+              🔄 Migrar URLs
+            </button>
             <div className="flex gap-2">
               <button
                 onClick={downloadTemplate}
@@ -452,45 +532,55 @@ export default function SpecialtiesManagement() {
               className="bg-white rounded-lg shadow-md overflow-hidden"
             >
               <div className="relative h-48">
-                {specialty.imageUrl && specialty.imageUrl.includes('firebasestorage.googleapis.com') ? (
-                  <Image
-                    src={specialty.imageUrl}
-                    alt={specialty.title}
-                    fill
-                    className="object-cover"
-                    onError={(e) => {
-                      console.log("❌ Firebase Image failed to load:", {
-                        url: specialty.imageUrl,
-                        specialty: specialty.title,
-                      });
-                    }}
-                    onLoad={() => {
-                      console.log("✅ Firebase Image loaded successfully:", {
-                        url: specialty.imageUrl,
-                        specialty: specialty.title,
-                      });
-                    }}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
+                {specialty.imageUrl ? (
+                  specialty.imageUrl.includes(
+                    "firebasestorage.googleapis.com"
+                  ) ? (
+                    <Image
+                      src={specialty.imageUrl}
+                      alt={specialty.title}
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        console.log("❌ Firebase Image failed to load:", {
+                          url: specialty.imageUrl,
+                          specialty: specialty.title,
+                        });
+                      }}
+                      onLoad={() => {
+                        console.log("✅ Firebase Image loaded successfully:", {
+                          url: specialty.imageUrl,
+                          specialty: specialty.title,
+                        });
+                      }}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      unoptimized={false}
+                    />
+                  ) : (
+                    <img
+                      src={specialty.imageUrl}
+                      alt={specialty.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log("❌ Regular image failed to load:", {
+                          url: specialty.imageUrl,
+                          specialty: specialty.title,
+                        });
+                        e.target.src = "/img/doctor-1.jpg";
+                      }}
+                      onLoad={() => {
+                        console.log("✅ Regular image loaded successfully:", {
+                          url: specialty.imageUrl,
+                          specialty: specialty.title,
+                        });
+                      }}
+                    />
+                  )
                 ) : (
                   <img
-                    src={specialty.imageUrl || "/img/doctor-1.jpg"}
+                    src="/img/doctor-1.jpg"
                     alt={specialty.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.log("❌ Fallback image failed to load:", {
-                        url: specialty.imageUrl,
-                        specialty: specialty.title,
-                        fallback: "/img/doctor-1.jpg",
-                      });
-                      e.target.src = "/img/doctor-1.jpg";
-                    }}
-                    onLoad={() => {
-                      console.log("✅ Fallback image loaded successfully:", {
-                        url: specialty.imageUrl,
-                        specialty: specialty.title,
-                      });
-                    }}
+                    className="w-full h-full object-cover opacity-75"
                   />
                 )}
                 {/* Debug info - remove in production */}
@@ -595,6 +685,10 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🔄 Starting form submission...");
+    console.log("Form data:", formData);
+    console.log("Selected file:", selectedFile);
+
     if (!formData.title.trim() || !formData.description.trim()) {
       alert("Por favor, completa todos los campos requeridos");
       return;
@@ -605,27 +699,41 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
 
       // Si hay un archivo seleccionado, subirlo primero
       if (selectedFile) {
+        console.log("📤 Starting image upload...");
         setUploadingImage(true);
-        console.log("Uploading image file:", selectedFile.name);
+        console.log("Uploading image file:", {
+          name: selectedFile.name,
+          size: selectedFile.size,
+          type: selectedFile.type,
+        });
+
         const uploadResult = await uploadSpecialtyImage(selectedFile);
-        console.log("Upload result:", uploadResult);
+        console.log("📥 Upload result received:", uploadResult);
 
         if (uploadResult.success) {
           finalFormData.imageUrl = uploadResult.url;
           finalFormData.imagePath = uploadResult.path;
-          console.log("Image uploaded successfully:", uploadResult.url);
+          console.log("✅ Image uploaded successfully:", uploadResult.url);
         } else {
-          console.error("Upload failed:", uploadResult.error);
-          alert(`Error al subir la imagen: ${uploadResult.error}`);
+          console.error("❌ Upload failed:", uploadResult);
+          alert(
+            `Error al subir la imagen: ${
+              uploadResult.error || "Error desconocido"
+            }`
+          );
+          setUploadingImage(false);
           return;
         }
+      } else {
+        console.log("ℹ️ No file selected, proceeding without image upload");
       }
 
-      console.log("Final form data:", finalFormData);
-      onSave(finalFormData);
+      console.log("💾 Saving specialty with final form data:", finalFormData);
+      await onSave(finalFormData);
+      console.log("✅ Specialty saved successfully");
     } catch (error) {
-      console.error("Error saving specialty:", error);
-      alert("Error al guardar la especialidad");
+      console.error("❌ Error saving specialty:", error);
+      alert(`Error al guardar la especialidad: ${error.message}`);
     } finally {
       setUploadingImage(false);
     }

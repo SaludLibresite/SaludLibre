@@ -249,6 +249,32 @@ export async function getAppointmentsByPatientId(patientId) {
   }
 }
 
+// Get appointments for primary patient and all family members
+export async function getAppointmentsByPrimaryPatientId(primaryPatientId) {
+  try {
+    const appointmentsRef = collection(db, APPOINTMENTS_COLLECTION);
+    const q = query(
+      appointmentsRef,
+      where("primaryPatientId", "==", primaryPatientId),
+      orderBy("date", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+
+    const appointments = [];
+    querySnapshot.forEach((doc) => {
+      appointments.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    return appointments;
+  } catch (error) {
+    console.error("Error getting primary patient appointments:", error);
+    throw error;
+  }
+}
+
 // Create appointment request from patient
 export async function requestAppointment(appointmentData) {
   try {
@@ -261,6 +287,9 @@ export async function requestAppointment(appointmentData) {
       requestedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      // Ensure we have primaryPatientId for family management
+      primaryPatientId:
+        appointmentData.primaryPatientId || appointmentData.patientId,
     });
 
     return {
@@ -271,6 +300,52 @@ export async function requestAppointment(appointmentData) {
     };
   } catch (error) {
     console.error("Error requesting appointment:", error);
+    throw error;
+  }
+}
+
+// Create appointment for family member
+export async function requestAppointmentForFamilyMember(
+  appointmentData,
+  familyMemberData,
+  primaryPatientData
+) {
+  try {
+    const appointmentId = `APT-${Date.now().toString().slice(-6)}`;
+
+    const enhancedAppointmentData = {
+      ...appointmentData,
+      appointmentId,
+      // Patient info is the family member
+      patientId: familyMemberData.id,
+      patientName: familyMemberData.name,
+      patientEmail: familyMemberData.email || primaryPatientData.email,
+      patientPhone: familyMemberData.phone || primaryPatientData.phone,
+      // Additional context
+      primaryPatientId: primaryPatientData.id,
+      primaryPatientName: primaryPatientData.name,
+      isForFamilyMember: true,
+      familyMemberRelationship: familyMemberData.relationship,
+      // Contact info defaults to primary patient if family member doesn't have
+      contactEmail: primaryPatientData.email,
+      contactPhone: primaryPatientData.phone,
+      status: "pending",
+      requestedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const docRef = await addDoc(
+      collection(db, APPOINTMENTS_COLLECTION),
+      enhancedAppointmentData
+    );
+
+    return {
+      id: docRef.id,
+      ...enhancedAppointmentData,
+    };
+  } catch (error) {
+    console.error("Error requesting appointment for family member:", error);
     throw error;
   }
 }

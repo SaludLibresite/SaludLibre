@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/router";
 import { getAllDoctors, updateDoctor } from "../../lib/doctorsService";
+import { getAllSpecialties } from "../../lib/specialtiesService";
 
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
@@ -10,9 +11,12 @@ export default function DoctorsManagement() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const [doctors, setDoctors] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
   const [filter, setFilter] = useState("all"); // all, pending, verified
+  const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -29,8 +33,9 @@ export default function DoctorsManagement() {
         return;
       }
 
-      // Si es superadmin, cargar los doctores
+      // Si es superadmin, cargar los doctores y especialidades
       loadDoctors();
+      loadSpecialties();
     }
   }, [currentUser, authLoading, router]);
 
@@ -43,6 +48,19 @@ export default function DoctorsManagement() {
       console.error("Error loading doctors:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSpecialties = async () => {
+    try {
+      const allSpecialties = await getAllSpecialties();
+      // Filter only active specialties for selection
+      const activeSpecialties = allSpecialties.filter(
+        (specialty) => specialty.isActive !== false
+      );
+      setSpecialties(activeSpecialties);
+    } catch (error) {
+      console.error("Error loading specialties:", error);
     }
   };
 
@@ -62,6 +80,35 @@ export default function DoctorsManagement() {
       alert("Error al actualizar el doctor");
     } finally {
       setUpdating((prev) => ({ ...prev, [doctorId]: false }));
+    }
+  };
+
+  const handleEditSpecialty = (doctor) => {
+    setEditingDoctor(doctor);
+    setShowSpecialtyModal(true);
+  };
+
+  const handleUpdateSpecialty = async (newSpecialty) => {
+    try {
+      setUpdating((prev) => ({ ...prev, [editingDoctor.id]: true }));
+      await updateDoctor(editingDoctor.id, { especialidad: newSpecialty });
+
+      // Actualizar el estado local
+      setDoctors((prev) =>
+        prev.map((doctor) =>
+          doctor.id === editingDoctor.id
+            ? { ...doctor, especialidad: newSpecialty }
+            : doctor
+        )
+      );
+
+      setShowSpecialtyModal(false);
+      setEditingDoctor(null);
+    } catch (error) {
+      console.error("Error updating doctor specialty:", error);
+      alert("Error al actualizar la especialidad del doctor");
+    } finally {
+      setUpdating((prev) => ({ ...prev, [editingDoctor.id]: false }));
     }
   };
 
@@ -282,6 +329,13 @@ export default function DoctorsManagement() {
                           </button>
                         )}
                         <button
+                          onClick={() => handleEditSpecialty(doctor)}
+                          disabled={updating[doctor.id]}
+                          className="text-purple-600 hover:text-purple-900 disabled:opacity-50 ml-2"
+                        >
+                          {updating[doctor.id] ? "..." : "Especialidad"}
+                        </button>
+                        <button
                           onClick={() =>
                             router.push(`/doctores/${doctor.slug}`)
                           }
@@ -297,6 +351,96 @@ export default function DoctorsManagement() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Specialty Edit Modal */}
+      {showSpecialtyModal && editingDoctor && (
+        <SpecialtyEditModal
+          doctor={editingDoctor}
+          specialties={specialties}
+          onSave={handleUpdateSpecialty}
+          onClose={() => {
+            setShowSpecialtyModal(false);
+            setEditingDoctor(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal component for editing doctor specialty
+function SpecialtyEditModal({ doctor, specialties, onSave, onClose }) {
+  const [selectedSpecialty, setSelectedSpecialty] = useState(
+    doctor.especialidad || ""
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedSpecialty.trim()) {
+      alert("Por favor, selecciona una especialidad");
+      return;
+    }
+    onSave(selectedSpecialty);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Cambiar Especialidad
+        </h3>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 mb-2">
+            <strong>Doctor:</strong> {doctor.nombre}
+          </p>
+          <p className="text-sm text-gray-600 mb-4">
+            <strong>Especialidad actual:</strong>{" "}
+            {doctor.especialidad || "No especificada"}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label
+              htmlFor="specialty"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Nueva Especialidad
+            </label>
+            <select
+              id="specialty"
+              value={selectedSpecialty}
+              onChange={(e) => setSelectedSpecialty(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              required
+            >
+              <option value="">Seleccionar especialidad...</option>
+              {specialties.map((specialty) => (
+                <option key={specialty.id} value={specialty.title}>
+                  {specialty.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+            >
+              Actualizar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

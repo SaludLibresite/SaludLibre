@@ -17,6 +17,7 @@ export default function ProfileSettings() {
   const galleryInputRef = useRef(null);
   const signatureInputRef = useRef(null);
   const stampInputRef = useRef(null);
+  const tituloInputRef = useRef(null);
   const [profile, setProfile] = useState({
     nombre: "",
     email: "",
@@ -25,6 +26,8 @@ export default function ProfileSettings() {
     descripcion: "",
     horario: "",
     genero: "",
+    dni: "",
+    fechaNacimiento: "",
     ubicacion: "",
     latitude: null,
     longitude: null,
@@ -36,6 +39,7 @@ export default function ProfileSettings() {
     galleryImages: [],
     signatureURL: "",
     stampURL: "",
+    tituloURL: "",
     workingHours: {
       monday: { start: "09:00", end: "17:00", enabled: true },
       tuesday: { start: "09:00", end: "17:00", enabled: true },
@@ -54,6 +58,7 @@ export default function ProfileSettings() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
   const [uploadingStamp, setUploadingStamp] = useState(false);
+  const [uploadingTitulo, setUploadingTitulo] = useState(false);
   const [message, setMessage] = useState("");
 
   // Load doctor profile on component mount
@@ -443,6 +448,78 @@ export default function ProfileSettings() {
     }
   };
 
+  const handleTituloUpload = async (file) => {
+    if (!file || !currentUser) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setMessage(
+        "Por favor selecciona un archivo de imagen válido para el título"
+      );
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("La imagen del título no puede superar los 5MB");
+      return;
+    }
+
+    try {
+      setUploadingTitulo(true);
+      setMessage("");
+
+      // Create a reference to the file location in Firebase Storage
+      const fileName = `titulos/${currentUser.uid}/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, fileName);
+
+      // Delete old title if exists
+      if (profile.tituloURL) {
+        try {
+          const url = new URL(profile.tituloURL);
+          const pathParts = url.pathname.split("/o/")[1];
+          if (pathParts) {
+            const oldPath = decodeURIComponent(pathParts.split("?")[0]);
+            const oldRef = ref(storage, oldPath);
+            await deleteObject(oldRef);
+          }
+        } catch (error) {
+          console.log("Old title not found or couldn't be deleted:", error);
+        }
+      }
+
+      // Upload the file
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // Update profile state
+      setProfile((prev) => ({
+        ...prev,
+        tituloURL: downloadURL,
+      }));
+
+      // Save to database if doctorId exists
+      if (doctorId) {
+        await updateDoctor(doctorId, { tituloURL: downloadURL });
+      }
+
+      setMessage("Título subido correctamente");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Error uploading title:", error);
+      setMessage("Error al subir el título");
+    } finally {
+      setUploadingTitulo(false);
+    }
+  };
+
+  const handleTituloFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleTituloUpload(file);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!doctorId) return;
 
@@ -633,6 +710,30 @@ export default function ProfileSettings() {
                       <option value="Otro">Otro</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      DNI
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.dni}
+                      onChange={(e) => handleInputChange("dni", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha de Nacimiento
+                    </label>
+                    <input
+                      type="date"
+                      value={profile.fechaNacimiento}
+                      onChange={(e) =>
+                        handleInputChange("fechaNacimiento", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -776,125 +877,224 @@ export default function ProfileSettings() {
                   />
                 </div>
 
-                {/* Signature and Stamp Section */}
+                {/* Professional Documents Section */}
                 <div className="mt-8">
                   <h4 className="text-lg font-medium text-gray-900 mb-4">
-                    Firma y Sello Profesional
+                    Documentos Profesionales
                   </h4>
                   <p className="text-sm text-gray-600 mb-6">
-                    Sube tu firma y sello profesional para ser incluidos
+                    Sube tu título profesional, firma y sello para ser incluidos
                     automáticamente en las recetas médicas.
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Signature Upload */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Firma Digital
-                      </label>
-                      <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
-                        {profile.signatureURL ? (
-                          <div className="text-center">
-                            <img
-                              src={profile.signatureURL}
-                              alt="Firma"
-                              className="max-h-20 max-w-full object-contain mb-3"
-                            />
-                            <p className="text-sm text-gray-600 mb-3">
-                              Firma actual
-                            </p>
-                            <button
-                              onClick={() => signatureInputRef.current?.click()}
-                              disabled={uploadingSignature}
-                              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
-                            >
-                              {uploadingSignature
-                                ? "Subiendo..."
-                                : "Cambiar Firma"}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                            <p className="text-sm font-medium text-gray-900 mb-1">
-                              Sube tu firma
-                            </p>
-                            <p className="text-xs text-gray-500 mb-4">
-                              PNG, JPG hasta 2MB
-                            </p>
-                            <button
-                              onClick={() => signatureInputRef.current?.click()}
-                              disabled={uploadingSignature}
-                              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
-                            >
-                              {uploadingSignature
-                                ? "Subiendo..."
-                                : "Seleccionar Archivo"}
-                            </button>
-                          </div>
-                        )}
+                  {/* Title Upload Section */}
+                  <div className="mb-8">
+                    <h5 className="text-md font-medium text-gray-800 mb-4">
+                      Título Profesional
+                    </h5>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-center">
+                        <svg
+                          className="w-5 h-5 text-yellow-600 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                        <p className="text-sm text-yellow-800 font-medium">
+                          ⚠️ El título queda sujeto a aprobación por parte del
+                          equipo administrativo
+                        </p>
                       </div>
-                      <input
-                        ref={signatureInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleSignatureFileChange}
-                        className="hidden"
-                      />
                     </div>
 
-                    {/* Stamp Upload */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Sello Profesional
-                      </label>
-                      <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
-                        {profile.stampURL ? (
-                          <div className="text-center">
-                            <img
-                              src={profile.stampURL}
-                              alt="Sello"
-                              className="max-h-20 max-w-full object-contain mb-3"
+                    <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                      {profile.tituloURL ? (
+                        <div className="text-center">
+                          <img
+                            src={profile.tituloURL}
+                            alt="Título Profesional"
+                            className="max-h-32 max-w-full object-contain mb-3 border rounded-lg"
+                          />
+                          <p className="text-sm text-gray-600 mb-3">
+                            Título actual
+                          </p>
+                          <button
+                            onClick={() => tituloInputRef.current?.click()}
+                            disabled={uploadingTitulo}
+                            className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                          >
+                            {uploadingTitulo ? "Subiendo..." : "Cambiar Título"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <svg
+                            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
-                            <p className="text-sm text-gray-600 mb-3">
-                              Sello actual
+                          </svg>
+                          <div className="text-sm text-gray-600 mb-3">
+                            <p className="font-medium">
+                              Subir título profesional
                             </p>
-                            <button
-                              onClick={() => stampInputRef.current?.click()}
-                              disabled={uploadingStamp}
-                              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
-                            >
-                              {uploadingStamp ? "Subiendo..." : "Cambiar Sello"}
-                            </button>
+                            <p>JPG, PNG hasta 5MB</p>
                           </div>
-                        ) : (
-                          <div className="text-center">
-                            <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                            <p className="text-sm font-medium text-gray-900 mb-1">
-                              Sube tu sello
-                            </p>
-                            <p className="text-xs text-gray-500 mb-4">
-                              PNG, JPG hasta 2MB
-                            </p>
-                            <button
-                              onClick={() => stampInputRef.current?.click()}
-                              disabled={uploadingStamp}
-                              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
-                            >
-                              {uploadingStamp
-                                ? "Subiendo..."
-                                : "Seleccionar Archivo"}
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                          <button
+                            onClick={() => tituloInputRef.current?.click()}
+                            disabled={uploadingTitulo}
+                            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                          >
+                            {uploadingTitulo ? "Subiendo..." : "Subir Título"}
+                          </button>
+                        </div>
+                      )}
                       <input
-                        ref={stampInputRef}
+                        ref={tituloInputRef}
                         type="file"
                         accept="image/*"
-                        onChange={handleStampFileChange}
+                        onChange={handleTituloFileChange}
                         className="hidden"
+                        disabled={uploadingTitulo}
                       />
+                    </div>
+                  </div>
+
+                  {/* Signature and Stamp Section */}
+                  <div>
+                    <h5 className="text-md font-medium text-gray-800 mb-4">
+                      Firma y Sello Digital
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Signature Upload */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Firma Digital
+                        </label>
+                        <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                          {profile.signatureURL ? (
+                            <div className="text-center">
+                              <img
+                                src={profile.signatureURL}
+                                alt="Firma"
+                                className="max-h-20 max-w-full object-contain mb-3"
+                              />
+                              <p className="text-sm text-gray-600 mb-3">
+                                Firma actual
+                              </p>
+                              <button
+                                onClick={() =>
+                                  signatureInputRef.current?.click()
+                                }
+                                disabled={uploadingSignature}
+                                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                              >
+                                {uploadingSignature
+                                  ? "Subiendo..."
+                                  : "Cambiar Firma"}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                              <p className="text-sm font-medium text-gray-900 mb-1">
+                                Sube tu firma
+                              </p>
+                              <p className="text-xs text-gray-500 mb-4">
+                                PNG, JPG hasta 2MB
+                              </p>
+                              <button
+                                onClick={() =>
+                                  signatureInputRef.current?.click()
+                                }
+                                disabled={uploadingSignature}
+                                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                              >
+                                {uploadingSignature
+                                  ? "Subiendo..."
+                                  : "Seleccionar Archivo"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          ref={signatureInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSignatureFileChange}
+                          className="hidden"
+                        />
+                      </div>
+
+                      {/* Stamp Upload */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Sello Profesional
+                        </label>
+                        <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                          {profile.stampURL ? (
+                            <div className="text-center">
+                              <img
+                                src={profile.stampURL}
+                                alt="Sello"
+                                className="max-h-20 max-w-full object-contain mb-3"
+                              />
+                              <p className="text-sm text-gray-600 mb-3">
+                                Sello actual
+                              </p>
+                              <button
+                                onClick={() => stampInputRef.current?.click()}
+                                disabled={uploadingStamp}
+                                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                              >
+                                {uploadingStamp
+                                  ? "Subiendo..."
+                                  : "Cambiar Sello"}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                              <p className="text-sm font-medium text-gray-900 mb-1">
+                                Sube tu sello
+                              </p>
+                              <p className="text-xs text-gray-500 mb-4">
+                                PNG, JPG hasta 2MB
+                              </p>
+                              <button
+                                onClick={() => stampInputRef.current?.click()}
+                                disabled={uploadingStamp}
+                                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                              >
+                                {uploadingStamp
+                                  ? "Subiendo..."
+                                  : "Seleccionar Archivo"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          ref={stampInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleStampFileChange}
+                          className="hidden"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
