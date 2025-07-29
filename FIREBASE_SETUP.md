@@ -4,7 +4,7 @@
 
 ### 1. Crear proyecto en Firebase
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
+1. Ve a [Firebase Console](https://console.firebase.google.com/)a
 2. Haz clic en "Crear un proyecto"
 3. Nombra tu proyecto (ej: "medicos-ar")
 4. Habilita Google Analytics (opcional)
