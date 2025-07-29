@@ -14,6 +14,7 @@ import {
   uploadBytes,
   getDownloadURL,
   deleteObject,
+  uploadBytesResumable,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 
@@ -177,13 +178,6 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
   try {
     if (!file) throw new Error("No file provided");
 
-    console.log(
-      "Starting image upload for file:",
-      file.name,
-      "Size:",
-      file.size
-    );
-
     // Validar tipo de archivo
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
@@ -206,65 +200,49 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
     )}`;
     const imagePath = `specialties/${fileName}`;
 
-    console.log("Upload details:", {
-      path: imagePath,
-      bucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      fileType: file.type,
-      fileSize: file.size,
-    });
-
     // Crear referencia al archivo en Storage
     const imageRef = ref(storage, imagePath);
-    console.log("Storage reference created:", imageRef);
 
-    // Subir archivo
-    console.log("Starting upload...");
-    const snapshot = await uploadBytes(imageRef, file);
-    console.log("Upload completed successfully:", {
-      fullPath: snapshot.ref.fullPath,
-      bucket: snapshot.ref.bucket,
-      name: snapshot.ref.name,
+    // Configurar metadata
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        'uploaded-by': 'specialties-manager',
+        'upload-timestamp': timestamp.toString()
+      }
+    };
+
+    const uploadTask = uploadBytesResumable(imageRef, file, metadata);
+    
+    // Crear Promise para manejar el upload
+    const uploadPromise = new Promise((resolve, reject) => {
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          // Progress monitoring silencioso
+        },
+        (error) => {
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve({
+              snapshot: uploadTask.snapshot,
+              downloadURL: downloadURL
+            });
+          } catch (urlError) {
+            reject(urlError);
+          }
+        }
+      );
     });
 
-    // Obtener URL de descarga
-    console.log("Getting download URL...");
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    console.log("Download URL obtained:", downloadURL);
+    // Esperar a que complete el upload
+    const { snapshot, downloadURL } = await uploadPromise;
 
-    // Verificar que la URL sea válida y tenga el formato correcto
+    // Verificar que la URL sea válida
     if (!downloadURL || !downloadURL.includes("googleapis.com")) {
       throw new Error("URL de descarga inválida generada");
-    }
-
-    // Verificar que la URL use el bucket correcto
-    const expectedBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-    if (expectedBucket && !downloadURL.includes(expectedBucket)) {
-      console.warn("⚠️ Warning: URL uses unexpected bucket:", {
-        url: downloadURL,
-        expected: expectedBucket,
-      });
-    }
-
-    // Test the URL accessibility con timeout
-    let urlTestResult = "not_tested";
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-      const testResponse = await fetch(downloadURL, {
-        method: "HEAD",
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      urlTestResult = testResponse.status;
-      console.log("✅ URL accessibility test passed:", testResponse.status);
-    } catch (urlError) {
-      console.warn(
-        "⚠️ URL accessibility test failed (but continuing):",
-        urlError.message
-      );
-      urlTestResult = "failed";
     }
 
     const result = {
@@ -272,21 +250,11 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
       url: downloadURL,
       path: imagePath,
       bucket: snapshot.ref.bucket,
-      urlTest: urlTestResult,
     };
 
-    console.log("🎉 Image upload completed successfully:", result);
     return result;
   } catch (error) {
-    console.error("❌ Error uploading image:", error);
-    console.error("Error details:", {
-      code: error.code,
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.split("\n").slice(0, 3), // First 3 lines of stack
-    });
-
-    // Provide more specific error messages
+    // Provide more specific error messages for CORS and other common issues
     let errorMessage = error.message;
     if (error.code === "storage/unauthorized") {
       errorMessage =
@@ -303,6 +271,10 @@ export const uploadSpecialtyImage = async (file, specialtyId = null) => {
       errorMessage = "Se ha excedido la cuota de almacenamiento de Firebase.";
     } else if (error.name === "AbortError") {
       errorMessage = "La operación fue cancelada por timeout.";
+    } else if (error.message.includes('CORS') || error.message.includes('cors')) {
+      errorMessage = "Error de CORS. Verifica la configuración de Firebase Storage CORS.";
+    } else if (error.message.includes('net::ERR_FAILED')) {
+      errorMessage = "Error de conexión. Verifica tu conexión a internet y la configuración de Firebase.";
     }
 
     return {

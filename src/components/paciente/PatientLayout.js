@@ -21,9 +21,17 @@ import {
   BellIcon,
   CogIcon,
   ArrowRightOnRectangleIcon,
+  HomeIcon,
+  ChevronRightIcon as ChevronRightSmallIcon,
 } from "@heroicons/react/24/outline";
 
 const menuItems = [
+  {
+    name: "Inicio",
+    href: "/doctores",
+    icon: HomeIcon,
+    description: "Buscar doctores y especialistas",
+  },
   {
     name: "Citas",
     href: "/paciente/appointments",
@@ -63,6 +71,46 @@ export default function PatientLayout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Generate breadcrumbs based on current route
+  const generateBreadcrumbs = () => {
+    const pathSegments = router.pathname.split("/").filter(Boolean);
+    const breadcrumbs = [{ name: "Inicio", href: "/doctores" }];
+
+    if (pathSegments.length > 0) {
+      // Map route segments to readable names
+      const routeMap = {
+        paciente: "Portal de Pacientes",
+        appointments: "Citas",
+        "medical-records": "Historial Médico",
+        profile: "Perfil",
+        reviews: "Reseñas",
+      };
+
+      let currentPath = "";
+      pathSegments.forEach((segment, index) => {
+        currentPath += `/${segment}`;
+        const name =
+          routeMap[segment] ||
+          segment.charAt(0).toUpperCase() + segment.slice(1);
+
+        // Don't add the last segment if it's the current page
+        if (index < pathSegments.length - 1 || pathSegments.length === 1) {
+          breadcrumbs.push({
+            name,
+            href: currentPath,
+          });
+        } else {
+          breadcrumbs.push({
+            name,
+            href: null, // Current page, no link
+          });
+        }
+      });
+    }
+
+    return breadcrumbs;
+  };
 
   // Load patient and family data
   useEffect(() => {
@@ -199,14 +247,18 @@ export default function PatientLayout({ children }) {
               <Bars3Icon className="h-6 w-6" />
             </button>
             <div className="flex flex-1 justify-between px-4 sm:px-6">
-              <div className="flex flex-1">
-                <div className="flex items-center space-x-4">
-                  <h1 className="text-lg font-semibold text-gray-900">
-                    Portal de Pacientes
-                  </h1>
-                  {/* Patient Selector */}
-                  <PatientSelector />
+              <div className="flex flex-1 flex-col">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <h1 className="text-lg font-semibold text-gray-900">
+                      Portal de Pacientes
+                    </h1>
+                    {/* Patient Selector */}
+                    <PatientSelector />
+                  </div>
                 </div>
+                {/* Breadcrumbs */}
+                <Breadcrumbs breadcrumbs={generateBreadcrumbs()} />
               </div>
 
               {/* Active Patient Context Info */}
@@ -408,5 +460,33 @@ function SidebarContent({
         </div>
       )}
     </div>
+  );
+}
+
+function Breadcrumbs({ breadcrumbs }) {
+  return (
+    <nav className="flex mt-2" aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2">
+        {breadcrumbs.map((breadcrumb, index) => (
+          <li key={breadcrumb.name} className="flex items-center">
+            {index > 0 && (
+              <ChevronRightSmallIcon className="h-4 w-4 text-gray-400 mx-2" />
+            )}
+            {breadcrumb.href ? (
+              <Link
+                href={breadcrumb.href}
+                className="text-sm text-amber-600 hover:text-amber-800 transition-colors duration-200"
+              >
+                {breadcrumb.name}
+              </Link>
+            ) : (
+              <span className="text-sm text-gray-500 font-medium">
+                {breadcrumb.name}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }

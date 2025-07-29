@@ -26,8 +26,6 @@ export default function SpecialtiesManagement() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importData, setImportData] = useState([]);
   const [importing, setImporting] = useState(false);
-  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!authLoading) {
@@ -62,8 +60,11 @@ export default function SpecialtiesManagement() {
   };
 
   const handleSaveSpecialty = async (specialtyData) => {
+    console.log("🔄 handleSaveSpecialty called with:", specialtyData);
+
     try {
       if (editingSpecialty) {
+        console.log("📝 Updating existing specialty:", editingSpecialty.id);
         const oldImagePath = editingSpecialty.imagePath;
         await updateSpecialty(editingSpecialty.id, specialtyData, oldImagePath);
         setSpecialties((prev) =>
@@ -73,14 +74,20 @@ export default function SpecialtiesManagement() {
               : specialty
           )
         );
+        console.log("✅ Specialty updated successfully");
       } else {
+        console.log("➕ Creating new specialty");
         const newSpecialty = await createSpecialty(specialtyData);
+        console.log("📄 New specialty created:", newSpecialty);
         setSpecialties((prev) => [...prev, newSpecialty]);
+        console.log("✅ New specialty added to state");
       }
       setShowSpecialtyModal(false);
       setEditingSpecialty(null);
+      console.log("🔄 Reloading specialties...");
       // Reload specialties to get the updated data with new image URLs
       await loadSpecialties();
+      console.log("✅ Specialties reloaded");
     } catch (error) {
       console.error("❌ Error saving specialty:", error);
       alert(`Error al guardar la especialidad: ${error.message}`);
@@ -301,13 +308,6 @@ export default function SpecialtiesManagement() {
     XLSX.writeFile(wb, "plantilla_especialidades.xlsx");
   };
 
-  // Filter specialties based on search term
-  const filteredSpecialties = specialties.filter(
-    (specialty) =>
-      specialty.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      specialty.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -349,35 +349,9 @@ export default function SpecialtiesManagement() {
 
         {/* Specialties Header */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Lista de Especialidades
-            </h2>
-            
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                📋 Tabla
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                🎯 Tarjetas
-              </button>
-            </div>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Lista de Especialidades
+          </h2>
           <div className="flex gap-2">
             {specialties.length === 0 && (
               <button
@@ -414,208 +388,139 @@ export default function SpecialtiesManagement() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="max-w-md">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Buscar especialidades..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Specialties View */}
-        {viewMode === 'table' ? (
-          /* Table View */
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Imagen
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Especialidad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Descripción
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredSpecialties.map((specialty) => (
-                    <tr key={specialty.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex-shrink-0 h-16 w-16">
-                          {specialty.imageUrl ? (
-                            <img
-                              className="h-16 w-16 rounded-lg object-cover"
-                              src={specialty.imageUrl}
-                              alt={specialty.title}
-                              onError={(e) => {
-                                e.target.src = "/img/doctor-1.jpg";
-                              }}
-                            />
-                          ) : (
-                            <img
-                              className="h-16 w-16 rounded-lg object-cover opacity-75"
-                              src="/img/doctor-1.jpg"
-                              alt={specialty.title}
-                            />
-                          )}
+        {/* Specialties Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {specialties.map((specialty) => (
+            <div
+              key={specialty.id}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
+              <div className="relative h-48">
+                {specialty.imageUrl ? (
+                  <img
+                    src={specialty.imageUrl}
+                    alt={specialty.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Solo usar fallback si la imagen falla
+                      e.target.src = "/img/doctor-1.jpg";
+                    }}
+                  />
+                ) : (
+                  <img
+                    src="/img/doctor-1.jpg"
+                    alt={specialty.title}
+                    className="w-full h-full object-cover opacity-75"
+                  />
+                )}
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === "development" &&
+                  specialty.imageUrl && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-95 text-white text-xs p-2">
+                      <div className="truncate mb-1">
+                        <strong>URL:</strong> {specialty.imageUrl}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block w-2 h-2 rounded-full ${
+                            specialty.imageUrl.includes('firebasestorage.googleapis.com') 
+                              ? 'bg-blue-400' 
+                              : 'bg-gray-400'
+                          }`}></span>
+                          <span>
+                            {specialty.imageUrl.includes('firebasestorage.googleapis.com') 
+                              ? 'Firebase' 
+                              : 'Local'}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {specialty.title}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs">
-                          <p className="line-clamp-2">{specialty.description}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            specialty.isActive !== false
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {specialty.isActive !== false ? "Activa" : "Inactiva"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-3">
+                        <div className="flex gap-1">
                           <button
-                            onClick={() => handleEditSpecialty(specialty)}
-                            className="text-blue-600 hover:text-blue-900"
+                            onClick={() => {
+                              const img = document.querySelector(`img[alt="${specialty.title}"]`);
+                              if (img) {
+                                console.log("🔍 Image debug info:", {
+                                  src: img.src,
+                                  naturalWidth: img.naturalWidth,
+                                  naturalHeight: img.naturalHeight,
+                                  complete: img.complete,
+                                  crossOrigin: img.crossOrigin,
+                                });
+                              }
+                            }}
+                            className="bg-white bg-opacity-20 px-1 py-0.5 rounded text-xs hover:bg-opacity-30"
                           >
-                            Editar
+                            🔍
                           </button>
                           <button
-                            onClick={() => handleDeleteSpecialty(specialty.id)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={() => window.open(specialty.imageUrl, '_blank')}
+                            className="bg-white bg-opacity-20 px-1 py-0.5 rounded text-xs hover:bg-opacity-30"
                           >
-                            Eliminar
+                            🔗
+                          </button>
+                          <button
+                            onClick={() => {
+                              const img = document.querySelector(`img[alt="${specialty.title}"]`);
+                              if (img) {
+                                img.src = specialty.imageUrl + '?t=' + Date.now();
+                              }
+                            }}
+                            className="bg-white bg-opacity-20 px-1 py-0.5 rounded text-xs hover:bg-opacity-30"
+                          >
+                            �
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredSpecialties.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">
-                  {searchTerm ? 'No se encontraron especialidades que coincidan con la búsqueda' : 'No hay especialidades registradas'}
-                </p>
-                <button
-                  onClick={handleAddSpecialty}
-                  className="mt-4 text-purple-600 hover:text-purple-800"
-                >
-                  Crear la primera especialidad
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Grid View */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSpecialties.map((specialty) => (
-              <div
-                key={specialty.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <div className="relative h-48">
-                  {specialty.imageUrl ? (
-                    <img
-                      src={specialty.imageUrl}
-                      alt={specialty.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = "/img/doctor-1.jpg";
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src="/img/doctor-1.jpg"
-                      alt={specialty.title}
-                      className="w-full h-full object-cover opacity-75"
-                    />
+                      </div>
+                    </div>
                   )}
-                  <div className="absolute top-2 right-2">
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        specialty.isActive !== false
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {specialty.isActive !== false ? "Activa" : "Inactiva"}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {specialty.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {specialty.description}
-                  </p>
-                  <div className="flex justify-between">
-                    <button
-                      onClick={() => handleEditSpecialty(specialty)}
-                      className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSpecialty(specialty.id)}
-                      className="text-red-600 hover:text-red-900 text-sm font-medium"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
+                <div className="absolute top-2 right-2">
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      specialty.isActive !== false
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {specialty.isActive !== false ? "Activa" : "Inactiva"}
+                  </span>
                 </div>
               </div>
-            ))}
-
-            {filteredSpecialties.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <p className="text-gray-500">
-                  {searchTerm ? 'No se encontraron especialidades que coincidan con la búsqueda' : 'No hay especialidades registradas'}
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {specialty.title}
+                </h3>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  {specialty.description}
                 </p>
-                <button
-                  onClick={handleAddSpecialty}
-                  className="mt-4 text-purple-600 hover:text-purple-800"
-                >
-                  Crear la primera especialidad
-                </button>
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => handleEditSpecialty(specialty)}
+                    className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSpecialty(specialty.id)}
+                    className="text-red-600 hover:text-red-900 text-sm font-medium"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          ))}
+
+          {specialties.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500">No hay especialidades registradas</p>
+              <button
+                onClick={handleAddSpecialty}
+                className="mt-4 text-purple-600 hover:text-purple-800"
+              >
+                Crear la primera especialidad
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Specialty Modal */}
         {showSpecialtyModal && (
@@ -663,6 +568,9 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🔄 Starting form submission...");
+    console.log("Form data:", formData);
+    console.log("Selected file:", selectedFile);
 
     if (!formData.title.trim() || !formData.description.trim()) {
       alert("Por favor, completa todos los campos requeridos");
@@ -674,8 +582,14 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
 
       // Si hay un archivo seleccionado, subirlo primero
       if (selectedFile) {
+        console.log("📤 Starting image upload...");
         setUploadingImage(true);
         setUploadProgress("Preparando archivo...");
+        console.log("Uploading image file:", {
+          name: selectedFile.name,
+          size: selectedFile.size,
+          type: selectedFile.type,
+        });
 
         try {
           setUploadProgress("Subiendo a Firebase Storage...");
@@ -686,12 +600,15 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
           );
 
           const uploadResult = await Promise.race([uploadPromise, timeoutPromise]);
+          console.log("📥 Upload result received:", uploadResult);
 
           if (uploadResult.success) {
             setUploadProgress("Finalizando...");
             finalFormData.imageUrl = uploadResult.url;
             finalFormData.imagePath = uploadResult.path;
+            console.log("✅ Image uploaded successfully:", uploadResult.url);
           } else {
+            console.error("❌ Upload failed:", uploadResult);
             alert(
               `Error al subir la imagen: ${
                 uploadResult.error || "Error desconocido"
@@ -702,6 +619,7 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
             return;
           }
         } catch (uploadError) {
+          console.error("❌ Upload error caught:", uploadError);
           alert(
             `Error al subir la imagen: ${uploadError.message}`
           );
@@ -709,9 +627,13 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
           setUploadProgress("");
           return;
         }
+      } else {
+        console.log("ℹ️ No file selected, proceeding without image upload");
       }
 
+      console.log("💾 Saving specialty with final form data:", finalFormData);
       await onSave(finalFormData);
+      console.log("✅ Specialty saved successfully");
     } catch (error) {
       console.error("❌ Error saving specialty:", error);
       alert(`Error al guardar la especialidad: ${error.message}`);
@@ -823,10 +745,11 @@ function SpecialtyModal({ specialty, onSave, onClose, uploadSpecialtyImage }) {
                   alt="Preview"
                   className="w-32 h-32 object-cover rounded-md border"
                   onError={(e) => {
+                    console.log("Preview image failed to load:", imagePreview);
                     e.target.src = "/img/doctor-1.jpg";
                   }}
                   onLoad={() => {
-                    // Image loaded successfully
+                    console.log("Preview image loaded:", imagePreview);
                   }}
                 />
                 {selectedFile && (

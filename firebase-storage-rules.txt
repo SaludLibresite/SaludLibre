@@ -4,9 +4,10 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow authenticated users to upload and read specialty images
+    // Allow public read access but authenticated write for specialty images
     match /specialties/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if true; // Public read access for images
+      allow write: if request.auth != null; // Only authenticated users can upload
     }
     
     // Allow authenticated users to upload and read test files

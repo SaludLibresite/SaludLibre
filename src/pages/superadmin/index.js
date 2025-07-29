@@ -7,6 +7,8 @@ import { getAllSpecialties } from "../../lib/specialtiesService";
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
 
+import SuperAdminLayout from '../../components/superadmin/SuperAdminLayout';
+
 export default function SuperAdminDashboard() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -165,30 +167,17 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Panel de Superadmin
-              </h1>
-              <p className="text-gray-600">
-                Dashboard principal para la gestión del sistema
-              </p>
-            </div>
-            <button
-              onClick={() => router.push("/")}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              Ver Sitio Público
-            </button>
-          </div>
-        </div>
+    <SuperAdminLayout>
+      <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Dashboard Principal
+        </h1>
+        <p className="text-gray-600">
+          Bienvenido al panel de control para la gestión del sistema
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-2 py-2">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
@@ -386,6 +375,6 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </SuperAdminLayout>
   );
 }

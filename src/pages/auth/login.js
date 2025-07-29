@@ -11,8 +11,15 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  
+  // Estados para el modal de recuperar contraseña
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
 
-  const { login } = useAuth();
+  const { login, resetPassword } = useAuth();
   const router = useRouter();
 
   const isSuperAdminAccess = router.query.message === "superadmin";
@@ -57,6 +64,46 @@ export default function Login() {
     } else {
       router.push("/auth/register");
     }
+  };
+
+  // Function to handle password reset
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setResetError("");
+      setResetMessage("");
+      setResetLoading(true);
+      await resetPassword(resetEmail);
+      setResetMessage("Revisa tu correo electrónico para obtener instrucciones sobre cómo restablecer tu contraseña.");
+      setResetEmail("");
+    } catch (error) {
+      console.error("Password reset error:", error);
+      
+      switch (error.code) {
+        case "auth/user-not-found":
+          setResetError("No existe una cuenta con este correo electrónico.");
+          break;
+        case "auth/invalid-email":
+          setResetError("El correo electrónico no es válido.");
+          break;
+        case "auth/too-many-requests":
+          setResetError("Demasiados intentos. Intenta de nuevo más tarde.");
+          break;
+        default:
+          setResetError("Error al enviar el correo de recuperación. Intenta de nuevo.");
+      }
+    }
+    
+    setResetLoading(false);
+  };
+
+  // Function to close modal and reset states
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
+    setResetEmail("");
+    setResetMessage("");
+    setResetError("");
   };
 
   return (
@@ -186,12 +233,13 @@ export default function Login() {
 
               <div className="flex items-center justify-between">
                 <div className="text-sm">
-                  <Link
-                    href="/auth/forgot-password"
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
                     className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
                   >
                     ¿Olvidaste tu contraseña?
-                  </Link>
+                  </button>
                 </div>
               </div>
 
@@ -386,6 +434,117 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Recuperar Contraseña */}
+      {showForgotModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+            {/* Botón cerrar */}
+            <button
+              onClick={closeForgotModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Contenido del modal */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Recuperar Contraseña
+              </h3>
+              <p className="text-sm text-gray-600">
+                Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+              </p>
+            </div>
+
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              {resetMessage && (
+                <div className="rounded-lg bg-green-50 p-3 border border-green-200">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <p className="text-sm text-green-800">
+                        ✅ {resetMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {resetError && (
+                <div className="rounded-lg bg-red-50 p-3 border border-red-200">
+                  <div className="flex">
+                    <div className="ml-3">
+                      <p className="text-sm text-red-800">
+                        {resetError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                  Correo Electrónico
+                </label>
+                <input
+                  id="resetEmail"
+                  type="email"
+                  required
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200"
+                  placeholder="doctor@ejemplo.com"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeForgotModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {resetLoading ? (
+                    <div className="flex items-center justify-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Enviando...
+                    </div>
+                  ) : (
+                    "Enviar"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

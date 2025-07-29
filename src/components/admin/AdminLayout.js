@@ -19,6 +19,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   VideoCameraIcon,
+  ChevronRightIcon as ChevronRightSmallIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -79,6 +80,43 @@ export default function AdminLayout({ children }) {
 
   const sidebarWidth = isCollapsed ? "w-16" : "w-64";
   const contentMargin = isCollapsed ? "ml-16" : "ml-64";
+
+  // Generate breadcrumbs based on current route
+  const generateBreadcrumbs = () => {
+    const pathSegments = router.pathname.split('/').filter(Boolean);
+    const breadcrumbs = [{ name: 'Inicio', href: '/admin', icon: HomeIcon }];
+
+    if (pathSegments.length > 1) {
+      const currentPage = pathSegments[pathSegments.length - 1];
+      const navItem = navigation.find(item => item.href.includes(currentPage));
+      
+      if (navItem) {
+        breadcrumbs.push({
+          name: navItem.name,
+          href: navItem.href,
+          icon: navItem.icon
+        });
+      } else {
+        // Handle dynamic routes or special cases
+        const breadcrumbMap = {
+          'patients': { name: 'Pacientes', href: '/admin/patients', icon: UserGroupIcon },
+          'schedule': { name: 'Agenda', href: '/admin/schedule', icon: CalendarIcon },
+          'profile': { name: 'Perfil', href: '/admin/profile', icon: UserIcon },
+          'reviews': { name: 'Reseñas', href: '/admin/reviews', icon: StarIcon },
+          'referrals': { name: 'Referencias', href: '/admin/referrals', icon: ArrowRightOnRectangleIcon },
+          'video-consultation': { name: 'Video Consulta', href: '/admin/video-consultation', icon: VideoCameraIcon },
+        };
+
+        if (breadcrumbMap[currentPage]) {
+          breadcrumbs.push(breadcrumbMap[currentPage]);
+        }
+      }
+    }
+
+    return breadcrumbs;
+  };
+
+  const breadcrumbs = generateBreadcrumbs();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -325,6 +363,32 @@ export default function AdminLayout({ children }) {
             </div>
           </div>
         </header>
+
+        {/* Breadcrumbs */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <nav className="flex" aria-label="Breadcrumb">
+            <ol className="flex items-center space-x-2">
+              {breadcrumbs.map((breadcrumb, index) => (
+                <li key={breadcrumb.href} className="flex items-center">
+                  {index > 0 && (
+                    <ChevronRightSmallIcon className="h-4 w-4 text-gray-400 mx-2" />
+                  )}
+                  <Link
+                    href={breadcrumb.href}
+                    className={`flex items-center space-x-2 text-sm font-medium transition-colors duration-200 ${
+                      index === breadcrumbs.length - 1
+                        ? 'text-amber-600 cursor-default'
+                        : 'text-gray-500 hover:text-amber-600'
+                    }`}
+                  >
+                    <breadcrumb.icon className="h-4 w-4" />
+                    <span>{breadcrumb.name}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>
 
         {/* Page content */}
         <main className="min-h-screen bg-gray-50 transition-all duration-300 ease-in-out">
