@@ -257,7 +257,8 @@ export const videoConsultationService = {
   // Generar nombre único para la sala
   generateRoomName(doctorId, patientId, appointmentId) {
     const timestamp = Date.now();
-    return `consulta-${doctorId}-${patientId}-${appointmentId}-${timestamp}`;
+    // Usar un prefijo que identifique claramente al doctor como owner
+    return `dr-${doctorId.substring(0, 8)}-${patientId.substring(0, 8)}-${appointmentId}-${timestamp}`;
   },
 
   // Validar acceso a la sala

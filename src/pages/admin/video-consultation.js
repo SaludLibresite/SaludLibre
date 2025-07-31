@@ -6,6 +6,7 @@ import NewVideoConsultationModal from "../../components/admin/NewVideoConsultati
 import ShareVideoConsultationLink from "../../components/admin/ShareVideoConsultationLink";
 import { useAuth } from "../../context/AuthContext";
 import { videoConsultationService } from "../../lib/videoConsultationService";
+import useVideoConsultationStore from "../../store/videoConsultationStore";
 import {
   VideoCameraIcon,
   CalendarIcon,
@@ -13,6 +14,9 @@ import {
   UserGroupIcon,
   UserIcon,
   PlusIcon,
+  UsersIcon,
+  ShareIcon,
+  PhoneIcon,
 } from "@heroicons/react/24/outline";
 
 // Video Call Interface Skeleton - usado cuando no hay sala activa
@@ -29,11 +33,20 @@ const VideoCallSkeleton = () => (
 export default function VideoConsultationPage() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("live");
-  const [currentRoom, setCurrentRoom] = useState(null);
   const [scheduledRooms, setScheduledRooms] = useState([]);
   const [todayRooms, setTodayRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
+
+  // Zustand store
+  const { 
+    currentRoom, 
+    setCurrentRoom, 
+    setMeetingEnded,
+    isInMeeting,
+    meetingStatus,
+    participants
+  } = useVideoConsultationStore();
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -114,7 +127,8 @@ export default function VideoConsultationPage() {
   };
 
   const handleMeetingEnd = () => {
-    setCurrentRoom(null);
+    setMeetingEnded(); // Limpiar el store de Zustand
+    setActiveTab('scheduled'); // Cambiar a vista de programadas
     // Recargar datos después de terminar la reunión
     loadDoctorRooms();
     loadTodayRooms();
@@ -184,34 +198,131 @@ export default function VideoConsultationPage() {
             </nav>
           </div>
 
-          {/* Tab Content */}
+          {/* Tab Content con Layout Dinámico */}
           {activeTab === "live" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Video Area */}
-              <div className="lg:col-span-2 space-y-6">
-                {currentRoom ? (
-                  <div className="bg-gray-900 rounded-xl overflow-hidden h-96">
+            <>
+              {currentRoom && (isInMeeting || meetingStatus === 'active') ? (
+                <div className="space-y-6">
+                  {/* Header de reunión activa */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-900">
+                            Consulta en progreso con {currentRoom.patientName || 'Paciente'}
+                          </h2>
+                          <p className="text-sm text-gray-600">
+                            Tipo: {currentRoom.consultationType || 'General'} • 
+                            Participantes: {participants.length}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-sm text-gray-500">
+                          {new Date().toLocaleTimeString()}
+                        </div>
+                        <button
+                          onClick={handleMeetingEnd}
+                          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                        >
+                          <PhoneIcon className="h-4 w-4 mr-2" />
+                          Finalizar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Video principal - Ocupa toda la pantalla */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <VideoConsultationComponent
                       roomName={currentRoom.roomName}
                       onMeetingEnd={handleMeetingEnd}
-                      className="h-full"
+                      className="h-[75vh] min-h-[700px]" // Mucho más alto
                     />
                   </div>
-                ) : (
-                  <VideoCallSkeleton />
-                )}
-                
-                {/* Today's Scheduled Rooms */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                      <CalendarIcon className="h-5 w-5 mr-2 text-blue-500" />
-                      Consultas de Hoy
-                    </h3>
-                    <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
-                      {todayRooms.length} programadas
-                    </span>
+
+                  {/* Panel de información compacto durante la consulta */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                        <UserIcon className="h-4 w-4 mr-2 text-blue-500" />
+                        Paciente
+                      </h4>
+                      <div className="text-sm space-y-1">
+                        <p><span className="text-gray-600">Nombre:</span> {currentRoom.patientName || 'Paciente'}</p>
+                        <p><span className="text-gray-600">Email:</span> {currentRoom.patientEmail || 'No disponible'}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                        <UsersIcon className="h-4 w-4 mr-2 text-green-500" />
+                        Participantes
+                      </h4>
+                      <div className="space-y-2">
+                        {participants.slice(0, 3).map((participant, index) => (
+                          <div key={index} className="flex items-center text-sm">
+                            <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                            <span>{participant.name}</span>
+                          </div>
+                        ))}
+                        {participants.length > 3 && (
+                          <p className="text-xs text-gray-500">+{participants.length - 3} más</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                        <ShareIcon className="h-4 w-4 mr-2 text-purple-500" />
+                        Acciones
+                      </h4>
+                      <div className="space-y-2">
+                        <button className="w-full text-left text-sm text-gray-600 hover:text-gray-900 py-1 px-2 rounded hover:bg-gray-50 transition-colors">
+                          📋 Notas de consulta
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const link = `${window.location.origin}/video/join/${currentRoom.roomName}`;
+                            navigator.clipboard.writeText(link);
+                          }}
+                          className="w-full text-left text-sm text-gray-600 hover:text-gray-900 py-1 px-2 rounded hover:bg-gray-50 transition-colors"
+                        >
+                          📱 Copiar enlace
+                        </button>
+                      </div>
+                    </div>
                   </div>
+                </div>
+              ) : (
+                /* MODO NORMAL - Layout estándar */
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Main Video Area */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {currentRoom ? (
+                      <div className="bg-gray-900 rounded-xl overflow-hidden h-96">
+                        <VideoConsultationComponent
+                          roomName={currentRoom.roomName}
+                          onMeetingEnd={handleMeetingEnd}
+                          className="h-full"
+                        />
+                      </div>
+                    ) : (
+                      <VideoCallSkeleton />
+                    )}
+                    
+                    {/* Today's Scheduled Rooms */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                          <CalendarIcon className="h-5 w-5 mr-2 text-blue-500" />
+                          Consultas de Hoy
+                        </h3>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                          {todayRooms.length} programadas
+                        </span>
+                      </div>
 
                   {loading ? (
                     <div className="space-y-4">
@@ -284,8 +395,10 @@ export default function VideoConsultationPage() {
                       <p>No hay consultas programadas para hoy</p>
                     </div>
                   )}
-                </div>
-              </div>
+                    </div>
+                  </div>
+
+
 
               {/* Sidebar */}
               <div className="space-y-6">
@@ -383,8 +496,9 @@ export default function VideoConsultationPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+                </div>
+          )}</>)
+          }
 
           {activeTab === "scheduled" && (
             <div className="space-y-6">
@@ -539,7 +653,6 @@ export default function VideoConsultationPage() {
             </div>
           )}
 
-        </div>
 
         {/* New Video Consultation Modal */}
         <NewVideoConsultationModal
@@ -547,6 +660,7 @@ export default function VideoConsultationPage() {
           onClose={() => setShowNewRoomModal(false)}
           onCreateRoom={handleCreateNewRoom}
         />
+        </div>
       </AdminLayout>
     </ProtectedRoute>
   );

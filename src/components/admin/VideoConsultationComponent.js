@@ -64,35 +64,16 @@ const VideoConsultationComponent = ({
         // Validar o crear sala
         const validation = await videoConsultationService.validateRoomAccess(
           roomName, 
-          currentUser.uid,
-          currentUser.role || 'doctor'
+          currentUser.uid
         );
 
-        if (!validation.valid) {
-          throw new Error(validation.message || 'No tienes acceso a esta sala');
+        if (!validation.canJoin) {
+          throw new Error(validation.error || 'No tienes acceso a esta sala');
         }
 
         if (mounted) {
           setRoomData(validation.room);
           setParticipants(validation.room.participants || []);
-
-          // Auto-unirse a la sala si no está ya participando
-          const isAlreadyParticipant = validation.room.participants?.some(
-            p => p.userId === currentUser.uid
-          );
-
-          if (!isAlreadyParticipant) {
-            const participantInfo = {
-              userId: currentUser.uid,
-              name: currentUser.displayName || currentUser.email || 'Doctor',
-              email: currentUser.email,
-              role: currentUser.role || 'doctor',
-              avatar: currentUser.photoURL || '',
-              joinedAt: new Date().toISOString()
-            };
-
-            await videoConsultationService.joinRoom(validation.room.id, participantInfo);
-          }
 
           // Suscribirse a actualizaciones en tiempo real
           unsubscribeRef.current = videoConsultationService.subscribeToRoom(
@@ -268,10 +249,10 @@ const VideoConsultationComponent = ({
               <VideoCameraIcon className="h-6 w-6 text-blue-600" />
               <div>
                 <h3 className="font-semibold text-gray-900">
-                  Videoconsulta: {roomData.patientName || 'Paciente'}
+                  Videoconsulta: {roomData.patientName}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  Tipo: {roomData.consultationType || 'General'} • Sala: {roomData.roomName}
+                  Tipo: {roomData.consultationType} • Sala: {roomData.roomName}
                 </p>
               </div>
             </div>
@@ -332,8 +313,8 @@ const VideoConsultationComponent = ({
         <div className="border-t border-gray-200 p-4 bg-gray-50">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              <strong>Paciente:</strong> {roomData.patientName || 'Paciente'} | 
-              <strong className="ml-2">Doctor:</strong> {currentUser?.displayName || currentUser?.email || 'Doctor'}
+              <strong>Paciente:</strong> {roomData.patientName} | 
+              <strong className="ml-2">Doctor:</strong> {roomData.doctorName}
             </div>
             
             <button

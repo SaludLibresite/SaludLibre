@@ -118,16 +118,36 @@ export const JITSI_CONFIG = {
       role: 'moderator'
     },
     configOverwrite: {
-      // Habilitar funciones de moderador
+      // Configuración de moderador automático
       enableUserRolesBasedOnToken: false,
       moderatedRoomServiceUrl: '',
       
+      // Deshabilitar diálogo de moderador
+      disableModeratorIndicator: false,
+      
+      // Auto-promover a moderador
+      enableAutomaticUrlCopy: false,
+      
       // Permitir grabación
       fileRecordingsEnabled: true,
-      fileRecordingsServiceEnabled: true,
+      fileRecordingsServiceEnabled: false, // Deshabilitar servicio de grabación automática
       
       // Control de participantes
-      enableLobby: false, // Cambiar a true para sala de espera
+      enableLobby: false,
+      
+      // Configuración de audio/video
+      startWithAudioMuted: false,
+      startWithVideoMuted: false,
+      
+      // Deshabilitar página de bienvenida y configuración inicial
+      enableWelcomePage: false,
+      enableClosePage: false,
+      prejoinPageEnabled: false,
+      
+      // Configuración de moderador
+      enableInsecureRoomNameWarning: false,
+      enableNoAudioSignal: true,
+      enableNoisyMicDetection: true,
       
       // Calidad de video alta para doctores
       constraints: {

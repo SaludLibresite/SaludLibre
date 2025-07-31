@@ -5,14 +5,33 @@ Esta guía te ayudará a configurar las videoconsultas en tu aplicación Doctore
 ## Estado Actual
 
 ✅ **Implementado:**
-- Interfaz completa de videoconsultas
+- Interfaz completa de videoconsultas con Zustand para persistencia
 - Creación de salas con búsqueda de pacientes
 - Gestión de consultas programadas
 - Integración con Firebase para persistencia
 - Sistema de permisos y acceso seguro
 - Configuración personalizada por rol (doctor/paciente)
+- Auto-ingreso y manejo de participantes
+- Persistencia de estado con refresh
 
 ⚠️ **Usando servidor público:** Actualmente usando `meet.jit.si` (servidor público de Jitsi)
+
+## Problema Conocido: Moderación
+
+**Issue:** Jitsi Meet en servidor público pregunta si eres anfitrión.
+
+**Causa:** En servidores públicos de Jitsi, el primer usuario se convierte en moderador, pero no hay autenticación automática.
+
+**Soluciones Implementadas:**
+1. Configuración automática para deshabilitar diálogos de moderación innecesarios
+2. Auto-configuración de permisos para doctores
+3. Nombres de sala únicos con prefijo identificador del doctor
+
+**Solución Temporal:** 
+- Al aparecer el diálogo "¿Eres el anfitrión?", hacer clic en "Sí soy el anfitrión"
+- La aplicación está configurada para funcionar sin restricciones de moderador
+
+**Solución Definitiva:** Configurar servidor propio (ver abajo)
 
 ## Próximos Pasos: Servidor Propio
 
