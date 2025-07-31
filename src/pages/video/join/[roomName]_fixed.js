@@ -15,26 +15,12 @@ export default function JoinVideoConsultation() {
   const jitsiContainerRef = useRef(null);
   const [jitsiLoaded, setJitsiLoaded] = useState(false);
   const [error, setError] = useState(null);
-  const jitsiApiRef = useRef(null); // Para mantener referencia del API
 
   useEffect(() => {
     if (roomName && canJoin) {
       // Conectar directamente al servidor privado
       checkNetworkConnectivity();
     }
-    
-    // Cleanup al desmontar el componente
-    return () => {
-      if (jitsiApiRef.current) {
-        console.log('Cleaning up Jitsi API on unmount');
-        try {
-          jitsiApiRef.current.dispose();
-        } catch (error) {
-          console.error('Error disposing Jitsi API:', error);
-        }
-        jitsiApiRef.current = null;
-      }
-    };
   }, [roomName, canJoin]);
 
   const checkNetworkConnectivity = async () => {
@@ -53,18 +39,6 @@ export default function JoinVideoConsultation() {
       console.log('Loading Jitsi Meet API from private server...');
       
       if (!window.JitsiMeetExternalAPI) {
-        // Verificar si ya hay un script cargándose
-        const existingScript = document.querySelector('script[src="https://video.saludlibre.com.ar/external_api.js"]');
-        if (existingScript) {
-          console.log('Jitsi script already loading, waiting...');
-          // Esperar a que termine de cargar
-          existingScript.onload = () => {
-            console.log('Existing script loaded successfully');
-            initializeJitsi();
-          };
-          return;
-        }
-        
         console.log('Jitsi API not found, loading script from private server...');
         const script = document.createElement('script');
         // Siempre usar el servidor privado
@@ -97,26 +71,12 @@ export default function JoinVideoConsultation() {
   const initializeJitsi = () => {
     console.log('Initializing Jitsi with private server...');
     
-    // Limpiar cualquier instancia previa
-    if (jitsiApiRef.current) {
-      console.log('Disposing previous Jitsi API instance');
-      try {
-        jitsiApiRef.current.dispose();
-      } catch (error) {
-        console.error('Error disposing previous Jitsi API:', error);
-      }
-      jitsiApiRef.current = null;
-    }
-    
     if (!jitsiContainerRef.current) {
       console.error('Jitsi container not found');
       setError('Error: No se pudo inicializar el contenedor de video.');
       setJitsiLoaded(true);
       return;
     }
-
-    // Limpiar el contenedor
-    jitsiContainerRef.current.innerHTML = '';
 
     if (!window.JitsiMeetExternalAPI) {
       console.error('JitsiMeetExternalAPI not available');
@@ -183,9 +143,6 @@ export default function JoinVideoConsultation() {
 
       console.log('Creating Jitsi API with private server:', 'video.saludlibre.com.ar');
       const api = new window.JitsiMeetExternalAPI('video.saludlibre.com.ar', options);
-      
-      // Guardar referencia del API
-      jitsiApiRef.current = api;
       
       api.addEventListener('readyToClose', () => {
         console.log('Video conference ended');

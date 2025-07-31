@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import AdminLayout from "../../components/admin/AdminLayout";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import VideoConsultationComponent from "../../components/admin/VideoConsultationComponent";
 import NewVideoConsultationModal from "../../components/admin/NewVideoConsultationModal";
 import { useAuth } from "../../context/AuthContext";
 import { videoConsultationService } from "../../lib/videoConsultationService";
@@ -13,20 +13,27 @@ import {
   UserGroupIcon,
   UserIcon,
   PlusIcon,
+  PhoneIcon,
+  XMarkIcon,
   ShareIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 
 export default function VideoConsultationPage() {
   const { currentUser } = useAuth();
-  const router = useRouter();
   const [scheduledRooms, setScheduledRooms] = useState([]);
   const [todayRooms, setTodayRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [meetingStarted, setMeetingStarted] = useState(false);
 
-  // Zustand store - ya no se usa para manejo de estado local
+  // Zustand store
   const { 
-    setMeetingEnded
+    currentRoom, 
+    setCurrentRoom, 
+    setMeetingEnded,
+    participants
   } = useVideoConsultationStore();
 
   // Cargar datos iniciales
@@ -84,10 +91,9 @@ export default function VideoConsultationPage() {
         consultationType: roomData.consultationType || 'general'
       };
 
+      setCurrentRoom(roomWithFullData);
       setShowNewRoomModal(false);
-      
-      // Redirigir directamente a la videoconsulta
-      router.push(`/admin/video-consultation/${roomName}`);
+      setMeetingStarted(true);
       
       loadDoctorRooms();
       loadTodayRooms();
@@ -99,21 +105,152 @@ export default function VideoConsultationPage() {
   };
 
   const handleJoinRoom = (room) => {
-    // Redirigir directamente a la página de videoconsulta del doctor
-    router.push(`/admin/video-consultation/${room.roomName}`);
+    setCurrentRoom(room);
+    setMeetingStarted(true);
   };
 
-  const copyRoomLink = (room) => {
-    const link = `${window.location.origin}/video/join/${room.roomName}`;
-    navigator.clipboard.writeText(link);
-    
-    // Feedback visual
-    const message = document.createElement('div');
-    message.textContent = '¡Enlace copiado!';
-    message.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-    document.body.appendChild(message);
-    setTimeout(() => document.body.removeChild(message), 2000);
+  const handleMeetingEnd = () => {
+    setMeetingEnded();
+    setMeetingStarted(false);
+    setCurrentRoom(null);
+    loadDoctorRooms();
+    loadTodayRooms();
   };
+
+  const copyRoomLink = () => {
+    if (currentRoom) {
+      const link = `${window.location.origin}/video/join/${currentRoom.roomName}`;
+      navigator.clipboard.writeText(link);
+      
+      // Feedback visual
+      const message = document.createElement('div');
+      message.textContent = '¡Enlace copiado!';
+      message.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      document.body.appendChild(message);
+      setTimeout(() => document.body.removeChild(message), 2000);
+    }
+  };
+
+  // Mostrar interfaz de videoconsulta activa (90% de pantalla)
+  if (currentRoom && meetingStarted) {
+    return (
+      <div className="h-screen bg-gray-900 flex flex-col">
+        {/* Header compacto */}
+        <div className="bg-gray-800 text-white px-4 py-2 flex items-center justify-between border-b border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div>
+              <h2 className="font-semibold text-sm">
+                {currentRoom.patientName || 'Paciente'} • {currentRoom.consultationType || 'General'}
+              </h2>
+              <p className="text-xs text-gray-300">
+                {participants.length} participante(s) • {new Date().toLocaleTimeString()}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {/* Botón sidebar */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              <Bars3Icon className="h-4 w-4" />
+            </button>
+            
+            {/* Botón copiar enlace */}
+            <button
+              onClick={copyRoomLink}
+              className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              <ShareIcon className="h-4 w-4" />
+            </button>
+            
+            {/* Botón finalizar */}
+            <button
+              onClick={handleMeetingEnd}
+              className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center space-x-1"
+            >
+              <PhoneIcon className="h-4 w-4" />
+              <span className="text-sm">Finalizar</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 flex">
+          {/* Video principal - 90% de la pantalla */}
+          <div className="flex-1">
+            <VideoConsultationComponent
+              roomName={currentRoom.roomName}
+              onMeetingEnd={handleMeetingEnd}
+              roomData={currentRoom}
+              className="h-full w-full"
+            />
+          </div>
+
+          {/* Sidebar flotante */}
+          <div className={`transition-all duration-300 bg-white border-l border-gray-300 ${
+            sidebarOpen ? 'w-80' : 'w-0'
+          } overflow-hidden`}>
+            <div className="p-4 h-full overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900">Información de la Consulta</h3>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Información del paciente */}
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                    <UserIcon className="h-4 w-4 mr-2 text-blue-500" />
+                    Paciente
+                  </h4>
+                  <div className="text-sm space-y-1">
+                    <p><strong>Nombre:</strong> {currentRoom.patientName || 'No disponible'}</p>
+                    <p><strong>Email:</strong> {currentRoom.patientEmail || 'No disponible'}</p>
+                    <p><strong>Tipo:</strong> {currentRoom.consultationType || 'General'}</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <h4 className="font-medium text-gray-900 mb-2">Participantes ({participants.length})</h4>
+                  <div className="space-y-1">
+                    {participants.slice(0, 5).map((participant, index) => (
+                      <div key={index} className="flex items-center text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span>{participant.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Acciones rápidas */}
+                <div className="space-y-2">
+                  <button
+                    onClick={copyRoomLink}
+                    className="w-full p-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                  >
+                    📱 Copiar enlace para paciente
+                  </button>
+                  <button className="w-full p-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+                    📋 Tomar notas
+                  </button>
+                  <button className="w-full p-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+                    💊 Prescribir medicamento
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Interfaz principal (dashboard)
   return (
@@ -151,6 +288,37 @@ export default function VideoConsultationPage() {
               </div>
             </div>
           </div>
+
+          {/* Estado actual */}
+          {currentRoom && !meetingStarted && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <VideoCameraIcon className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <h3 className="font-semibold text-blue-900">
+                      Sala creada: {currentRoom.patientName || 'Paciente'}
+                    </h3>
+                    <p className="text-sm text-blue-700">Lista para comenzar la videoconsulta</p>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={copyRoomLink}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Copiar enlace
+                  </button>
+                  <button
+                    onClick={() => handleJoinRoom(currentRoom)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Comenzar consulta
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Grid principal */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -195,21 +363,12 @@ export default function VideoConsultationPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => copyRoomLink(room)}
-                          className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                          title="Copiar enlace para paciente"
-                        >
-                          <ShareIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleJoinRoom(room)}
-                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          Unirse
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleJoinRoom(room)}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Unirse
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -262,21 +421,12 @@ export default function VideoConsultationPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => copyRoomLink(room)}
-                          className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                          title="Copiar enlace para paciente"
-                        >
-                          <ShareIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleJoinRoom(room)}
-                          className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                        >
-                          Unirse
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleJoinRoom(room)}
+                        className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      >
+                        Unirse
+                      </button>
                     </div>
                   ))}
                 </div>

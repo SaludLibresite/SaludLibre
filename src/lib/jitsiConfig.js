@@ -1,10 +1,7 @@
 // Configuración global de Jitsi Meet
 export const JITSI_CONFIG = {
-  // Dominio principal - cambiar cuando tengas tu servidor propio
-  domain: 'meet.jit.si',
-  
-  // Para servidor propio, descomenta y configura:
-  // domain: 'tu-dominio-jitsi.com',
+  // Dominio del servidor privado - ÚNICO servidor a usar
+  domain: 'video.saludlibre.com.ar',
   
   // Configuración por defecto
   defaultConfig: {

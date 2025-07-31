@@ -16,7 +16,9 @@ const VideoConsultationComponent = ({
   onParticipantJoined,
   onParticipantLeft,
   consultationType = 'general',
-  className = ""
+  className = "",
+  roomData: initialRoomData = null, // Datos de la sala si ya los tenemos
+  guestName = null // Nombre para usuarios invitados
 }) => {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +40,7 @@ const VideoConsultationComponent = ({
         }
 
         const script = document.createElement('script');
-        script.src = `https://${JITSI_CONFIG.domain}/external_api.js`;
+        script.src = 'https://video.saludlibre.com.ar/external_api.js';
         script.async = true;
         script.onload = resolve;
         script.onerror = reject;
@@ -54,30 +56,61 @@ const VideoConsultationComponent = ({
         setError(null);
 
         if (!currentUser) {
-          throw new Error('Usuario no autenticado');
+          // Para usuarios no autenticados (pacientes), crear un usuario temporal
+          console.log('Usuario no autenticado, permitiendo acceso como invitado');
         }
 
         if (!roomName) {
           throw new Error('Nombre de sala requerido');
         }
 
-        // Validar o crear sala
-        const validation = await videoConsultationService.validateRoomAccess(
-          roomName, 
-          currentUser.uid
-        );
+        let room;
+        
+        // Si ya tenemos los datos de la sala, usarlos directamente
+        if (initialRoomData && initialRoomData.roomName === roomName) {
+          room = initialRoomData;
+        } else {
+          // Validar acceso con retry para casos de eventual consistency
+          let retries = 3;
+          let lastError;
+          
+          while (retries > 0) {
+            try {
+              const validation = await videoConsultationService.validateRoomAccess(
+                roomName, 
+                currentUser ? currentUser.uid : 'guest',
+                currentUser ? 'doctor' : 'patient' // Asumimos que en el admin es un doctor, sino paciente
+              );
 
-        if (!validation.canJoin) {
-          throw new Error(validation.error || 'No tienes acceso a esta sala');
+              if (!validation.valid) {
+                throw new Error(validation.message || 'No tienes acceso a esta sala');
+              }
+              
+              room = validation.room;
+              break; // Salir del loop si fue exitoso
+            } catch (err) {
+              lastError = err;
+              retries--;
+              
+              if (retries > 0) {
+                // Esperar antes del siguiente intento (backoff exponencial)
+                await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+              }
+            }
+          }
+          
+          if (!room) {
+            throw lastError || new Error('No se pudo validar el acceso a la sala');
+          }
         }
 
         if (mounted) {
-          setRoomData(validation.room);
-          setParticipants(validation.room.participants || []);
+          setRoomData(room);
+          setParticipants(room.participants || []);
 
           // Suscribirse a actualizaciones en tiempo real
           unsubscribeRef.current = videoConsultationService.subscribeToRoom(
-            validation.room.id,
+            room.id,
             (updatedRoom) => {
               if (mounted) {
                 setRoomData(updatedRoom);
@@ -89,7 +122,7 @@ const VideoConsultationComponent = ({
           // Cargar Jitsi y inicializar
           await loadJitsiScript();
           if (mounted) {
-            initializeJitsiMeeting(validation.room);
+            initializeJitsiMeeting(room);
           }
         }
 
@@ -116,91 +149,173 @@ const VideoConsultationComponent = ({
         jitsiAPI.dispose();
       }
     };
-  }, [roomName, currentUser]);
+  }, [roomName, currentUser, initialRoomData]);
 
   const initializeJitsiMeeting = (room) => {
     if (!jitsiContainerRef.current || !window.JitsiMeetExternalAPI) {
+      console.error('Jitsi container or API not available');
       return;
     }
 
+    // Limpiar el contenedor antes de crear nueva instancia
+    jitsiContainerRef.current.innerHTML = '';
+
     // Configuración específica del usuario
-    const userRole = currentUser?.role || 'patient';
-    const userConfig = getConfigForUser(userRole, consultationType);
+    const userRole = currentUser ? 'doctor' : 'patient'; // Si no hay currentUser, es paciente
     
-    // Configurar opciones del meeting
+    // Configurar opciones del meeting con configuración más simple y directa
     const options = {
       roomName: roomName,
-      ...userConfig.configOverwrite,
       parentNode: jitsiContainerRef.current,
+      width: '100%',
+      height: '100%',
+      configOverwrite: {
+        startWithAudioMuted: false,
+        startWithVideoMuted: false,
+        prejoinPageEnabled: false, // Crucial: saltar pre-join
+        enableWelcomePage: false,
+        enableClosePage: false,
+        disablePolls: false,
+        disableInviteFunctions: false,
+        doNotStoreRoom: false,
+        enableAutomaticUrlCopy: false,
+        startScreenSharing: false,
+        enableEmailInStats: false,
+        enableNoAudioDetection: true,
+        enableNoisyCancellation: true,
+        channelLastN: -1, // Mostrar todos los participantes
+        p2p: {
+          enabled: true
+        },
+        analytics: {
+          disabled: true
+        },
+        defaultLanguage: 'es'
+      },
       interfaceConfigOverwrite: {
-        ...JITSI_CONFIG.defaultInterfaceConfig,
-        TOOLBAR_BUTTONS: userConfig.toolbarButtons || JITSI_CONFIG.defaultInterfaceConfig.TOOLBAR_BUTTONS
+        TOOLBAR_BUTTONS: [
+          'microphone', 'camera', 'desktop', 'fullscreen',
+          'fodeviceselection', 'hangup', 'profile', 'chat',
+          'settings', 'raisehand', 'videoquality', 'filmstrip'
+        ],
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        SHOW_BRAND_WATERMARK: false,
+        DEFAULT_BACKGROUND: '#1a1a1a',
+        DISPLAY_WELCOME_PAGE_CONTENT: false,
+        GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
+        LANG_DETECTION: false,
+        DEFAULT_LANGUAGE: 'es',
+        APP_NAME: 'Doctores AR'
       },
       userInfo: {
-        displayName: currentUser.displayName || currentUser.email || 'Doctor',
-        email: currentUser.email,
-        avatarURL: currentUser.photoURL || '',
-        ...userConfig.userInfo
+        displayName: currentUser ? 
+          (currentUser.displayName || currentUser.email || 'Doctor') :
+          (guestName || 'Paciente'),
+        email: currentUser ? currentUser.email || '' : '',
+        avatarURL: currentUser ? currentUser.photoURL || '' : ''
       }
     };
 
     // Crear instancia de Jitsi
-    const api = new window.JitsiMeetExternalAPI(JITSI_CONFIG.domain, options);
-    setJitsiAPI(api);
+    console.log('Creating Jitsi meeting with options:', { 
+      roomName, 
+      domain: 'video.saludlibre.com.ar',
+      containerReady: !!jitsiContainerRef.current,
+      userInfo: options.userInfo
+    });
+    
+    try {
+      const api = new window.JitsiMeetExternalAPI('video.saludlibre.com.ar', options);
+      setJitsiAPI(api);
 
-    // Event listeners
-    api.addEventListener('videoConferenceJoined', () => {
-      console.log('Video conference joined');
-      setMeetingStarted(true);
+      // Immediately remove loading state when API is created
+      setIsLoading(false);
       
-      // Marcar sala como activa
-      if (room) {
-        videoConsultationService.updateRoomStatus(room.id, 'active');
-      }
+      console.log('Jitsi API created successfully, iframe should be visible now');
 
-      if (onParticipantJoined) {
-        onParticipantJoined();
-      }
-    });
+      // Event listeners simplificados
+      api.addEventListener('readyToClose', () => {
+        console.log('Ready to close');
+        if (onMeetingEnd) {
+          onMeetingEnd();
+        }
+      });
 
-    api.addEventListener('videoConferenceLeft', () => {
-      console.log('Video conference left');
-      setMeetingStarted(false);
-      
-      // Actualizar estado al salir
-      if (room && currentUser) {
-        videoConsultationService.leaveRoom(room.id, currentUser.uid);
-      }
+      // Evento cuando el usuario se une a la conferencia
+      api.addEventListener('videoConferenceJoined', (participant) => {
+        console.log('User joined video conference:', participant);
+        setMeetingStarted(true);
+        
+        // Marcar sala como activa y agregar participante
+        if (room && currentUser) {
+          videoConsultationService.updateRoomStatus(room.id, 'active');
+          videoConsultationService.joinRoom(room.id, {
+            userId: currentUser.uid,
+            name: currentUser.displayName || currentUser.email || 'Doctor',
+            role: 'doctor',
+            email: currentUser.email
+          });
+        } else if (room) {
+          // Usuario invitado (paciente sin autenticación)
+          videoConsultationService.updateRoomStatus(room.id, 'active');
+          videoConsultationService.joinRoom(room.id, {
+            userId: 'guest_' + Date.now(),
+            name: guestName || 'Paciente',
+            role: 'patient',
+            email: ''
+          });
+        }
 
-      if (onMeetingEnd) {
-        onMeetingEnd();
-      }
+        if (onParticipantJoined) {
+          onParticipantJoined(participant);
+        }
+      });
 
-      if (onParticipantLeft) {
-        onParticipantLeft();
-      }
-    });
+      // Evento cuando el usuario sale de la conferencia
+      api.addEventListener('videoConferenceLeft', () => {
+        console.log('User left video conference');
+        setMeetingStarted(false);
+        
+        if (room && currentUser) {
+          videoConsultationService.leaveRoom(room.id, currentUser.uid);
+        }
 
-    api.addEventListener('readyToClose', () => {
-      console.log('Ready to close');
-      if (onMeetingEnd) {
-        onMeetingEnd();
-      }
-    });
+        if (onMeetingEnd) {
+          onMeetingEnd();
+        }
 
-    api.addEventListener('participantJoined', (participant) => {
-      console.log('Participant joined:', participant);
-      if (onParticipantJoined) {
-        onParticipantJoined(participant);
-      }
-    });
+        if (onParticipantLeft) {
+          onParticipantLeft();
+        }
+      });
 
-    api.addEventListener('participantLeft', (participant) => {
-      console.log('Participant left:', participant);
-      if (onParticipantLeft) {
-        onParticipantLeft(participant);
-      }
-    });
+      // Eventos básicos para otros participantes
+      api.addEventListener('participantJoined', (participant) => {
+        console.log('Other participant joined:', participant);
+        if (onParticipantJoined) {
+          onParticipantJoined(participant);
+        }
+      });
+
+      api.addEventListener('participantLeft', (participant) => {
+        console.log('Other participant left:', participant);
+        if (onParticipantLeft) {
+          onParticipantLeft(participant);
+        }
+      });
+
+      // Fallback para asegurar que el loading se quite
+      setTimeout(() => {
+        console.log('Fallback timeout - ensuring loading is removed');
+        setIsLoading(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error creating Jitsi meeting:', error);
+      setError('Error al inicializar la videoconsulta');
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -239,10 +354,12 @@ const VideoConsultationComponent = ({
     );
   }
 
+  const isFullscreen = className.includes('calc(100vh');
+
   return (
-    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>
-      {/* Header con información de la consulta */}
-      {roomData && (
+    <div className={`bg-white ${isFullscreen ? '' : 'rounded-lg shadow-sm border border-gray-200'} ${className}`}>
+      {/* Header con información de la consulta - Solo mostrar si no está en pantalla completa */}
+      {roomData && !isFullscreen && (
         <div className="border-b border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -283,33 +400,38 @@ const VideoConsultationComponent = ({
       )}
 
       {/* Contenedor de Jitsi Meet */}
-      <div className="relative">
+      <div className="relative bg-gray-900 rounded-lg overflow-hidden">
         <div 
           ref={jitsiContainerRef}
-          className="w-full"
-          style={{ height: '600px' }}
+          className="w-full bg-gray-900"
+          style={{ 
+            height: className.includes('calc(100vh') ? 'calc(100vh - 100px)' : '600px',
+            minHeight: '400px',
+            position: 'relative'
+          }}
         />
         
-        {!meetingStarted && roomData && (
-          <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
-            <div className="text-center">
+        {/* Overlay de loading solo mientras se inicializa Jitsi */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center z-10">
+            <div className="text-center text-white">
               <VideoCameraIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                Preparando videoconsulta
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">
+                Iniciando videoconsulta
               </h3>
-              <p className="text-gray-500 mb-4">
-                La videoconsulta se iniciará en unos momentos...
+              <p className="text-gray-400 mb-4">
+                Conectando con video.saludlibre.com.ar...
               </p>
               <div className="animate-pulse">
-                <div className="h-2 bg-blue-200 rounded-full w-48 mx-auto"></div>
+                <div className="h-2 bg-blue-600 rounded-full w-48 mx-auto"></div>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Footer con controles adicionales */}
-      {roomData && (
+      {/* Footer con controles adicionales - Solo mostrar si no está en pantalla completa */}
+      {roomData && !isFullscreen && (
         <div className="border-t border-gray-200 p-4 bg-gray-50">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
