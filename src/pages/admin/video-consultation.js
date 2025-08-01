@@ -14,6 +14,7 @@ import {
   UserIcon,
   PlusIcon,
   ShareIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 
 export default function VideoConsultationPage() {
@@ -23,6 +24,8 @@ export default function VideoConsultationPage() {
   const [todayRooms, setTodayRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
+  const [isLocalhost, setIsLocalhost] = useState(false);
+  const [notification, setNotification] = useState(null);
 
   // Zustand store - ya no se usa para manejo de estado local
   const { 
@@ -36,6 +39,13 @@ export default function VideoConsultationPage() {
       loadTodayRooms();
     }
   }, [currentUser]);
+
+  // Detectar si estamos en localhost
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    }
+  }, []);
 
   const loadDoctorRooms = async () => {
     try {
@@ -94,7 +104,13 @@ export default function VideoConsultationPage() {
       
     } catch (error) {
       console.error('Error creating room:', error);
-      alert('Error al crear la sala de videoconsulta');
+      
+      // Mostrar diferentes mensajes según el error
+      if (error.message.includes('videoconsulta activa')) {
+        alert('No se puede crear la sala: ' + error.message);
+      } else {
+        alert('Error al crear la sala de videoconsulta');
+      }
     }
   };
 
@@ -103,16 +119,85 @@ export default function VideoConsultationPage() {
     router.push(`/admin/video-consultation/${room.roomName}`);
   };
 
+  // Función para mostrar notificaciones
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   const copyRoomLink = (room) => {
     const link = `${window.location.origin}/video/join/${room.roomName}`;
     navigator.clipboard.writeText(link);
-    
-    // Feedback visual
-    const message = document.createElement('div');
-    message.textContent = '¡Enlace copiado!';
-    message.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-    document.body.appendChild(message);
-    setTimeout(() => document.body.removeChild(message), 2000);
+    showNotification('¡Enlace copiado!', 'success');
+  };
+
+  // Función para eliminar una sala específica (solo localhost)
+  const handleDeleteRoom = async (roomId) => {
+    if (!isLocalhost) {
+      alert('Esta función solo está disponible en localhost');
+      return;
+    }
+
+    if (confirm('¿Estás seguro de que quieres eliminar esta sala?')) {
+      try {
+        await videoConsultationService.deleteVideoRoom(roomId);
+        
+        // Recargar las listas
+        loadDoctorRooms();
+        loadTodayRooms();
+        
+        showNotification('¡Sala eliminada!', 'error');
+      } catch (error) {
+        console.error('Error deleting room:', error);
+        alert('Error al eliminar la sala');
+      }
+    }
+  };
+
+  // Función para eliminar todas las salas activas (solo localhost)
+  const handleDeleteAllActiveRooms = async () => {
+    if (!isLocalhost) {
+      alert('Esta función solo está disponible en localhost');
+      return;
+    }
+
+    if (confirm('¿Estás seguro de que quieres eliminar TODAS las salas activas? Esta acción no se puede deshacer.')) {
+      try {
+        const deletedCount = await videoConsultationService.deleteAllActiveRooms();
+        
+        // Recargar las listas
+        loadDoctorRooms();
+        loadTodayRooms();
+        
+        showNotification(`¡${deletedCount} salas eliminadas!`, 'error');
+      } catch (error) {
+        console.error('Error deleting all active rooms:', error);
+        alert('Error al eliminar las salas: ' + error.message);
+      }
+    }
+  };
+
+  // Función para eliminar todas las salas del doctor (solo localhost)
+  const handleDeleteAllDoctorRooms = async () => {
+    if (!isLocalhost) {
+      alert('Esta función solo está disponible en localhost');
+      return;
+    }
+
+    if (confirm('¿Estás seguro de que quieres eliminar TODAS tus salas? Esta acción no se puede deshacer.')) {
+      try {
+        const deletedCount = await videoConsultationService.deleteAllDoctorRooms(currentUser.uid);
+        
+        // Recargar las listas
+        loadDoctorRooms();
+        loadTodayRooms();
+        
+        showNotification(`¡${deletedCount} salas eliminadas!`, 'error');
+      } catch (error) {
+        console.error('Error deleting all doctor rooms:', error);
+        alert('Error al eliminar las salas: ' + error.message);
+      }
+    }
   };
 
   // Interfaz principal (dashboard)
@@ -140,6 +225,29 @@ export default function VideoConsultationPage() {
                     <span className="text-green-700 font-medium">Sistema activo</span>
                   </div>
                 </div>
+                
+                {/* Botones de desarrollo - Solo en localhost */}
+                {isLocalhost && (
+                  <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-xl p-2">
+                    <span className="text-xs text-red-600 font-medium">DEV:</span>
+                    <button
+                      onClick={handleDeleteAllDoctorRooms}
+                      className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors flex items-center space-x-1"
+                      title="Eliminar todas mis salas"
+                    >
+                      <TrashIcon className="h-3 w-3" />
+                      <span>Mis salas</span>
+                    </button>
+                    <button
+                      onClick={handleDeleteAllActiveRooms}
+                      className="px-2 py-1 bg-red-700 text-white rounded text-xs hover:bg-red-800 transition-colors flex items-center space-x-1"
+                      title="Eliminar todas las salas activas"
+                    >
+                      <TrashIcon className="h-3 w-3" />
+                      <span>Todas activas</span>
+                    </button>
+                  </div>
+                )}
                 
                 <button
                   onClick={() => setShowNewRoomModal(true)}
@@ -203,6 +311,15 @@ export default function VideoConsultationPage() {
                         >
                           <ShareIcon className="h-4 w-4" />
                         </button>
+                        {isLocalhost && (
+                          <button
+                            onClick={() => handleDeleteRoom(room.id)}
+                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                            title="Eliminar sala (Solo desarrollo)"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleJoinRoom(room)}
                           className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -270,6 +387,15 @@ export default function VideoConsultationPage() {
                         >
                           <ShareIcon className="h-4 w-4" />
                         </button>
+                        {isLocalhost && (
+                          <button
+                            onClick={() => handleDeleteRoom(room.id)}
+                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                            title="Eliminar sala (Solo desarrollo)"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleJoinRoom(room)}
                           className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
@@ -342,6 +468,17 @@ export default function VideoConsultationPage() {
             onClose={() => setShowNewRoomModal(false)}
             onCreateRoom={handleCreateNewRoom}
           />
+
+          {/* Notification */}
+          {notification && (
+            <div className={`fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 text-white ${
+              notification.type === 'success' ? 'bg-green-500' : 
+              notification.type === 'error' ? 'bg-red-500' : 
+              'bg-blue-500'
+            }`}>
+              {notification.message}
+            </div>
+          )}
         </div>
       </AdminLayout>
     </ProtectedRoute>

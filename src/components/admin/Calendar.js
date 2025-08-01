@@ -82,11 +82,10 @@ export default function Calendar() {
   const patientOptions = useMemo(() => {
     return patients.map((patient) => ({
       value: patient.id,
-      label: `${patient.firstName} ${patient.lastName} - ${patient.phone}`,
+      label: `${patient.name || 'Sin nombre'} - ${patient.phone || 'Sin teléfono'}`,
       id: patient.id,
-      fullName: `${patient.firstName} ${patient.lastName}`,
-      firstName: patient.firstName,
-      lastName: patient.lastName,
+      fullName: patient.name,
+      name: patient.name,
       phone: patient.phone,
       email: patient.email,
     }));
@@ -180,7 +179,7 @@ export default function Calendar() {
       const appointmentData = {
         doctorId: doctorData.id,
         patientId: selectedPatient.id,
-        patientName: selectedPatient.fullName,
+        patientName: selectedPatient.name,
         patientPhone: selectedPatient.phone,
         patientEmail: selectedPatient.email || "",
         date: new Date(`${newAppointment.date}T${newAppointment.time}`),
@@ -608,7 +607,7 @@ export default function Calendar() {
                     selectedPatient
                       ? {
                           value: selectedPatient.id,
-                          label: `${selectedPatient.fullName} - ${selectedPatient.phone}`,
+                          label: `${selectedPatient.name} - ${selectedPatient.phone}`,
                         }
                       : null
                   }
@@ -640,7 +639,7 @@ export default function Calendar() {
                 {selectedPatient && (
                   <div className="mt-2 p-2 bg-amber-50 rounded text-sm">
                     <p>
-                      <strong>Paciente:</strong> {selectedPatient.fullName}
+                      <strong>Paciente:</strong> {selectedPatient.name}
                     </p>
                     <p>
                       <strong>Teléfono:</strong> {selectedPatient.phone}

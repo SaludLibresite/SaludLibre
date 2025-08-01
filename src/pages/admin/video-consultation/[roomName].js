@@ -27,6 +27,15 @@ export default function DoctorVideoConsultation() {
     
     // Cleanup al desmontar el componente
     return () => {
+      console.log('Component unmounting, cleaning up...');
+      
+      // Marcar que el doctor salió
+      if (roomData && currentUser) {
+        videoConsultationService.markDoctorLeft(roomData.id, currentUser.uid)
+          .catch(error => console.error('Error marking doctor left on unmount:', error));
+      }
+      
+      // Limpiar Jitsi API
       if (jitsiApiRef.current) {
         console.log('Cleaning up Jitsi API on unmount');
         try {
@@ -37,7 +46,7 @@ export default function DoctorVideoConsultation() {
         jitsiApiRef.current = null;
       }
     };
-  }, [roomName, currentUser]);
+  }, [roomName, currentUser, roomData]);
 
   const validateAndJoin = async () => {
     try {
@@ -204,33 +213,53 @@ export default function DoctorVideoConsultation() {
       // Guardar referencia del API
       jitsiApiRef.current = api;
       
-      api.addEventListener('readyToClose', () => {
-        console.log('Video conference ended');
-        router.push('/admin/video-consultation');
-      });
-
-      api.addEventListener('videoConferenceJoined', () => {
+      api.addEventListener('videoConferenceJoined', async () => {
         console.log('Doctor joined video conference successfully on private server');
         setJitsiLoaded(true);
         
-        // Marcar sala como activa cuando el doctor se une
+        // Marcar que el doctor se unió a la sala
         if (roomData) {
-          videoConsultationService.updateRoomStatus(roomData.id, 'active');
-          videoConsultationService.joinRoom(roomData.id, {
-            userId: currentUser.uid,
-            name: currentUser.displayName || currentUser.email || 'Doctor',
-            role: 'doctor',
-            email: currentUser.email
-          });
+          try {
+            await videoConsultationService.markDoctorJoined(roomData.id, currentUser.uid);
+            await videoConsultationService.joinRoom(roomData.id, {
+              userId: currentUser.uid,
+              name: currentUser.displayName || currentUser.email || 'Doctor',
+              role: 'doctor',
+              email: currentUser.email
+            });
+            console.log('Doctor presence marked in room');
+          } catch (error) {
+            console.error('Error marking doctor presence:', error);
+          }
         }
       });
 
-      api.addEventListener('videoConferenceLeft', () => {
+      api.addEventListener('videoConferenceLeft', async () => {
         console.log('Doctor left video conference');
         
-        // Actualizar estado cuando el doctor sale
+        // Marcar que el doctor salió y finalizar la sala
         if (roomData) {
-          videoConsultationService.leaveRoom(roomData.id, currentUser.uid);
+          try {
+            await videoConsultationService.markDoctorLeft(roomData.id, currentUser.uid);
+            console.log('Doctor departure marked, room finalized');
+          } catch (error) {
+            console.error('Error marking doctor departure:', error);
+          }
+        }
+        
+        router.push('/admin/video-consultation');
+      });
+
+      api.addEventListener('readyToClose', async () => {
+        console.log('Video conference ended');
+        
+        // Asegurar que la sala se marca como finalizada
+        if (roomData) {
+          try {
+            await videoConsultationService.markDoctorLeft(roomData.id, currentUser.uid);
+          } catch (error) {
+            console.error('Error finalizing room on close:', error);
+          }
         }
         
         router.push('/admin/video-consultation');

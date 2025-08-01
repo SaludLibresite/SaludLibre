@@ -51,12 +51,11 @@ const NewVideoConsultationModal = ({ isOpen, onClose, onCreateRoom }) => {
   const patientOptions = useMemo(() => {
     return patients.map((patient) => ({
       value: patient.id,
-      label: `${patient.firstName} ${patient.lastName} - ${patient.phone}`,
+      label: `${patient.name || 'Sin nombre'} - ${patient.phone || 'Sin teléfono'}`,
       patient: {
         id: patient.id,
-        firstName: patient.firstName,
-        lastName: patient.lastName,
-        fullName: `${patient.firstName} ${patient.lastName}`,
+        name: patient.name,
+        fullName: patient.name,
         phone: patient.phone,
         email: patient.email,
       }
@@ -106,7 +105,7 @@ const NewVideoConsultationModal = ({ isOpen, onClose, onCreateRoom }) => {
     try {
       const roomData = {
         patientId: formData.selectedPatient.patient.id,
-        patientName: formData.selectedPatient.patient.fullName,
+        patientName: formData.selectedPatient.patient.name,
         patientEmail: formData.selectedPatient.patient.email,
         appointmentId: formData.appointmentId || null,
         scheduledTime: formData.isInstant ? null : new Date(formData.scheduledTime),
@@ -233,7 +232,7 @@ const NewVideoConsultationModal = ({ isOpen, onClose, onCreateRoom }) => {
                   </div>
                   <div>
                     <p className="font-medium text-blue-900">
-                      {formData.selectedPatient.patient.fullName}
+                      {formData.selectedPatient.patient.name}
                     </p>
                     <p className="text-sm text-blue-700">
                       {formData.selectedPatient.patient.phone} • {formData.selectedPatient.patient.email}

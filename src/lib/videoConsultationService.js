@@ -28,6 +28,25 @@ export const videoConsultationService = {
     notes = ''
   }) {
     try {
+      // Verificar si el paciente ya tiene una sala activa
+      const hasActiveRoom = await this.hasActivePatientRoom(patientId);
+      if (hasActiveRoom) {
+        throw new Error('El paciente ya tiene una videoconsulta activa. No se pueden crear múltiples salas simultáneamente.');
+      }
+
+      // Verificar si el doctor ya tiene una sala activa con el mismo paciente
+      const existingRoomsQuery = query(
+        collection(db, 'videoConsultations'),
+        where('doctorId', '==', doctorId),
+        where('patientId', '==', patientId),
+        where('status', 'in', ['scheduled', 'active'])
+      );
+      
+      const existingRoomsSnapshot = await getDocs(existingRoomsQuery);
+      if (!existingRoomsSnapshot.empty) {
+        throw new Error('Ya existe una videoconsulta activa entre este doctor y paciente.');
+      }
+
       const roomData = {
         doctorId,
         patientId,
@@ -39,6 +58,9 @@ export const videoConsultationService = {
         consultationType,
         notes,
         status: 'scheduled', // scheduled, active, completed, cancelled
+        doctorJoined: false, // Controlar si el doctor está presente
+        doctorJoinedAt: null,
+        doctorLeftAt: null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         participants: [],
@@ -200,6 +222,81 @@ export const videoConsultationService = {
     }
   },
 
+  // Obtener salas por paciente
+  async getPatientRooms(patientId) {
+    try {
+      const q = query(
+        collection(db, 'videoConsultations'),
+        where('patientId', '==', patientId),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Error getting patient rooms:', error);
+      throw error;
+    }
+  },
+
+  // Verificar si un paciente tiene salas activas
+  async hasActivePatientRoom(patientId) {
+    try {
+      const q = query(
+        collection(db, 'videoConsultations'),
+        where('patientId', '==', patientId),
+        where('status', 'in', ['scheduled', 'active'])
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.length > 0;
+    } catch (error) {
+      console.error('Error checking active patient rooms:', error);
+      throw error;
+    }
+  },
+
+  // Verificar si un doctor tiene salas activas
+  async hasActiveDoctorRoom(doctorId) {
+    try {
+      const q = query(
+        collection(db, 'videoConsultations'),
+        where('doctorId', '==', doctorId),
+        where('status', 'in', ['scheduled', 'active'])
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.length > 0;
+    } catch (error) {
+      console.error('Error checking active doctor rooms:', error);
+      throw error;
+    }
+  },
+
+  // Obtener salas activas de un paciente
+  async getActivePatientRooms(patientId) {
+    try {
+      const q = query(
+        collection(db, 'videoConsultations'),
+        where('patientId', '==', patientId),
+        where('status', 'in', ['scheduled', 'active']),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error('Error getting active patient rooms:', error);
+      throw error;
+    }
+  },
+
   // Obtener salas programadas para hoy
   async getTodayScheduledRooms(doctorId) {
     try {
@@ -261,7 +358,117 @@ export const videoConsultationService = {
     return `public-${doctorId.substring(0, 8)}-${patientId.substring(0, 8)}-${appointmentId}-${timestamp}`;
   },
 
-    // Validar acceso a la sala
+    // Marcar que el doctor se unió a la sala
+  async markDoctorJoined(roomId, doctorId) {
+    try {
+      const roomRef = doc(db, 'videoConsultations', roomId);
+      await updateDoc(roomRef, {
+        doctorJoined: true,
+        doctorJoinedAt: serverTimestamp(),
+        status: 'active',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error marking doctor joined:', error);
+      throw error;
+    }
+  },
+
+  // Marcar que el doctor salió y finalizar la sala
+  async markDoctorLeft(roomId, doctorId) {
+    try {
+      const roomRef = doc(db, 'videoConsultations', roomId);
+      await updateDoc(roomRef, {
+        doctorJoined: false,
+        doctorLeftAt: serverTimestamp(),
+        status: 'completed',
+        endedBy: 'doctor',
+        updatedAt: serverTimestamp()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error marking doctor left:', error);
+      throw error;
+    }
+  },
+
+  // Verificar si el doctor está en la sala
+  async isDoctorInRoom(roomId) {
+    try {
+      const room = await this.getVideoRoom(roomId);
+      return room && room.doctorJoined === true;
+    } catch (error) {
+      console.error('Error checking if doctor is in room:', error);
+      return false;
+    }
+  },
+
+  // Eliminar una sala de videoconsulta
+  async deleteVideoRoom(roomId) {
+    try {
+      const roomRef = doc(db, 'videoConsultations', roomId);
+      await deleteDoc(roomRef);
+      return true;
+    } catch (error) {
+      console.error('Error deleting video room:', error);
+      throw error;
+    }
+  },
+
+  // Eliminar todas las salas activas de un doctor (solo para desarrollo)
+  async deleteAllDoctorRooms(doctorId) {
+    try {
+      // Solo permitir en localhost
+      if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+        throw new Error('Esta función solo está disponible en localhost');
+      }
+
+      const q = query(
+        collection(db, 'videoConsultations'),
+        where('doctorId', '==', doctorId)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`Deleted ${querySnapshot.docs.length} rooms for doctor ${doctorId}`);
+      return querySnapshot.docs.length;
+    } catch (error) {
+      console.error('Error deleting all doctor rooms:', error);
+      throw error;
+    }
+  },
+
+  // Eliminar todas las salas activas (solo para desarrollo)
+  async deleteAllActiveRooms() {
+    try {
+      // Solo permitir en localhost
+      if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+        throw new Error('Esta función solo está disponible en localhost');
+      }
+
+      const q = query(
+        collection(db, 'videoConsultations'),
+        where('status', 'in', ['scheduled', 'active'])
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      
+      await Promise.all(deletePromises);
+      
+      console.log(`Deleted ${querySnapshot.docs.length} active rooms`);
+      return querySnapshot.docs.length;
+    } catch (error) {
+      console.error('Error deleting all active rooms:', error);
+      throw error;
+    }
+  },
+
+  // Validar acceso a la sala
   async validateRoomAccess(roomName, userId, userRole) {
     try {
       const room = await this.getVideoRoomByName(roomName);
@@ -275,19 +482,30 @@ export const videoConsultationService = {
         return { valid: false, message: 'La sala no está disponible' };
       }
 
-      // Permitir acceso más flexible
-      // Para doctores: verificar que sea su sala
-      // Para pacientes: permitir acceso si la sala existe
-      // Para invitados: permitir acceso si la sala existe
+      // Para pacientes: verificar que el doctor esté presente
+      if (userRole === 'patient' || userRole === 'guest') {
+        if (!room.doctorJoined) {
+          return { 
+            valid: false, 
+            message: 'El doctor aún no ha iniciado la videoconsulta. Por favor espere.' 
+          };
+        }
+      }
+
+      // Permitir acceso controlado
       const hasAccess = 
         (userRole === 'doctor' && room.doctorId === userId) ||
-        (userRole === 'patient') || // Cualquier paciente puede acceder
+        (userRole === 'patient' && room.doctorJoined) || // Solo si doctor está presente
         (userRole === 'admin') ||
-        (userId && userId.startsWith('guest_')); // Usuarios invitados
+        (userRole === 'guest' && room.doctorJoined); // Solo si doctor está presente
       
       if (!hasAccess) {
-        // Para casos específicos, aún permitir acceso si la sala existe
-        console.log('Access validation failed, but allowing access for video consultation');
+        return { 
+          valid: false, 
+          message: userRole === 'doctor' ? 
+            'Esta sala no pertenece a tu cuenta.' : 
+            'No tienes acceso a esta sala.' 
+        };
       }
       
       return { valid: true, room };

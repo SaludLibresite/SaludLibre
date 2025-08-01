@@ -8,7 +8,7 @@ import {
 
 export default function JoinVideoConsultation() {
   const router = useRouter();
-  const { roomName } = router.query;
+  const { roomName, patientName, patientEmail, fromPanel } = router.query;
   const [guestName, setGuestName] = useState('');
   const [showNameForm, setShowNameForm] = useState(true);
   const [canJoin, setCanJoin] = useState(false);
@@ -16,6 +16,16 @@ export default function JoinVideoConsultation() {
   const [jitsiLoaded, setJitsiLoaded] = useState(false);
   const [error, setError] = useState(null);
   const jitsiApiRef = useRef(null); // Para mantener referencia del API
+
+  useEffect(() => {
+    // Si viene del panel del paciente con el nombre, saltar el formulario
+    if (fromPanel === 'true' && patientName) {
+      const decodedName = decodeURIComponent(patientName);
+      setGuestName(decodedName);
+      setShowNameForm(false);
+      setCanJoin(true);
+    }
+  }, [fromPanel, patientName]);
 
   useEffect(() => {
     if (roomName && canJoin) {
@@ -40,10 +50,44 @@ export default function JoinVideoConsultation() {
   const checkNetworkConnectivity = async () => {
     try {
       console.log('Checking connectivity to private server...');
+      
+      // Primero validar acceso como paciente/invitado
+      const requestBody = {
+        roomName,
+        userRole: fromPanel === 'true' ? 'patient' : 'guest'
+      };
+
+      // Si viene del panel, incluir información adicional
+      if (fromPanel === 'true' && patientEmail) {
+        requestBody.patientEmail = decodeURIComponent(patientEmail);
+        requestBody.patientName = guestName;
+      }
+
+      const response = await fetch('/api/video/validate-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error validating access');
+      }
+      
+      const { valid, message } = await response.json();
+      
+      if (!valid) {
+        setError(message || 'No se puede acceder a la videoconsulta');
+        setJitsiLoaded(true);
+        return;
+      }
+      
       loadJitsi();
     } catch (error) {
       console.error('Network connectivity issue:', error);
-      setError('El servidor de videoconsultas está temporalmente saturado. Por favor, intente nuevamente en unos minutos.');
+      setError(error.message || 'El servidor de videoconsultas está temporalmente saturado. Por favor, intente nuevamente en unos minutos.');
       setJitsiLoaded(true);
     }
   };
@@ -177,7 +221,8 @@ export default function JoinVideoConsultation() {
           LANG_DETECTION: false,
         },
         userInfo: {
-          displayName: guestName || 'Participante'
+          displayName: guestName || 'Participante',
+          email: fromPanel === 'true' && patientEmail ? decodeURIComponent(patientEmail) : undefined
         }
       };
 
@@ -238,7 +283,12 @@ export default function JoinVideoConsultation() {
 
   const openInNewTab = () => {
     // Para servidor privado, usar directamente el nombre de sala
-    const jitsiUrl = `https://video.saludlibre.com.ar/${roomName}#userInfo.displayName="${encodeURIComponent(guestName || 'Participante')}"`;
+    const displayName = guestName || 'Participante';
+    const userInfo = fromPanel === 'true' && patientEmail ? 
+      `${encodeURIComponent(displayName)}&userInfo.email=${encodeURIComponent(decodeURIComponent(patientEmail))}` :
+      encodeURIComponent(displayName);
+    
+    const jitsiUrl = `https://video.saludlibre.com.ar/${roomName}#userInfo.displayName="${userInfo}"`;
     window.open(jitsiUrl, '_blank');
     router.push('/');
   };
@@ -247,7 +297,7 @@ export default function JoinVideoConsultation() {
     setError(null);
     setJitsiLoaded(false);
     if (roomName && canJoin) {
-      loadJitsi();
+      checkNetworkConnectivity();
     }
   };
 
@@ -261,7 +311,10 @@ export default function JoinVideoConsultation() {
               Unirse a la videoconsulta
             </h2>
             <p className="text-gray-600 mb-6">
-              Por favor ingrese su nombre para unirse
+              {fromPanel === 'true' ? 
+                'Accediendo desde tu panel de paciente...' :
+                'Por favor ingrese su nombre para unirse'
+              }
             </p>
             
             <div className="space-y-4">
@@ -284,7 +337,10 @@ export default function JoinVideoConsultation() {
               
               <div className="mt-4 p-3 bg-green-50 rounded-lg">
                 <p className="text-sm text-green-700">
-                  ✅ Servidor privado configurado para acceso directo
+                  ✅ {fromPanel === 'true' ? 
+                    'Acceso directo desde panel de paciente' :
+                    'Servidor privado configurado para acceso directo'
+                  }
                 </p>
               </div>
             </div>
@@ -305,10 +361,13 @@ export default function JoinVideoConsultation() {
                 Video Consulta Médica - Salud Libre
               </h1>
               <p className="text-sm text-gray-500">
-                Participante: {guestName} | Sala: {roomName}
+                {fromPanel === 'true' ? 'Paciente' : 'Participante'}: {guestName} | Sala: {roomName}
               </p>
               <p className="text-xs text-green-600">
-                🔒 Servidor privado configurado
+                🔒 {fromPanel === 'true' ? 
+                  'Acceso seguro desde panel de paciente' :
+                  'Servidor privado configurado'
+                }
               </p>
             </div>
           </div>
@@ -325,13 +384,23 @@ export default function JoinVideoConsultation() {
         <div className="fixed inset-0 bg-gray-900 flex items-center justify-center">
           <div className="text-center text-white">
             <VideoCameraIcon className="h-16 w-16 mx-auto mb-4 text-blue-400 animate-pulse" />
-            <h3 className="text-lg font-semibold mb-2">Conectando...</h3>
-            <p className="text-gray-300 mb-4">Conectando al servidor privado seguro</p>
+            <h3 className="text-lg font-semibold mb-2">
+              {fromPanel === 'true' ? 'Conectando automáticamente...' : 'Conectando...'}
+            </h3>
+            <p className="text-gray-300 mb-4">
+              {fromPanel === 'true' ? 
+                'Accediendo desde su panel de paciente' :
+                'Conectando al servidor privado seguro'
+              }
+            </p>
             <div className="w-64 mx-auto bg-gray-700 rounded-full h-2">
               <div className="bg-blue-400 h-2 rounded-full animate-pulse" style={{width: '75%'}}></div>
             </div>
             <p className="text-sm text-gray-400 mt-4">
-              🔒 Servidor privado de Salud Libre configurado
+              {fromPanel === 'true' ? 
+                '🔐 Información del paciente verificada' :
+                '🔒 Servidor privado de Salud Libre configurado'
+              }
             </p>
           </div>
         </div>
@@ -340,34 +409,63 @@ export default function JoinVideoConsultation() {
       {error && (
         <div className="fixed inset-0 bg-gray-900 flex items-center justify-center">
           <div className="text-center text-white max-w-md mx-4">
-            <ExclamationTriangleIcon className="h-16 w-16 mx-auto mb-4 text-amber-400" />
-            <h3 className="text-lg font-semibold mb-2">Servidor Saturado</h3>
-            <p className="text-gray-300 mb-6">{error}</p>
-            <div className="bg-amber-900 bg-opacity-50 p-4 rounded-lg mb-6">
-              <p className="text-sm text-amber-200">
-                ⚠️ Nuestro servidor privado está experimentando alta demanda. Esto garantiza la máxima seguridad de sus datos médicos.
-              </p>
-            </div>
-            <div className="space-y-3">
-              <button
-                onClick={handleRetry}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Reintentar conexión
-              </button>
-              <button
-                onClick={openInNewTab}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Abrir en nueva pestaña
-              </button>
-              <button
-                onClick={() => router.push('/')}
-                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Volver al inicio
-              </button>
-            </div>
+            {error.includes('doctor aún no ha iniciado') ? (
+              <>
+                <UserIcon className="h-16 w-16 mx-auto mb-4 text-blue-400" />
+                <h3 className="text-lg font-semibold mb-2">Esperando al Doctor</h3>
+                <p className="text-gray-300 mb-6">{error}</p>
+                <div className="bg-blue-900 bg-opacity-50 p-4 rounded-lg mb-6">
+                  <p className="text-sm text-blue-200">
+                    💡 El doctor debe iniciar la videoconsulta primero. Una vez que se una, podrá acceder automáticamente.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleRetry}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Verificar nuevamente
+                  </button>
+                  <button
+                    onClick={() => router.push('/')}
+                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Volver al inicio
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <ExclamationTriangleIcon className="h-16 w-16 mx-auto mb-4 text-amber-400" />
+                <h3 className="text-lg font-semibold mb-2">Problema de Conexión</h3>
+                <p className="text-gray-300 mb-6">{error}</p>
+                <div className="bg-amber-900 bg-opacity-50 p-4 rounded-lg mb-6">
+                  <p className="text-sm text-amber-200">
+                    ⚠️ Nuestro servidor privado está experimentando alta demanda. Esto garantiza la máxima seguridad de sus datos médicos.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleRetry}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Reintentar conexión
+                  </button>
+                  <button
+                    onClick={openInNewTab}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Abrir en nueva pestaña
+                  </button>
+                  <button
+                    onClick={() => router.push('/')}
+                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Volver al inicio
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
