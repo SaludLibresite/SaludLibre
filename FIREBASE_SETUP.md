@@ -16,7 +16,7 @@ s
 2. Ve a la pestaña "Sign-in method"
 3. Habilita "Email/Password"
 4. Configura el dominio autorizado (localhost para desarrollo)
-
+a
 ### 3. Configurar Firestore Database
 
 1. Ve a "Firestore Database" > "Create database"
