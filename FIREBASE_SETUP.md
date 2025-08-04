@@ -9,7 +9,7 @@
 3. Nombra tu proyecto (ej: "medicos-ar")
 4. Habilita Google Analytics (opcional)
 5. Espera a que se cree el proyecto
-
+s
 ### 2. Configurar Authentication
 
 1. En el panel de Firebase, ve a "Authentication" > "Get started"
