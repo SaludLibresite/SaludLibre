@@ -1,53 +1,99 @@
 import React, { useState, useEffect } from "react";
 
 const checkDoctorAvailability = (horario) => {
-  const now = new Date();
-  const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const currentHour = now.getHours();
-  const currentMinutes = now.getMinutes();
+  // Return false if horario is not provided or invalid
+  if (!horario || typeof horario !== 'string') {
+    return false;
+  }
 
-  // Parse schedule string (e.g., "Lunes a Viernes, 9:00 AM - 5:00 PM")
-  const [days, hours] = horario.split(", ");
-  const [startDay, endDay] = days.split(" a ").map((day) => {
-    const daysMap = {
-      Domingo: 0,
-      Lunes: 1,
-      Martes: 2,
-      Miércoles: 3,
-      Jueves: 4,
-      Viernes: 5,
-      Sábado: 6,
-    };
-    return daysMap[day];
-  });
+  try {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
 
-  const [timeRange] = hours.split(", ");
-  const [startTime, endTime] = timeRange.split(" - ");
+    // Parse schedule string (e.g., "Lunes a Viernes, 9:00 AM - 5:00 PM")
+    const scheduleeParts = horario.split(", ");
+    if (scheduleeParts.length < 2) {
+      console.warn('Invalid horario format:', horario);
+      return false;
+    }
 
-  // Parse start time
-  const startTimeParts = startTime.match(/(\d+):(\d+)\s*(AM|PM)/);
-  let startHour = parseInt(startTimeParts[1]);
-  if (startTimeParts[3] === "PM" && startHour !== 12) startHour += 12;
-  if (startTimeParts[3] === "AM" && startHour === 12) startHour = 0;
-  const startMinutes = parseInt(startTimeParts[2]);
+    const [days, hours] = scheduleeParts;
+    
+    // Parse days
+    const daysParts = days.split(" a ");
+    if (daysParts.length !== 2) {
+      console.warn('Invalid days format in horario:', days);
+      return false;
+    }
 
-  // Parse end time
-  const endTimeParts = endTime.match(/(\d+):(\d+)\s*(AM|PM)/);
-  let endHour = parseInt(endTimeParts[1]);
-  if (endTimeParts[3] === "PM" && endHour !== 12) endHour += 12;
-  if (endTimeParts[3] === "AM" && endHour === 12) endHour = 0;
-  const endMinutes = parseInt(endTimeParts[2]);
+    const [startDay, endDay] = daysParts.map((day) => {
+      const daysMap = {
+        Domingo: 0,
+        Lunes: 1,
+        Martes: 2,
+        Miércoles: 3,
+        Jueves: 4,
+        Viernes: 5,
+        Sábado: 6,
+      };
+      return daysMap[day.trim()];
+    });
 
-  // Check if current time is within schedule
-  const isWithinDays = currentDay >= startDay && currentDay <= endDay;
-  const currentTimeInMinutes = currentHour * 60 + currentMinutes;
-  const startTimeInMinutes = startHour * 60 + startMinutes;
-  const endTimeInMinutes = endHour * 60 + endMinutes;
-  const isWithinHours =
-    currentTimeInMinutes >= startTimeInMinutes &&
-    currentTimeInMinutes <= endTimeInMinutes;
+    // Check if day parsing was successful
+    if (startDay === undefined || endDay === undefined) {
+      console.warn('Could not parse days from horario:', days);
+      return false;
+    }
 
-  return isWithinDays && isWithinHours;
+    // Parse time range
+    const timeParts = hours.split(" - ");
+    if (timeParts.length !== 2) {
+      console.warn('Invalid time range format in horario:', hours);
+      return false;
+    }
+
+    const [startTime, endTime] = timeParts;
+
+    // Parse start time
+    const startTimeParts = startTime.trim().match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!startTimeParts) {
+      console.warn('Could not parse start time:', startTime);
+      return false;
+    }
+    
+    let startHour = parseInt(startTimeParts[1]);
+    if (startTimeParts[3].toUpperCase() === "PM" && startHour !== 12) startHour += 12;
+    if (startTimeParts[3].toUpperCase() === "AM" && startHour === 12) startHour = 0;
+    const startMinutes = parseInt(startTimeParts[2]);
+
+    // Parse end time
+    const endTimeParts = endTime.trim().match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!endTimeParts) {
+      console.warn('Could not parse end time:', endTime);
+      return false;
+    }
+
+    let endHour = parseInt(endTimeParts[1]);
+    if (endTimeParts[3].toUpperCase() === "PM" && endHour !== 12) endHour += 12;
+    if (endTimeParts[3].toUpperCase() === "AM" && endHour === 12) endHour = 0;
+    const endMinutes = parseInt(endTimeParts[2]);
+
+    // Check if current time is within schedule
+    const isWithinDays = currentDay >= startDay && currentDay <= endDay;
+    const currentTimeInMinutes = currentHour * 60 + currentMinutes;
+    const startTimeInMinutes = startHour * 60 + startMinutes;
+    const endTimeInMinutes = endHour * 60 + endMinutes;
+    const isWithinHours =
+      currentTimeInMinutes >= startTimeInMinutes &&
+      currentTimeInMinutes <= endTimeInMinutes;
+
+    return isWithinDays && isWithinHours;
+  } catch (error) {
+    console.error('Error parsing horario:', horario, error);
+    return false;
+  }
 };
 
 export default function DoctorCard({ doctor, delay = 0, inside = false }) {
@@ -60,15 +106,20 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
   }, [delay]);
 
   useEffect(() => {
-    // Check availability initially
-    setIsAvailable(checkDoctorAvailability(doctor.horario));
-
-    // Update availability every minute
-    const interval = setInterval(() => {
+    // Check availability initially only if horario exists
+    if (doctor.horario) {
       setIsAvailable(checkDoctorAvailability(doctor.horario));
-    }, 60000);
 
-    return () => clearInterval(interval);
+      // Update availability every minute
+      const interval = setInterval(() => {
+        setIsAvailable(checkDoctorAvailability(doctor.horario));
+      }, 60000);
+
+      return () => clearInterval(interval);
+    } else {
+      // If no horario, set as not available
+      setIsAvailable(false);
+    }
   }, [doctor.horario]);
 
   const handleWhatsAppClick = () => {
