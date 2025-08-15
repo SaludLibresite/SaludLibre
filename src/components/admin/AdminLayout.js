@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
+import { getUserSubscription, isSubscriptionActive } from "../../lib/subscriptionsService";
 import { useSidebarStore } from "../../store/sidebarStore";
 import {
   HomeIcon,
@@ -20,9 +21,19 @@ import {
   ChevronRightIcon,
   VideoCameraIcon,
   ChevronRightIcon as ChevronRightSmallIcon,
+  CurrencyDollarIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
-const navigation = [
+// Navegación base (disponible para todos)
+const baseNavigation = [
+  { name: "Inicio", href: "/admin", icon: HomeIcon },
+  { name: "Perfil", href: "/admin/profile", icon: UserIcon },
+  { name: "Suscripción", href: "/admin/subscription", icon: CurrencyDollarIcon },
+];
+
+// Navegación premium (solo para suscriptores)
+const premiumNavigation = [
   { name: "Inicio", href: "/admin", icon: HomeIcon },
   { name: "Pacientes", href: "/admin/patients", icon: UserGroupIcon },
   { name: "Agenda", href: "/admin/schedule", icon: CalendarIcon },
@@ -38,6 +49,7 @@ const navigation = [
     href: "/admin/video-consultation",
     icon: VideoCameraIcon,
   },
+  { name: "Suscripción", href: "/admin/subscription", icon: CurrencyDollarIcon },
 ];
 
 // Lista de emails autorizados como superadmin
@@ -50,24 +62,36 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [doctorData, setDoctorData] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   const isSuperAdmin =
     currentUser && SUPERADMIN_EMAILS.includes(currentUser.email);
 
   useEffect(() => {
-    async function loadDoctorData() {
+    async function loadData() {
       if (!currentUser) return;
 
       try {
-        const doctor = await getDoctorByUserId(currentUser.uid);
+        const [doctor, userSubscription] = await Promise.all([
+          getDoctorByUserId(currentUser.uid),
+          getUserSubscription(currentUser.uid)
+        ]);
+        
         setDoctorData(doctor);
+        setSubscription(userSubscription);
       } catch (error) {
-        console.error("Error loading doctor data:", error);
+        console.error("Error loading data:", error);
+      } finally {
+        setSubscriptionLoading(false);
       }
     }
 
-    loadDoctorData();
+    loadData();
   }, [currentUser]);
+
+  const hasActiveSubscription = isSubscriptionActive(subscription);
+  const navigation = hasActiveSubscription ? premiumNavigation : baseNavigation;
 
   const handleLogout = async () => {
     try {
@@ -161,34 +185,82 @@ export default function AdminLayout({ children }) {
         </div>
 
         <nav className="mt-4 px-2 space-y-1">
+          {/* Subscription Status Banner */}
+          {!subscriptionLoading && !hasActiveSubscription && !isCollapsed && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center">
+                <LockClosedIcon className="h-5 w-5 text-yellow-600 mr-2" />
+                <div>
+                  <p className="text-xs text-yellow-800 font-medium">
+                    Sin suscripción activa
+                  </p>
+                  <p className="text-xs text-yellow-600">
+                    Funciones limitadas
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {navigation.map((item) => {
             const isActive = router.pathname === item.href;
+            const isRestricted = !hasActiveSubscription && 
+              !baseNavigation.some(nav => nav.href === item.href);
+            
             return (
               <div key={item.name} className="relative">
-                <Link
-                  href={item.href}
-                  className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${
-                    isActive
-                      ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg transform scale-105"
-                      : "text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-                  }`}
-                  title={isCollapsed ? item.name : ""}
-                >
-                  <item.icon
-                    className={`h-5 w-5 ${
-                      isCollapsed ? "mx-auto" : "mr-3"
-                    } flex-shrink-0`}
-                  />
-                  {!isCollapsed && (
-                    <span className="truncate">{item.name}</span>
-                  )}
-                  {isActive && !isCollapsed && (
-                    <div className="absolute right-3 w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </Link>
+                {isRestricted ? (
+                  <div
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 opacity-50 cursor-not-allowed ${
+                      isCollapsed ? "justify-center" : ""
+                    }`}
+                    title={isCollapsed ? `${item.name} (Requiere suscripción)` : ""}
+                  >
+                    <item.icon
+                      className={`h-5 w-5 ${
+                        isCollapsed ? "mx-auto" : "mr-3"
+                      } flex-shrink-0 text-gray-400`}
+                    />
+                    {!isCollapsed && (
+                      <span className="truncate text-gray-400 flex items-center">
+                        {item.name}
+                        <LockClosedIcon className="h-3 w-3 ml-2" />
+                      </span>
+                    )}
+                    
+                    {/* Tooltip for restricted items */}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        {item.name} (Requiere suscripción)
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${
+                      isActive
+                        ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg transform scale-105"
+                        : "text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                    }`}
+                    title={isCollapsed ? item.name : ""}
+                  >
+                    <item.icon
+                      className={`h-5 w-5 ${
+                        isCollapsed ? "mx-auto" : "mr-3"
+                      } flex-shrink-0`}
+                    />
+                    {!isCollapsed && (
+                      <span className="truncate">{item.name}</span>
+                    )}
+                    {isActive && !isCollapsed && (
+                      <div className="absolute right-3 w-2 h-2 bg-white rounded-full"></div>
+                    )}
+                  </Link>
+                )}
 
                 {/* Tooltip for collapsed sidebar */}
-                {isCollapsed && (
+                {!isRestricted && isCollapsed && (
                   <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                     {item.name}
                   </div>

@@ -17,6 +17,8 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { useUserStore } from "../../store/userStore";
+import { canAccessPanel } from "../../lib/userTypeService";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -28,6 +30,7 @@ import {
 
 export default function PatientLogin() {
   const router = useRouter();
+  const { userType, loading: userStoreLoading } = useUserStore();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -43,6 +46,27 @@ export default function PatientLogin() {
   const [errors, setErrors] = useState({});
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Redirect if user is already logged in and can access this panel
+  useEffect(() => {
+    if (!userStoreLoading && userType) {
+      if (canAccessPanel(userType, "patient")) {
+        router.push("/paciente/dashboard");
+      } else if (userType === "doctor") {
+        // Doctor trying to access patient login
+        setMessage("Esta cuenta es de doctor. Redirigiendo al panel médico...");
+        setTimeout(() => {
+          router.push("/admin");
+        }, 2000);
+      } else if (userType === "superadmin") {
+        // Superadmin trying to access patient login
+        setMessage("Esta cuenta es de administrador. Redirigiendo al panel de administración...");
+        setTimeout(() => {
+          router.push("/superadmin");
+        }, 2000);
+      }
+    }
+  }, [userType, userStoreLoading, router]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -131,10 +155,21 @@ export default function PatientLogin() {
           setMessage("Debe cambiar su contraseña temporal por su seguridad");
           return;
         }
+        
+        // User is a valid patient, redirect will be handled by useEffect
+        // Wait a moment for user type detection
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+      } else {
+        // User exists in auth but not as a patient
+        setMessage("Esta cuenta no está registrada como paciente. Verificando tipo de usuario...");
+        
+        // Wait for user type detection, useEffect will handle redirection
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
       }
-
-      // Redirect to patient dashboard
-      router.push("/paciente/dashboard");
     } catch (error) {
       console.error("Error logging in:", error);
 
@@ -229,12 +264,13 @@ export default function PatientLogin() {
       const patientsSnapshot = await getDocs(patientsQuery);
 
       if (patientsSnapshot.empty) {
-        // User doesn't exist as a patient, redirect to registration
+        // User doesn't exist as a patient, wait for user type detection
         setMessage(
-          "Esta cuenta de Google no está registrada como paciente. Redirigiendo al registro..."
+          "Verificando tipo de usuario..."
         );
+        // Wait for user type detection, useEffect will handle redirection
         setTimeout(() => {
-          router.push("/paciente/register");
+          setGoogleLoading(false);
         }, 2000);
         return;
       }
@@ -244,11 +280,14 @@ export default function PatientLogin() {
       // Check if account is active
       if (!patientData.isActive) {
         setMessage("Su cuenta está desactivada. Contacte con su doctor.");
+        setGoogleLoading(false);
         return;
       }
 
-      // Successful login, redirect to dashboard
-      router.push("/paciente/dashboard");
+      // Successful login, wait for user type detection and redirection
+      setTimeout(() => {
+        setGoogleLoading(false);
+      }, 1000);
     } catch (error) {
       console.error("Error with Google sign in:", error);
 

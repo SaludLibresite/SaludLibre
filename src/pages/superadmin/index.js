@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useUserStore } from "../../store/userStore";
 import { useRouter } from "next/router";
+import { canAccessPanel } from "../../lib/userTypeService";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getAllSpecialties } from "../../lib/specialtiesService";
-
-// Lista de emails autorizados como superadmin
-const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
+import { getAllSubscriptions } from "../../lib/subscriptionsService";
 
 import SuperAdminLayout from '../../components/superadmin/SuperAdminLayout';
 
 export default function SuperAdminDashboard() {
   const { currentUser, loading: authLoading } = useAuth();
+  const { userType, loading: userStoreLoading } = useUserStore();
   const router = useRouter();
   const [stats, setStats] = useState({
     totalDoctors: 0,
@@ -18,44 +19,45 @@ export default function SuperAdminDashboard() {
     verifiedDoctors: 0,
     totalSpecialties: 0,
     activeSpecialties: 0,
+    totalSubscriptions: 0,
+    activeSubscriptions: 0,
+    monthlyRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
 
+  // Redirect if user doesn't have superadmin access
   useEffect(() => {
-    if (!authLoading) {
-      // Si no hay usuario logueado, permitir acceso al superadmin
+    if (!authLoading && !userStoreLoading) {
       if (!currentUser) {
-        return; // No hacer nada, mostrar la página
-      }
-
-      // Si hay usuario logueado, verificar si es superadmin
-      if (!SUPERADMIN_EMAILS.includes(currentUser.email)) {
-        // Si no es superadmin, cerrar sesión y redirigir al login
-        handleLogout();
+        router.push("/auth/login?message=superadmin");
         return;
       }
 
-      // Si es superadmin, cargar las estadísticas
-      loadStats();
-    }
-  }, [currentUser, authLoading, router]);
+      if (userType && !canAccessPanel(userType, "superadmin")) {
+        // Redirect based on user type
+        if (userType === 'patient') {
+          router.push('/paciente/dashboard');
+        } else if (userType === 'doctor') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
+        return;
+      }
 
-  const handleLogout = async () => {
-    try {
-      const { logout } = await import("../../context/AuthContext");
-      // Usar el contexto de auth para cerrar sesión
-      const authModule = await import("../../context/AuthContext");
-      // Como no tenemos acceso directo al logout aquí, haremos logout manualmente
-      const { signOut } = await import("firebase/auth");
-      const { auth } = await import("../../lib/firebase");
+      // If user type is still unknown after auth is complete
+      if (!userType) {
+        console.warn('User type not detected, redirecting to login');
+        router.push('/auth/login?message=superadmin');
+        return;
+      }
 
-      await signOut(auth);
-      router.push("/auth/login?message=superadmin");
-    } catch (error) {
-      console.error("Error logging out:", error);
-      router.push("/auth/login");
+      // If user is authorized superadmin, load stats
+      if (userType === 'superadmin') {
+        loadStats();
+      }
     }
-  };
+  }, [authLoading, userStoreLoading, currentUser, userType, router]);
 
   const loadStats = async () => {
     try {
@@ -72,12 +74,24 @@ export default function SuperAdminDashboard() {
         (s) => s.isActive !== false
       ).length;
 
+      // Cargar suscripciones para estadísticas
+      const allSubscriptions = await getAllSubscriptions();
+      const activeSubscriptions = allSubscriptions.filter(
+        (s) => s.status === 'active'
+      ).length;
+      const monthlyRevenue = allSubscriptions
+        .filter((s) => s.status === 'active')
+        .reduce((sum, s) => sum + (s.price || 0), 0);
+
       setStats({
         totalDoctors: allDoctors.length,
         pendingDoctors,
         verifiedDoctors,
         totalSpecialties: allSpecialties.length,
         activeSpecialties,
+        totalSubscriptions: allSubscriptions.length,
+        activeSubscriptions,
+        monthlyRevenue,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -86,75 +100,69 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  if (authLoading) {
+  // Show loading while checking authentication and user type
+  if (authLoading || userStoreLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando...</p>
+          <p className="mt-4 text-gray-600">Verificando acceso de superadmin...</p>
         </div>
       </div>
     );
   }
 
-  // Si no hay usuario logueado, mostrar pantalla de login
-  if (!currentUser) {
+  // Show loading if user is logged in but user type is not yet detected
+  if (currentUser && !userType) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-purple-600">
-              <svg
-                className="h-8 w-8 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-              Panel SuperAdmin
-            </h2>
-            <p className="mt-2 text-gray-600">
-              Inicia sesión con tu cuenta de superadmin para acceder al panel de
-              gestión.
-            </p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Detectando tipo de usuario...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated or not authorized, show access denied
+  if (!currentUser || (userType && !canAccessPanel(userType, "superadmin"))) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <svg
+              className="h-6 w-6 text-red-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.966-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
           </div>
-
-          <div className="bg-white py-8 px-6 shadow-xl rounded-lg">
-            <div className="text-center space-y-4">
-              <div className="rounded-md bg-purple-50 p-4 border border-purple-200">
-                <p className="text-sm text-purple-700">
-                  🔐 Solo usuarios autorizados pueden acceder a este panel
-                </p>
-              </div>
-
-              <button
-                onClick={() => router.push("/auth/login?message=superadmin")}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                Iniciar Sesión como SuperAdmin
-              </button>
-
-              <button
-                onClick={() => router.push("/")}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                Volver al Inicio
-              </button>
-            </div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Acceso Denegado</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            No tienes permisos para acceder al panel de superadmin.
+          </p>
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => router.push('/auth/login?message=superadmin')}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Iniciar Sesión como SuperAdmin
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
+  // Show loading while loading stats
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -179,7 +187,7 @@ export default function SuperAdminDashboard() {
 
       <div className="px-2 py-2">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900">
               Total Doctores
@@ -208,16 +216,39 @@ export default function SuperAdminDashboard() {
               {stats.totalSpecialties}
             </p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-900">Activas</h3>
-            <p className="text-3xl font-bold text-green-600">
-              {stats.activeSpecialties}
+        </div>
+
+        {/* Subscription Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-lg shadow text-white">
+            <h3 className="text-lg font-medium">Suscripciones Activas</h3>
+            <p className="text-3xl font-bold">{stats.activeSubscriptions}</p>
+            <p className="text-sm opacity-90">
+              de {stats.totalSubscriptions} totales
+            </p>
+          </div>
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow text-white">
+            <h3 className="text-lg font-medium">Ingresos Mensuales</h3>
+            <p className="text-3xl font-bold">
+              ${stats.monthlyRevenue.toLocaleString()}
+            </p>
+            <p className="text-sm opacity-90">ARS por mes</p>
+          </div>
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-lg shadow text-white">
+            <h3 className="text-lg font-medium">Tasa de Conversión</h3>
+            <p className="text-3xl font-bold">
+              {stats.totalDoctors > 0 
+                ? Math.round((stats.activeSubscriptions / stats.totalDoctors) * 100)
+                : 0}%
+            </p>
+            <p className="text-sm opacity-90">
+              doctores suscritos
             </p>
           </div>
         </div>
 
         {/* Management Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Doctors Management Card */}
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
@@ -305,6 +336,50 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Subscriptions Management Card */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+              <h2 className="text-xl font-bold text-white">
+                Gestión de Suscripciones
+              </h2>
+              <p className="text-green-100">
+                Administra planes y pagos de suscripciones
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">
+                    Suscripciones activas:
+                  </span>
+                  <span className="font-semibold text-green-600">
+                    {stats.activeSubscriptions}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Total suscripciones:</span>
+                  <span className="font-semibold text-blue-600">
+                    {stats.totalSubscriptions}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Ingresos mensuales:</span>
+                  <span className="font-semibold text-green-600">
+                    ${stats.monthlyRevenue.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push("/superadmin/subscriptions")}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Gestionar Suscripciones →
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -312,7 +387,7 @@ export default function SuperAdminDashboard() {
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Acciones Rápidas
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <button
               onClick={() => router.push("/superadmin/doctors?filter=pending")}
               className="flex items-center justify-center px-4 py-3 border border-yellow-300 rounded-lg text-yellow-700 hover:bg-yellow-50 transition-colors"
@@ -351,6 +426,26 @@ export default function SuperAdminDashboard() {
                 />
               </svg>
               Crear Especialidad
+            </button>
+
+            <button
+              onClick={() => router.push("/superadmin/subscriptions")}
+              className="flex items-center justify-center px-4 py-3 border border-green-300 rounded-lg text-green-700 hover:bg-green-50 transition-colors"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                />
+              </svg>
+              Gestionar Suscripciones
             </button>
 
             <button

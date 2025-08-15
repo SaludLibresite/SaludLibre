@@ -12,6 +12,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   UserIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SuperAdminLayout({ children }) {
@@ -42,6 +43,11 @@ export default function SuperAdminLayout({ children }) {
       name: 'Especialidades',
       href: '/superadmin/specialties',
       icon: Cog6ToothIcon,
+    },
+    {
+      name: 'Suscripciones',
+      href: '/superadmin/subscriptions',
+      icon: CurrencyDollarIcon,
     },
   ];
 

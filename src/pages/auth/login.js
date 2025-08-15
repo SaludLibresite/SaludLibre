@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAuth } from "../../context/AuthContext";
+import { useUserStore } from "../../store/userStore";
+import { canAccessPanel } from "../../lib/userTypeService";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function Login() {
@@ -20,9 +22,30 @@ export default function Login() {
   const [resetError, setResetError] = useState("");
 
   const { login, resetPassword } = useAuth();
+  const { userType, loading: userStoreLoading } = useUserStore();
   const router = useRouter();
 
   const isSuperAdminAccess = router.query.message === "superadmin";
+
+  // Redirect if user is already logged in and can access this panel
+  useEffect(() => {
+    if (!userStoreLoading && userType) {
+      const requiredType = isSuperAdminAccess ? "superadmin" : "doctor";
+      if (canAccessPanel(userType, requiredType)) {
+        if (isSuperAdminAccess) {
+          router.push("/superadmin");
+        } else {
+          router.push("/admin");
+        }
+      } else if (userType === "patient") {
+        // Patient trying to access doctor login
+        setError("Esta cuenta es de paciente. Redirigiendo al portal de pacientes...");
+        setTimeout(() => {
+          router.push("/paciente/dashboard");
+        }, 2000);
+      }
+    }
+  }, [userType, userStoreLoading, isSuperAdminAccess, router]);
 
   // Detect referral codes from URL
   useEffect(() => {
@@ -41,20 +64,22 @@ export default function Login() {
     try {
       setError("");
       setLoading(true);
+      
+      // Login user
       await login(email, password);
-
-      // Redirigir al superadmin si viene desde allí, sino al admin normal
-      if (isSuperAdminAccess) {
-        router.push("/superadmin");
-      } else {
-        router.push("/admin");
-      }
+      
+      // Wait a moment for user type detection
+      setTimeout(() => {
+        // The useEffect will handle redirection based on user type
+        // If the redirect doesn't happen, it means there was an issue
+        setLoading(false);
+      }, 1000);
+      
     } catch (error) {
       setError("Error al iniciar sesión. Verifica tus credenciales.");
       console.error("Login error:", error);
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   // Function to handle redirect to register with referral code

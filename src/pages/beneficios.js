@@ -9,8 +9,88 @@ import {
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { getActiveSubscriptionPlans } from "../lib/subscriptionsService";
 
 export default function Beneficios() {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      const activePlans = await getActiveSubscriptionPlans();
+      console.log('Loaded plans from SuperAdmin:', activePlans);
+      
+      // Transform plans to match expected structure
+      const transformedPlans = activePlans.map((plan, index) => ({
+        id: plan.id,
+        name: plan.name,
+        price: plan.price,
+        description: plan.description || `Plan ${plan.name}`,
+        features: plan.features || [],
+        isPopular: plan.isPopular || false,
+        duration: plan.duration || 30,
+        isActive: plan.isActive
+      }));
+      
+      console.log('Transformed plans:', transformedPlans);
+      setPlans(transformedPlans);
+    } catch (error) {
+      console.error("Error loading plans:", error);
+      // Fallback to default plans if API fails
+      setPlans(defaultPlans);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fallback plans in case the API is not available
+  const defaultPlans = [
+    {
+      name: "Básico",
+      price: 0,
+      description: "Perfecto para comenzar",
+      features: [
+        "Perfil básico",
+        "Hasta 5 citas por mes",
+        "Soporte por email",
+        "Reseñas de pacientes",
+      ],
+      isPopular: false,
+    },
+    {
+      name: "Profesional",
+      price: 29,
+      description: "Para médicos establecidos",
+      features: [
+        "Perfil completo con galería",
+        "Citas ilimitadas",
+        "Consultas online",
+        "Dashboard de estadísticas",
+        "Soporte prioritario",
+        "Integración con calendario",
+      ],
+      isPopular: true,
+    },
+    {
+      name: "Premium",
+      price: 59,
+      description: "Para clínicas y centros médicos",
+      features: [
+        "Todo de Profesional",
+        "Múltiples especialistas",
+        "API personalizada",
+        "Reportes avanzados",
+        "Soporte 24/7",
+        "Gestor de cuenta dedicado",
+      ],
+      isPopular: false,
+    },
+  ];
   const benefits = [
     {
       icon: UsersIcon,
@@ -56,54 +136,8 @@ export default function Beneficios() {
     },
   ];
 
-  const plans = [
-    {
-      name: "Básico",
-      price: "Gratis",
-      period: "por mes",
-      description: "Perfecto para comenzar",
-      features: [
-        "Perfil básico",
-        "Hasta 5 citas por mes",
-        "Soporte por email",
-        "Reseñas de pacientes",
-      ],
-      cta: "Comenzar Gratis",
-      featured: false,
-    },
-    {
-      name: "Profesional",
-      price: "$29",
-      period: "por mes",
-      description: "Para médicos establecidos",
-      features: [
-        "Perfil completo con galería",
-        "Citas ilimitadas",
-        "Consultas online",
-        "Dashboard de estadísticas",
-        "Soporte prioritario",
-        "Integración con calendario",
-      ],
-      cta: "Iniciar Prueba",
-      featured: true,
-    },
-    {
-      name: "Premium",
-      price: "$59",
-      period: "por mes",
-      description: "Para clínicas y centros médicos",
-      features: [
-        "Todo de Profesional",
-        "Múltiples especialistas",
-        "API personalizada",
-        "Reportes avanzados",
-        "Soporte 24/7",
-        "Gestor de cuenta dedicado",
-      ],
-      cta: "Contactar Ventas",
-      featured: false,
-    },
-  ];
+  // Use dynamic plans or fallback to default
+  const displayPlans = plans.length > 0 ? plans : defaultPlans;
 
   return (
     <div className="min-h-screen bg-white">
@@ -124,7 +158,7 @@ export default function Beneficios() {
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
                 href="/auth/register"
-                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-blue-600 shadow-sm hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-blue-600 shadow-sm hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Registrarse Ahora
               </Link>
@@ -188,66 +222,73 @@ export default function Beneficios() {
             </p>
           </div>
           <div className="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-            {plans.map((plan, planIdx) => (
-              <div
-                key={plan.name}
-                className={`flex flex-col justify-between rounded-3xl bg-white p-8 shadow-xl ring-1 ring-gray-900/10 sm:p-10 ${
-                  plan.featured
-                    ? "lg:z-10 lg:rounded-b-none"
-                    : planIdx === 0
-                    ? "lg:rounded-r-none"
-                    : "lg:rounded-l-none"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-x-4">
-                    <h3 className="text-lg font-semibold leading-8 text-gray-900">
-                      {plan.name}
-                    </h3>
-                    {plan.featured ? (
-                      <p className="rounded-full bg-blue-600/10 px-2.5 py-1 text-xs font-semibold leading-5 text-blue-600">
-                        Más Popular
-                      </p>
-                    ) : null}
-                  </div>
-                  <p className="mt-4 text-sm leading-6 text-gray-600">
-                    {plan.description}
-                  </p>
-                  <p className="mt-6 flex items-baseline gap-x-1">
-                    <span className="text-4xl font-bold tracking-tight text-gray-900">
-                      {plan.price}
-                    </span>
-                    <span className="text-sm font-semibold leading-6 text-gray-600">
-                      {plan.period}
-                    </span>
-                  </p>
-                  <ul
-                    role="list"
-                    className="mt-8 space-y-3 text-sm leading-6 text-gray-600"
-                  >
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-x-3">
-                        <CheckIcon
-                          className="h-6 w-5 flex-none text-blue-600"
-                          aria-hidden="true"
-                        />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <Link
-                  href="/auth/register"
-                  className={`mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                    plan.featured
-                      ? "bg-blue-600 text-white shadow-sm hover:bg-blue-500 focus-visible:outline-blue-600"
-                      : "text-blue-600 ring-1 ring-inset ring-blue-200 hover:ring-blue-300 focus-visible:outline-blue-600"
+            {loading ? (
+              <div className="col-span-3 text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Cargando planes...</p>
+              </div>
+            ) : (
+              displayPlans.map((plan, planIdx) => (
+                <div
+                  key={plan.name}
+                  className={`flex flex-col justify-between rounded-3xl bg-white p-8 shadow-xl ring-1 ring-gray-900/10 sm:p-10 ${
+                    plan.isPopular
+                      ? "lg:z-10 lg:rounded-b-none"
+                      : planIdx === 0
+                      ? "lg:rounded-r-none"
+                      : "lg:rounded-l-none"
                   }`}
                 >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
+                  <div>
+                    <div className="flex items-center justify-between gap-x-4">
+                      <h3 className="text-lg font-semibold leading-8 text-gray-900">
+                        {plan.name}
+                      </h3>
+                      {plan.isPopular ? (
+                        <p className="rounded-full bg-blue-600/10 px-2.5 py-1 text-xs font-semibold leading-5 text-blue-600">
+                          Más Popular
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-gray-600">
+                      {plan.description}
+                    </p>
+                    <p className="mt-6 flex items-baseline gap-x-1">
+                      <span className="text-4xl font-bold tracking-tight text-gray-900">
+                        {plan.price === 0 ? "Gratis" : `$${plan.price}`}
+                      </span>
+                      <span className="text-sm font-semibold leading-6 text-gray-600">
+                        /mes
+                      </span>
+                    </p>
+                    <ul
+                      role="list"
+                      className="mt-8 space-y-3 text-sm leading-6 text-gray-600"
+                    >
+                      {plan.features?.map((feature) => (
+                        <li key={feature} className="flex gap-x-3">
+                          <CheckIcon
+                            className="h-6 w-5 flex-none text-blue-600"
+                            aria-hidden="true"
+                          />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <Link
+                    href="/auth/register"
+                    className={`mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                      plan.isPopular
+                        ? "bg-blue-600 text-white shadow-sm hover:bg-blue-500 focus-visible:outline-blue-600"
+                        : "text-blue-600 ring-1 ring-inset ring-blue-200 hover:ring-blue-300 focus-visible:outline-blue-600"
+                    }`}
+                  >
+                    {plan.price === 0 ? "Comenzar Gratis" : "Suscribirse"}
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -266,7 +307,7 @@ export default function Beneficios() {
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
                 href="/auth/register"
-                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-blue-600 shadow-sm hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-blue-600 shadow-sm hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Crear Cuenta Gratis
               </Link>

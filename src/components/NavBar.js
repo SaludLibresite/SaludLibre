@@ -134,7 +134,7 @@ export default function NavBar() {
 
           {/* Mobile menu button */}
           <motion.button
-            className="md:hidden flex flex-col justify-center items-center w-10 h-10"
+            className="md:hidden flex flex-col justify-center items-center w-10 h-10 relative z-50"
             onClick={() => setOpen(!open)}
             whileTap={{ scale: 0.9 }}
             aria-label="Abrir menú"
@@ -230,7 +230,10 @@ export default function NavBar() {
                     ))}
                 </div>
 
-                <LoginButton />
+                {/* Mobile LoginButton with proper styling */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <LoginButton isMobile={true} />
+                </div>
               </div>
             </motion.div>
           </>

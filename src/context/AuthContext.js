@@ -7,6 +7,8 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { detectUserType } from "../lib/userTypeService";
+import { useUserStore } from "../store/userStore";
 
 const AuthContext = createContext();
 
@@ -17,6 +19,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { setUserData, clearUserData, setLoading: setUserStoreLoading } = useUserStore();
 
   // Sign up function
   function signup(email, password) {
@@ -24,13 +27,21 @@ export function AuthProvider({ children }) {
   }
 
   // Login function
-  function login(email, password) {
-    return signInWithEmailAndPassword(auth, email, password);
+  async function login(email, password) {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // User type will be detected in the auth state change listener
+    return userCredential;
   }
 
   // Logout function
-  function logout() {
-    return signOut(auth);
+  async function logout() {
+    try {
+      clearUserData(); // Clear user store data
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error during logout:", error);
+      throw error;
+    }
   }
 
   // Reset password function
@@ -39,13 +50,32 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      if (user) {
+        try {
+          setUserStoreLoading(true);
+          // Detect user type and profile
+          const { type, profile } = await detectUserType(user);
+          setUserData(type, profile);
+        } catch (error) {
+          console.error("Error detecting user type:", error);
+          // If detection fails, clear user data
+          clearUserData();
+        } finally {
+          setUserStoreLoading(false);
+        }
+      } else {
+        // User is logged out
+        clearUserData();
+      }
+      
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [setUserData, clearUserData, setUserStoreLoading]);
 
   const value = {
     currentUser,
