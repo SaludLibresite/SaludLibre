@@ -5,7 +5,7 @@
 ```javascript
 // Reviews - patients can only read/write their own reviews, doctors can read reviews about them
 match /reviews/{document} {
-  // Patients can create reviews for their own appointmentsa
+  // Patients can create reviews for their own appointmentsas
   allow create: if request.auth != null &&
     request.auth.uid != null &&sss
     request.resource.data.patientId != null &&a
