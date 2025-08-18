@@ -10,6 +10,7 @@ import {
   ClockIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 export default function SubscriptionManagement() {
   const { currentUser } = useAuth();
@@ -207,12 +208,12 @@ export default function SubscriptionManagement() {
                     Para gestionar tu suscripción, primero necesitas completar tu perfil médico.
                   </p>
                   <div className="mt-4">
-                    <a
+                    <Link
                       href="/admin/profile"
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       Completar Perfil
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </div>
