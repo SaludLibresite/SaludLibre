@@ -2,25 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/router";
 import SuperAdminLayout from "../../components/superadmin/SuperAdminLayout";
-import {
-  getAllSubscriptionPlans,
-  createSubscriptionPlan,
-  updateSubscriptionPlan,
-  deleteSubscriptionPlan,
-  getAllSubscriptions,
-} from "../../lib/subscriptionsService";
+
 import {
   getFixedPlans,
   updateFixedPlan,
-  initializeDefaultPlans,
-  isFixedPlan
+  initializeDefaultPlans
 } from "../../lib/fixedPlansService";
 import {
-  PlusIcon,
   PencilIcon,
   TrashIcon,
-  CurrencyDollarIcon,
-  UsersIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
@@ -33,7 +23,6 @@ export default function SubscriptionsManagement() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState([]);
-  const [subscriptions, setSubscriptions] = useState([]);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [planForm, setPlanForm] = useState({
@@ -63,12 +52,8 @@ export default function SubscriptionsManagement() {
       // Inicializar planes por defecto si es necesario
       await initializeDefaultPlans();
       
-      const [fixedPlans, allSubscriptions] = await Promise.all([
-        getFixedPlans(),
-        getAllSubscriptions(),
-      ]);
+      const fixedPlans = await getFixedPlans();
       setPlans(fixedPlans);
-      setSubscriptions(allSubscriptions);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -156,17 +141,6 @@ export default function SubscriptionsManagement() {
     });
   };
 
-  const getSubscriptionStats = () => {
-    const active = subscriptions.filter((s) => s.status === "active").length;
-    const pending = subscriptions.filter((s) => s.status === "pending").length;
-    const total = subscriptions.length;
-    const revenue = subscriptions
-      .filter((s) => s.status === "active")
-      .reduce((sum, s) => sum + (s.price || 0), 0);
-
-    return { active, pending, total, revenue };
-  };
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -178,8 +152,6 @@ export default function SubscriptionsManagement() {
     );
   }
 
-  const stats = getSubscriptionStats();
-
   return (
     <SuperAdminLayout>
       <div className="space-y-8">
@@ -187,58 +159,15 @@ export default function SubscriptionsManagement() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <CurrencyDollarIcon className="h-8 w-8 mr-3 text-green-600" />
-                Gestión de Suscripciones
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gestión de Planes de Suscripción
               </h1>
               <p className="text-gray-600 mt-2">
-                Administra los planes de suscripción y pagos
+                Administra los planes de suscripción del sistema
               </p>
             </div>
             <div className="text-sm text-gray-600">
               Solo se pueden editar los 3 planes existentes: Free, Medium y Plus
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Suscripciones Activas</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <CheckCircleIcon className="h-8 w-8 text-yellow-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Pendientes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <CurrencyDollarIcon className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Ingresos Mensuales</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  ${stats.revenue.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Suscripciones</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
             </div>
           </div>
         </div>
@@ -312,68 +241,6 @@ export default function SubscriptionsManagement() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Recent Subscriptions */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
-            Suscripciones Recientes
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Plan
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Precio
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {subscriptions.slice(0, 10).map((subscription) => (
-                  <tr key={subscription.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {subscription.userId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {subscription.planName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          subscription.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : subscription.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {subscription.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${subscription.price}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {subscription.createdAt?.toDate?.()?.toLocaleDateString() ||
-                        new Date(subscription.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>

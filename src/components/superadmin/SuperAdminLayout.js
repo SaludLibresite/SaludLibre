@@ -45,9 +45,14 @@ export default function SuperAdminLayout({ children }) {
       icon: Cog6ToothIcon,
     },
     {
-      name: 'Suscripciones',
+      name: 'Planes',
       href: '/superadmin/subscriptions',
       icon: CurrencyDollarIcon,
+    },
+    {
+      name: 'Suscriptores',
+      href: '/superadmin/subscriptions-overview',
+      icon: UserIcon,
     },
   ];
 
@@ -64,9 +69,19 @@ export default function SuperAdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        >
+          <div className="fixed inset-0 bg-black opacity-50"></div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar - Hidden on mobile */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 ${sidebarWidth} bg-gradient-to-b from-orange-50 to-amber-50 shadow-xl border-r border-orange-100 transition-all duration-300 ease-in-out`}
+        className={`hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 ${sidebarWidth} bg-gradient-to-b from-orange-50 to-amber-50 shadow-xl border-r border-orange-100 transition-all duration-300 ease-in-out`}
       >
         <div className="flex h-16 items-center justify-center border-b border-orange-200 bg-white/50 backdrop-blur-sm">
           {!isCollapsed ? (
@@ -159,22 +174,70 @@ export default function SuperAdminLayout({ children }) {
         </div>
       </div>
 
-      {/* Mobile sidebar toggle */}
-      <div className="lg:hidden">
-        <div className="fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity duration-300 ease-in-out">
+      {/* Mobile sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-orange-50 to-amber-50 shadow-xl border-r border-orange-100 transform transition-transform duration-300 ease-in-out lg:hidden ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Mobile sidebar content */}
+        <div className="flex h-16 items-center justify-between border-b border-orange-200 bg-white/50 backdrop-blur-sm px-4">
+          <div className="flex items-center space-x-3">
+            <span className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+              SuperAdmin Panel
+            </span>
+          </div>
           <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="absolute top-4 left-4 text-white"
+            onClick={() => setSidebarOpen(false)}
+            className="p-2 rounded-lg hover:bg-orange-100 text-orange-700 transition-colors duration-200 lg:hidden"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
+          </button>
+        </div>
+
+        <nav className="mt-4 px-2 space-y-1">
+          {navigation.map((item) => {
+            const isActive = router.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg"
+                    : "text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+                }`}
+              >
+                <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                <span>{item.name}</span>
+                {isActive && (
+                  <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Logout button for mobile */}
+        <div className="absolute bottom-4 left-0 right-0 px-2">
+          <button
+            onClick={() => {
+              setSidebarOpen(false);
+              router.push('/');
+            }}
+            className="flex items-center w-full px-3 py-3 text-sm font-medium text-orange-600 rounded-xl hover:bg-orange-50 transition-colors duration-200"
+          >
+            <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3 flex-shrink-0" />
+            <span>Volver al Sitio</span>
           </button>
         </div>
       </div>
 
       {/* Main content */}
-      <div className={`transition-all duration-300 ease-in-out ${contentMargin}`}>
+      <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
           <div className="flex h-16 items-center justify-between px-6">

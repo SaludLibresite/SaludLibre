@@ -209,9 +209,9 @@ export default function AdminLayout({ children }) {
         </div>
       )}
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar - Hidden on mobile */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 ${sidebarWidth} bg-gradient-to-b from-amber-50 to-yellow-50 shadow-xl border-r border-amber-100 transition-all duration-300 ease-in-out`}
+        className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 ${sidebarWidth} bg-gradient-to-b from-amber-50 to-yellow-50 shadow-xl border-r border-amber-100 transition-all duration-300 ease-in-out`}
       >
         {/* Logo section */}
         <div className="flex h-16 items-center justify-center border-b border-amber-200 bg-white/50 backdrop-blur-sm">
@@ -374,7 +374,7 @@ export default function AdminLayout({ children }) {
 
       {/* Main content */}
       <div
-        className={`transition-all duration-300 ease-in-out ${contentMargin}`}
+        className={`transition-all duration-300 ease-in-out lg:${contentMargin}`}
       >
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -394,14 +394,14 @@ export default function AdminLayout({ children }) {
                 <input
                   type="text"
                   placeholder="Buscar pacientes..."
-                  className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors duration-200"
+                  className="pl-10 pr-4 py-2 lg:w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors duration-200"
                 />
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Status indicator */}
-              <div className="flex items-center space-x-2">
+              {/* Status indicator - Hidden on mobile */}
+              <div className="hidden md:flex items-center space-x-2">
                 <span className="text-sm text-gray-500">Disponible</span>
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               </div>
@@ -530,35 +530,95 @@ export default function AdminLayout({ children }) {
         }`}
       >
         {/* Mobile sidebar content - same as desktop but always expanded */}
-        <div className="flex h-16 items-center justify-center border-b border-amber-200 bg-white/50 backdrop-blur-sm">
+        <div className="flex h-16 items-center justify-between border-b border-amber-200 bg-white/50 backdrop-blur-sm px-4">
           <div className="flex items-center space-x-3">
             <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
           </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-2 rounded-lg hover:bg-amber-100 text-amber-700 transition-colors duration-200 lg:hidden"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <nav className="mt-4 px-2 space-y-1">
+          {/* Subscription Status Banner */}
+          {!subscriptionLoading && !hasActiveSubscription && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center">
+                <LockClosedIcon className="h-5 w-5 text-yellow-600 mr-2" />
+                <div>
+                  <p className="text-xs text-yellow-800 font-medium">
+                    Sin suscripción activa
+                  </p>
+                  <p className="text-xs text-yellow-600">
+                    Funciones limitadas
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {navigation.map((item) => {
             const isActive = router.pathname === item.href;
+            const isRestricted = !hasActiveSubscription && 
+              !baseNavigation.some(nav => nav.href === item.href);
+            
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg"
-                    : "text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-                }`}
-              >
-                <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                <span>{item.name}</span>
-                {isActive && (
-                  <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+              <div key={item.name}>
+                {isRestricted ? (
+                  <div className="flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 opacity-50 cursor-not-allowed">
+                    <item.icon className="h-5 w-5 mr-3 flex-shrink-0 text-gray-400" />
+                    <span className="truncate text-gray-400 flex items-center">
+                      {item.name}
+                      <LockClosedIcon className="h-3 w-3 ml-2" />
+                    </span>
+                  </div>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg"
+                        : "text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                    <span>{item.name}</span>
+                    {isActive && (
+                      <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                    )}
+                  </Link>
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>
+
+        {/* User info section */}
+        <div className="absolute bottom-20 left-0 right-0 px-2">
+          {doctorData && (
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-amber-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center shadow-md">
+                  <UserIcon className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {doctorData.nombre}
+                  </p>
+                  <p className="text-xs text-amber-600 truncate">
+                    {doctorData.especialidad}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="absolute bottom-4 left-0 right-0 px-2">
           <button

@@ -101,25 +101,45 @@ export default function SubscriptionManagement() {
         return;
       }
 
+      // Verificar si es un upgrade desde plan gratuito
+      const isUpgrade = doctor && doctor.subscriptionStatus === 'active' && 
+                       (doctor.subscriptionPlanId === 'plan_gratuito' || doctor.subscriptionPlan === 'Plan Gratuito');
+
+      if (isUpgrade) {
+        console.log('🔄 Upgrading from free plan to:', plan.name);
+      }
+
       const subscriptionData = {
         planId: plan.id,
         planName: plan.name,
         price: plan.price,
         userId: currentUser.uid,
         userEmail: currentUser.email,
+        isUpgrade: isUpgrade, // Agregar flag para identificar upgrades
+        currentPlanId: doctor?.subscriptionPlanId
       };
+
+      console.log('💳 Creating payment preference for subscription:', subscriptionData);
 
       const preference = await createPaymentPreference(subscriptionData);
 
+      console.log('✅ Payment preference created:', {
+        preferenceId: preference.preferenceId,
+        initPoint: preference.initPoint || preference.init_point
+      });
+
       // Redirigir a MercadoPago
-      if (preference.init_point) {
-        window.location.href = preference.init_point;
+      const redirectUrl = preference.initPoint || preference.init_point;
+      if (redirectUrl) {
+        console.log('🔄 Redirecting to MercadoPago:', redirectUrl);
+        window.location.href = redirectUrl;
       } else {
+        console.error('❌ No redirect URL found in preference:', preference);
         alert("Error al procesar el pago. Intenta nuevamente.");
       }
     } catch (error) {
-      console.error("Error creating subscription:", error);
-      alert("Error al procesar la suscripción. Intenta nuevamente.");
+      console.error("❌ Error creating subscription:", error);
+      alert(`Error al procesar la suscripción: ${error.message || 'Intenta nuevamente.'}`);
     } finally {
       setProcessingPayment(null);
     }
@@ -351,6 +371,16 @@ export default function SubscriptionManagement() {
                       </p>
                     </div>
                   )}
+
+                  {/* Mensaje especial para usuarios con plan gratuito */}
+                  {isActive && (doctor?.subscriptionPlanId === 'plan_gratuito' || doctor?.subscriptionPlan === 'Plan Gratuito') && (
+                    <div className="mt-4 p-4 bg-blue-100 border border-blue-300 rounded-xl">
+                      <p className="text-sm text-blue-800 flex items-center">
+                        <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                        🚀 ¡Tienes el plan gratuito activo! Puedes upgradearte a un plan premium en cualquier momento para acceder a más funcionalidades.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -472,10 +502,10 @@ export default function SubscriptionManagement() {
                     onClick={() => handleSubscribe(plan)}
                     disabled={
                       processingPayment === plan.id ||
-                      (isCurrentlyActive)
+                      (isCurrentlyActive && plan.price > 0) // Solo deshabilitar si es el plan actual Y es de pago
                     }
                     className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
-                      isCurrentlyActive
+                      (isCurrentlyActive && plan.price > 0)
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                         : plan.featured
                         ? "bg-white text-blue-600 hover:bg-gray-50 shadow-lg hover:shadow-xl"
@@ -487,15 +517,20 @@ export default function SubscriptionManagement() {
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
                         Procesando...
                       </div>
-                    ) : isCurrentlyActive ? (
+                    ) : (isCurrentlyActive && plan.price > 0) ? (
                       <span className="flex items-center justify-center">
                         <CheckIcon className="h-5 w-5 mr-2" />
                         Plan Actual
                       </span>
+                    ) : isCurrentlyActive && plan.price === 0 ? (
+                      <span className="flex items-center justify-center">
+                        <CheckIcon className="h-5 w-5 mr-2" />
+                        Plan Actual (Gratis)
+                      </span>
                     ) : (plan.price === 0 || plan.price === undefined) ? (
                       "🚀 Activar Gratis"
                     ) : (
-                      `💳 Suscribirse por $${plan.price?.toLocaleString()}/mes`
+                      `� Upgrade a $${plan.price?.toLocaleString()}/mes`
                     )}
                   </button>
                 </div>

@@ -81,7 +81,7 @@ export default function PatientLayout({ children }) {
     if (pathSegments.length > 0) {
       // Map route segments to readable names
       const routeMap = {
-        paciente: "Portal de Pacientes",
+        paciente: "Pacientes",
         appointments: "Citas",
         "medical-records": "Historial Médico",
         profile: "Perfil",
@@ -247,12 +247,12 @@ export default function PatientLayout({ children }) {
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
-            <div className="flex flex-1 justify-between px-4 sm:px-6">
+            <div className="flex flex-1 justify-between px-4 sm:px-6 py-1">
               <div className="flex flex-1 flex-col">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <h1 className="text-lg font-semibold text-gray-900">
-                      Portal de Pacientes
+                      Pacientes
                     </h1>
                     {/* Patient Selector */}
                     <PatientSelector />
@@ -466,7 +466,7 @@ function SidebarContent({
 
 function Breadcrumbs({ breadcrumbs }) {
   return (
-    <nav className="flex mt-2" aria-label="Breadcrumb">
+    <nav className="flex mt-2.5" aria-label="Breadcrumb">
       <ol className="flex items-center space-x-2">
         {breadcrumbs.map((breadcrumb, index) => (
           <li key={breadcrumb.name} className="flex items-center">

@@ -71,7 +71,7 @@ export default function PatientIndex() {
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Portal de Pacientes
+          Pacientes
         </h2>
         <p className="text-gray-600">Verificando acceso...</p>
       </div>
