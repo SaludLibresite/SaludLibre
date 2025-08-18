@@ -8,8 +8,8 @@ El Sistema de Gestión de Familiares permite a los pacientes principales gestion
 
 ### 🏠 Para Pacientesa
 
-- **Gestión Centralizada**: Un paciente principal puede agregar y gestionar familiares
-- **Cambio de Contexto**: Selector visual para cambiar entre "ver como" diferentes famailiares
+- **Gestión Centralizada**: Un paciente principal puede agregar y gestionar familiaresd
+- **Cambio de Contexto**: Selector visual para cambiar entre "ver como" diferedntes famailiares
 - **Citas por Familiar**: Crear citas específicas para cada familiar
 - **Historial Independiente**: Cada familiar mantiene su propio historial médico
 - **Información Completa**: Datos médicos, alergias, medicamentos por familiar
