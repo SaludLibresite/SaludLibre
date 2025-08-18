@@ -13,10 +13,12 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
 import {
-  getPatientsByDoctorId,
+  getPatientsByDoctorAccess,
   deletePatient,
   searchPatients,
 } from "../../lib/patientsService";
+import AddPatientChoiceModal from "./AddPatientChoiceModal";
+import PatientSearchModal from "./PatientSearchModal";
 
 export default function PatientsList() {
   const { currentUser } = useAuth();
@@ -27,6 +29,8 @@ export default function PatientsList() {
   const [loading, setLoading] = useState(true);
   const [doctorData, setDoctorData] = useState(null);
   const [message, setMessage] = useState("");
+  const [showChoiceModal, setShowChoiceModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // Load doctor data and patients
   useEffect(() => {
@@ -41,8 +45,8 @@ export default function PatientsList() {
         if (doctor) {
           setDoctorData(doctor);
 
-          // Load patients for this doctor
-          const patientsList = await getPatientsByDoctorId(doctor.id);
+          // Load patients where this doctor has access (primary or shared)
+          const patientsList = await getPatientsByDoctorAccess(doctor.id);
           setPatients(patientsList);
         }
       } catch (error) {
@@ -78,7 +82,7 @@ export default function PatientsList() {
     if (!doctorData) return;
 
     try {
-      const patientsList = await getPatientsByDoctorId(doctorData.id);
+      const patientsList = await getPatientsByDoctorAccess(doctorData.id);
       setPatients(patientsList);
     } catch (error) {
       console.error("Error refreshing patients:", error);
@@ -113,6 +117,22 @@ export default function PatientsList() {
       console.error("Error deleting patient:", error);
       setMessage("Error al eliminar el paciente");
     }
+  };
+
+  // Handle add patient choice
+  const handleAddPatientChoice = (choice) => {
+    if (choice === "new") {
+      router.push("/admin/nuevo-paciente");
+    } else if (choice === "existing") {
+      setShowSearchModal(true);
+    }
+  };
+
+  // Handle patient assignment success
+  const handlePatientAssigned = (assignedPatient) => {
+    setPatients((prev) => [...prev, assignedPatient]);
+    setMessage("✅ Paciente asignado exitosamente");
+    setTimeout(() => setMessage(""), 3000);
   };
 
   // Sort patients
@@ -161,7 +181,7 @@ export default function PatientsList() {
             </span>
           </div>
           <button
-            onClick={() => router.push("/admin/nuevo-paciente")}
+            onClick={() => setShowChoiceModal(true)}
             className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 transition-all duration-200 shadow-md hover:shadow-lg"
             disabled={!doctorData}
           >
@@ -232,7 +252,7 @@ export default function PatientsList() {
             Comience agregando su primer paciente para gestionar consultas.
           </p>
           <button
-            onClick={() => router.push("/admin/nuevo-paciente")}
+            onClick={() => setShowChoiceModal(true)}
             className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-6 py-2 rounded-lg hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             Agregar Primer Paciente
@@ -298,6 +318,15 @@ export default function PatientsList() {
                           {patient.gender && `${patient.gender} • `}
                           {patient.age || "Edad no especificada"}
                         </div>
+                        
+                        {/* Multiple Doctors Indicator */}
+                        {patient.doctors && patient.doctors.length > 1 && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              {patient.doctors.length} doctores
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -364,6 +393,21 @@ export default function PatientsList() {
           </table>
         </div>
       )}
+
+      {/* Add Patient Choice Modal */}
+      <AddPatientChoiceModal
+        isOpen={showChoiceModal}
+        onClose={() => setShowChoiceModal(false)}
+        onChoice={handleAddPatientChoice}
+      />
+
+      {/* Patient Search Modal */}
+      <PatientSearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        doctorData={doctorData}
+        onPatientAssigned={handlePatientAssigned}
+      />
     </div>
   );
 }

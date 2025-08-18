@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
 import { useSidebarStore } from "../../store/sidebarStore";
-import { usePatientStore } from "../../store/patientStore";
+import { usePatientStoreHydrated } from "../../store/patientStore";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { getFamilyMembersByPrimaryPatientId } from "../../lib/familyService";
@@ -67,7 +67,8 @@ export default function PatientLayout({ children }) {
     clearPatientData,
     activePatient,
     getActivePatientDisplayName,
-  } = usePatientStore();
+    isHydrated,
+  } = usePatientStoreHydrated();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -115,7 +116,7 @@ export default function PatientLayout({ children }) {
   // Load patient and family data
   useEffect(() => {
     async function loadPatientData() {
-      if (!currentUser) {
+      if (!currentUser || !isHydrated) {
         setLoading(false);
         return;
       }
@@ -152,7 +153,7 @@ export default function PatientLayout({ children }) {
     }
 
     loadPatientData();
-  }, [currentUser, initializePatientData]);
+  }, [currentUser, isHydrated, initializePatientData]);
 
   const handleLogout = async () => {
     try {

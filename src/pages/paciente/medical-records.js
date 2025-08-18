@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { usePatientStoreHydrated } from "../../store/patientStore";
 import { query, collection, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import PatientLayout from "../../components/paciente/PatientLayout";
@@ -19,9 +20,20 @@ import {
 } from "@heroicons/react/24/outline";
 import { getPrescriptionsByPatientId } from "../../lib/prescriptionsService";
 import { getMedicalFilesByPatientId } from "../../lib/medicalRecordsService";
+import {
+  getAppointmentsByPatientId,
+  getAppointmentsByPrimaryPatientId,
+} from "../../lib/appointmentsService";
 
 export default function MedicalRecords() {
   const { currentUser } = useAuth();
+  const {
+    activePatient,
+    primaryPatient,
+    getActivePatientForServices,
+    getActivePatientDisplayName,
+    isHydrated,
+  } = usePatientStoreHydrated();
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("records");
@@ -34,10 +46,20 @@ export default function MedicalRecords() {
   const [appointments, setAppointments] = useState([]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isHydrated) {
       loadPatientData();
     }
-  }, [currentUser]);
+  }, [currentUser, isHydrated]);
+
+  // Reload medical data when active patient changes
+  useEffect(() => {
+    if (patientData && activePatient && isHydrated) {
+      const patientId = activePatient.isPrimary
+        ? patientData.id
+        : activePatient.id;
+      loadMedicalData(patientId);
+    }
+  }, [activePatient, patientData, isHydrated]);
 
   const loadPatientData = async () => {
     try {
@@ -54,8 +76,9 @@ export default function MedicalRecords() {
         const patient = { id: patientDoc.id, ...patientDoc.data() };
         setPatientData(patient);
 
-        // Cargar datos médicos
-        await loadMedicalData(patient.id);
+        // Load medical data for the appropriate patient
+        const targetPatientId = activePatient?.isPrimary ? patient.id : activePatient?.id || patient.id;
+        await loadMedicalData(targetPatientId);
       }
     } catch (error) {
       console.error("Error loading patient data:", error);
@@ -67,19 +90,27 @@ export default function MedicalRecords() {
 
   const loadMedicalData = async (patientId) => {
     try {
-      // Cargar citas completadas
-      const appointmentsQuery = query(
-        collection(db, "appointments"),
-        where("patientId", "==", patientId),
-        where("status", "==", "completed"),
-        orderBy("date", "desc")
+      // For primary patients, load all medical data (theirs + family members if needed)
+      // For family members, load only their specific medical data
+      
+      let appointmentsList;
+      
+      if (activePatient?.isPrimary) {
+        // For primary patient, load all appointments (theirs + family members)
+        appointmentsList = await getAppointmentsByPrimaryPatientId(patientId);
+      } else if (activePatient) {
+        // For family member, load only their appointments
+        appointmentsList = await getAppointmentsByPatientId(activePatient.id);
+      } else {
+        // Fallback to loading by provided patientId
+        appointmentsList = await getAppointmentsByPatientId(patientId);
+      }
+
+      // Filter only completed appointments for medical records
+      const completedAppointments = appointmentsList.filter(
+        (appointment) => appointment.status === "completed"
       );
-      const appointmentsSnapshot = await getDocs(appointmentsQuery);
-      const appointmentsList = [];
-      appointmentsSnapshot.forEach((doc) => {
-        appointmentsList.push({ id: doc.id, ...doc.data() });
-      });
-      setAppointments(appointmentsList);
+      setAppointments(completedAppointments);
 
       // Cargar recetas
       const prescriptionsList = await getPrescriptionsByPatientId(patientId);
@@ -93,7 +124,7 @@ export default function MedicalRecords() {
       const records = [];
 
       // Agregar citas como registros
-      appointmentsList.forEach((appointment) => {
+      completedAppointments.forEach((appointment) => {
         records.push({
           id: `appointment-${appointment.id}`,
           type: "appointment",
@@ -236,7 +267,16 @@ export default function MedicalRecords() {
                     Historial Médico
                   </h1>
                   <p className="text-gray-600">
-                    Accede a todos tus registros médicos y archivos
+                    {activePatient ? (
+                      <>
+                        Viendo registros de{" "}
+                        <span className="font-medium text-amber-700">
+                          {getActivePatientDisplayName()}
+                        </span>
+                      </>
+                    ) : (
+                      "Accede a todos tus registros médicos y archivos"
+                    )}
                   </p>
                 </div>
               </div>

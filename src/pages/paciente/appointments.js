@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
-import { usePatientStore } from "../../store/patientStore";
+import { usePatientStoreHydrated } from "../../store/patientStore";
 import {
   query,
   collection,
@@ -41,7 +41,8 @@ export default function PatientAppointments() {
     primaryPatient,
     getActivePatientForServices,
     getActivePatientDisplayName,
-  } = usePatientStore();
+    isHydrated,
+  } = usePatientStoreHydrated();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, upcoming, past, cancelled
@@ -50,20 +51,20 @@ export default function PatientAppointments() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isHydrated) {
       loadPatientData();
     }
-  }, [currentUser]);
+  }, [currentUser, isHydrated]);
 
   // Reload appointments when active patient changes
   useEffect(() => {
-    if (patientData && activePatient) {
+    if (patientData && activePatient && isHydrated) {
       const patientId = activePatient.isPrimary
         ? patientData.id
         : activePatient.id;
       loadAppointments(patientId);
     }
-  }, [activePatient, patientData]);
+  }, [activePatient, patientData, isHydrated]);
 
   const loadPatientData = async () => {
     try {

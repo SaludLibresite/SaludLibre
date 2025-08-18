@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { useEffect, useState } from "react";
 
 export const usePatientStore = create(
   persist(
@@ -172,6 +173,8 @@ export const usePatientStore = create(
 
       // Initialize with primary patient data
       initializePatientData: (primaryPatientData, familyMembersData = []) => {
+        const { activePatient } = get();
+        
         const primaryWithMeta = {
           ...primaryPatientData,
           isPrimary: true,
@@ -186,9 +189,32 @@ export const usePatientStore = create(
           })),
         ];
 
+        // Check if current activePatient is still valid
+        let newActivePatient = primaryWithMeta; // Default to primary
+        
+        if (activePatient) {
+          if (activePatient.isPrimary && activePatient.id === primaryPatientData.id) {
+            // Primary patient is still valid
+            newActivePatient = primaryWithMeta;
+          } else if (!activePatient.isPrimary) {
+            // Check if family member still exists
+            const familyMemberExists = familyMembersData.some(
+              member => member.id === activePatient.id
+            );
+            if (familyMemberExists) {
+              // Family member still exists, keep the selection
+              newActivePatient = {
+                ...familyMembersData.find(member => member.id === activePatient.id),
+                isPrimary: false,
+              };
+            }
+            // If family member doesn't exist anymore, fall back to primary
+          }
+        }
+
         set({
           primaryPatient: primaryPatientData,
-          activePatient: primaryWithMeta,
+          activePatient: newActivePatient,
           familyMembers: familyMembersData,
           allPatientsUnderCare: allPatients,
         });
@@ -220,7 +246,7 @@ export const usePatientStore = create(
     }),
     {
       name: "patient-store", // key for localStorage
-      getStorage: () => localStorage,
+      storage: createJSONStorage(() => localStorage),
       // Only persist essential data, not loading states
       partialize: (state) => ({
         activePatient: state.activePatient,
@@ -231,3 +257,27 @@ export const usePatientStore = create(
     }
   )
 );
+
+// Hook to handle hydration
+export const usePatientStoreHydrated = () => {
+  const store = usePatientStore();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    // Check if we're on the client side
+    if (typeof window !== "undefined") {
+      // Simple check: if we have data in the store, consider it hydrated
+      // Or check if localStorage has the patient-store key
+      const hasStoredData = localStorage.getItem("patient-store");
+      if (hasStoredData || store.activePatient) {
+        setIsHydrated(true);
+      } else {
+        // Set a slight delay to allow for hydration
+        const timer = setTimeout(() => setIsHydrated(true), 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [store.activePatient]);
+
+  return { ...store, isHydrated };
+};

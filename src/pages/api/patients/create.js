@@ -18,6 +18,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // Get doctor information
+    const doctorDoc = await adminDb.collection("doctors").doc(doctorId).get();
+    if (!doctorDoc.exists) {
+      return res.status(404).json({ message: "Doctor no encontrado" });
+    }
+    
+    const doctorData = doctorDoc.data();
+
     // Verify the doctor making the request
     try {
       await adminAuth.getUser(doctorUserId);
@@ -38,12 +46,31 @@ export default async function handler(req, res) {
       emailVerified: false,
     });
 
+    // Generate patient ID
+    const patientId = `PAT-${Date.now().toString().slice(-6)}`;
+
+    // Create doctors array with the creating doctor as primary
+    const doctors = [
+      {
+        doctorId: doctorId,
+        doctorUserId: doctorUserId,
+        doctorName: doctorData.nombre,
+        doctorSpecialty: doctorData.especialidad,
+        assignedAt: new Date(),
+        isPrimary: true,
+      },
+    ];
+
     // Prepare patient data for Firestore
     const patientFirestoreData = {
       ...patientData,
+      patientId: patientId,
       userId: userRecord.uid,
+      doctors: doctors,
+      // Keep legacy fields for backward compatibility
       doctorId: doctorId,
       doctorUserId: doctorUserId,
+      doctorName: doctorData.nombre,
       userType: "patient",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -61,12 +88,12 @@ export default async function handler(req, res) {
       patientName: patientData.name,
       patientEmail: patientData.email,
       temporaryPassword: temporaryPassword,
-      doctorName: await getDoctorName(doctorId),
+      doctorName: doctorData.nombre,
     });
 
     res.status(201).json({
       success: true,
-      patientId: patientRef.id,
+      patientId: patientId,
       userId: userRecord.uid,
       temporaryPassword: temporaryPassword,
       message: "Paciente creado exitosamente y correo de bienvenida enviado",
@@ -125,21 +152,6 @@ function generateTemporaryPassword() {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
-}
-
-// Helper function to get doctor name
-async function getDoctorName(doctorId) {
-  try {
-    const doctorDoc = await adminDb.collection("doctors").doc(doctorId).get();
-    if (doctorDoc.exists) {
-      const doctorData = doctorDoc.data();
-      return doctorData.nombre || doctorData.name || "Su Doctor";
-    }
-    return "Su Doctor";
-  } catch (error) {
-    console.error("Error getting doctor name:", error);
-    return "Su Doctor";
-  }
 }
 
 // Helper function to send welcome email

@@ -1,5 +1,5 @@
 import { useState, Fragment } from "react";
-import { usePatientStore } from "../../store/patientStore";
+import { usePatientStoreHydrated } from "../../store/patientStore";
 import { Menu, Transition } from "@headlessui/react";
 import {
   UserIcon,
@@ -19,7 +19,8 @@ export default function PatientSelector({ className = "" }) {
     allPatientsUnderCare,
     switchToPatient,
     getActivePatientDisplayName,
-  } = usePatientStore();
+    isHydrated,
+  } = usePatientStoreHydrated();
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -28,8 +29,8 @@ export default function PatientSelector({ className = "" }) {
     setIsOpen(false);
   };
 
-  // Don't render if no active patient or no patients under care
-  if (!activePatient || allPatientsUnderCare.length <= 1) {
+  // Don't render if not hydrated, no active patient or no patients under care
+  if (!isHydrated || !activePatient || allPatientsUnderCare.length <= 1) {
     return null;
   }
 
