@@ -6,7 +6,7 @@ El Sistema de Gestión de Familiares permite a los pacientes principales gestion
 
 ## ✨ Características Principales
 
-### 🏠 Para Pacientes
+### 🏠 Para Pacientesa
 
 - **Gestión Centralizada**: Un paciente principal puede agregar y gestionar familiares
 - **Cambio de Contexto**: Selector visual para cambiar entre "ver como" diferentes familiares
