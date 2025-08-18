@@ -1,9 +1,7 @@
 // Configuración de MercadoPago Checkout Pro
 const MERCADOPAGO_CONFIG = {
   publicKey: process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY,
-  baseUrl: process.env.NODE_ENV === 'production' 
-    ? 'https://tu-dominio.com' 
-    : 'http://localhost:3000',
+  baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 };
 
 // Crear preferencia de pago para Checkout Pro
