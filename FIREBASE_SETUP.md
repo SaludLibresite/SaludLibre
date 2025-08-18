@@ -8,7 +8,7 @@
 2. Haz clic en "Crear un proyecto"a
 3. Nombra tu proyecto (ej: "medicos-ar")
 4. Habilita Google Analytics (opcional)
-5. Espera a que se cree el proyecto
+5. Espera a que se cree el proyectoa
 s
 ### 2. Configurar Authentication
 
