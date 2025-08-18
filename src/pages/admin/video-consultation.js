@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "../../components/admin/AdminLayout";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import FeatureProtectedRoute from "../../components/FeatureProtectedRoute";
 import NewVideoConsultationModal from "../../components/admin/NewVideoConsultationModal";
 import { useAuth } from "../../context/AuthContext";
 import { videoConsultationService } from "../../lib/videoConsultationService";
@@ -203,7 +204,8 @@ export default function VideoConsultationPage() {
   // Interfaz principal (dashboard)
   return (
     <ProtectedRoute>
-      <AdminLayout>
+      <FeatureProtectedRoute feature="video-consultation">
+        <AdminLayout>
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
@@ -481,6 +483,7 @@ export default function VideoConsultationPage() {
           )}
         </div>
       </AdminLayout>
+      </FeatureProtectedRoute>
     </ProtectedRoute>
   );
 }

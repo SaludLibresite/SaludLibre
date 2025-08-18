@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "@/components/admin/AdminLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import FeatureProtectedRoute from "@/components/FeatureProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import {
   ArrowLeftIcon,
@@ -337,16 +338,18 @@ export default function PatientDetailPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <AdminLayout>
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">
-                Cargando información del paciente...
-              </p>
+        <FeatureProtectedRoute feature="patients">
+          <AdminLayout>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">
+                  Cargando información del paciente...
+                </p>
+              </div>
             </div>
-          </div>
-        </AdminLayout>
+          </AdminLayout>
+        </FeatureProtectedRoute>
       </ProtectedRoute>
     );
   }
@@ -354,29 +357,32 @@ export default function PatientDetailPage() {
   if (message && !patient) {
     return (
       <ProtectedRoute>
-        <AdminLayout>
-          <div className="p-6">
-            <div className="flex items-center mb-6">
-              <button
-                onClick={() => router.push("/admin/patients")}
-                className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-              >
-                <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                Volver a Pacientes
-              </button>
+        <FeatureProtectedRoute feature="patients">
+          <AdminLayout>
+            <div className="p-6">
+              <div className="flex items-center mb-6">
+                <button
+                  onClick={() => router.push("/admin/patients")}
+                  className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                >
+                  <ArrowLeftIcon className="h-5 w-5 mr-2" />
+                  Volver a Pacientes
+                </button>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700">{message}</p>
+              </div>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-700">{message}</p>
-            </div>
-          </div>
-        </AdminLayout>
+          </AdminLayout>
+        </FeatureProtectedRoute>
       </ProtectedRoute>
     );
   }
 
   return (
     <ProtectedRoute>
-      <AdminLayout>
+      <FeatureProtectedRoute feature="patients">
+        <AdminLayout>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -1056,6 +1062,7 @@ export default function PatientDetailPage() {
           />
         </div>
       </AdminLayout>
+      </FeatureProtectedRoute>
     </ProtectedRoute>
   );
 }

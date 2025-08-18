@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
 import { getUserSubscription, isSubscriptionActive } from "../../lib/subscriptionsService";
 import { useSidebarStore } from "../../store/sidebarStore";
+import CompleteProfileModal from "./CompleteProfileModal";
 import {
   HomeIcon,
   UserGroupIcon,
@@ -64,9 +65,22 @@ export default function AdminLayout({ children }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
 
   const isSuperAdmin =
     currentUser && SUPERADMIN_EMAILS.includes(currentUser.email);
+
+  // Check for welcome message in URL
+  useEffect(() => {
+    const { newGoogleUser } = router.query;
+    if (newGoogleUser === "true") {
+      setShowWelcomeMessage(true);
+      // Remove query params from URL without reload
+      router.replace("/admin", undefined, { shallow: true });
+    }
+  }, [router.query]);
 
   useEffect(() => {
     async function loadData() {
@@ -80,6 +94,11 @@ export default function AdminLayout({ children }) {
         
         setDoctorData(doctor);
         setSubscription(userSubscription);
+        
+        // Check if profile is incomplete for Google users
+        if (doctor && doctor.isGoogleUser && !doctor.profileComplete) {
+          setShowCompleteProfileModal(true);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -89,6 +108,17 @@ export default function AdminLayout({ children }) {
 
     loadData();
   }, [currentUser]);
+
+  // Handle welcome message auto-hide
+  useEffect(() => {
+    if (showWelcomeMessage) {
+      const timer = setTimeout(() => {
+        setShowWelcomeMessage(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcomeMessage]);
 
   const hasActiveSubscription = isSubscriptionActive(subscription);
   const navigation = hasActiveSubscription ? premiumNavigation : baseNavigation;
@@ -100,6 +130,31 @@ export default function AdminLayout({ children }) {
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+
+  const handleProfileComplete = async (updatedData) => {
+    try {
+      // Update doctor data in state
+      setDoctorData(prev => ({
+        ...prev,
+        ...updatedData,
+        profileComplete: true
+      }));
+      
+      // Close modal
+      setShowCompleteProfileModal(false);
+      setProfileError("");
+      
+      // Optionally reload the page to refresh all data
+      window.location.reload();
+    } catch (error) {
+      console.error("Error handling profile completion:", error);
+      setProfileError("Error al completar el perfil");
+    }
+  };
+
+  const handleProfileError = (error) => {
+    setProfileError(error);
   };
 
   const sidebarWidth = isCollapsed ? "w-16" : "w-64";
@@ -525,6 +580,109 @@ export default function AdminLayout({ children }) {
           className="fixed inset-0 z-30"
           onClick={() => setShowUserMenu(false)}
         />
+      )}
+
+      {/* Welcome Message for New Google Users */}
+      {showWelcomeMessage && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">
+                  ¡Bienvenido a la plataforma!
+                </h3>
+                <p className="mt-1 text-sm text-green-700">
+                  Tu cuenta se ha creado exitosamente. Por favor completa tu perfil profesional para continuar.
+                </p>
+              </div>
+              <div className="ml-auto pl-3">
+                <button
+                  onClick={() => setShowWelcomeMessage(false)}
+                  className="text-green-400 hover:text-green-600"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Profile Modal */}
+      {showCompleteProfileModal && doctorData && (
+        <CompleteProfileModal
+          doctor={doctorData}
+          onComplete={handleProfileComplete}
+          onError={handleProfileError}
+        />
+      )}
+
+      {/* Welcome Message for New Google Users */}
+      {showWelcomeMessage && (
+        <div className="fixed top-4 right-4 z-40">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg max-w-sm">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">
+                  ¡Bienvenido a tu panel médico!
+                </h3>
+                <p className="text-sm text-green-700 mt-1">
+                  Tu cuenta se creó exitosamente. Completa tu perfil para comenzar.
+                </p>
+              </div>
+              <div className="ml-auto pl-3">
+                <button
+                  onClick={() => setShowWelcomeMessage(false)}
+                  className="text-green-400 hover:text-green-600"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Error Alert */}
+      {profileError && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{profileError}</p>
+              </div>
+              <div className="ml-auto pl-3">
+                <button
+                  onClick={() => setProfileError("")}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

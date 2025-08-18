@@ -54,14 +54,16 @@ export const getActiveSubscriptionPlans = async () => {
     const querySnapshot = await getDocs(
       query(
         collection(db, SUBSCRIPTION_PLANS_COLLECTION),
-        where("isActive", "==", true),
-        orderBy("price")
+        where("isActive", "==", true)
       )
     );
-    return querySnapshot.docs.map((doc) => ({
+    const plans = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
+    
+    // Ordenar manualmente por precio en el cliente
+    return plans.sort((a, b) => (a.price || 0) - (b.price || 0));
   } catch (error) {
     console.error("Error getting active subscription plans:", error);
     throw error;
@@ -113,7 +115,7 @@ export const getUserSubscription = async (userId) => {
       query(
         collection(db, SUBSCRIPTIONS_COLLECTION),
         where("userId", "==", userId),
-        where("status", "in", ["active", "pending"])
+        orderBy("createdAt", "desc")
       )
     );
     
@@ -121,6 +123,33 @@ export const getUserSubscription = async (userId) => {
       return null;
     }
     
+    // Buscar primero suscripciones activas
+    const activeSubscriptions = querySnapshot.docs.filter(doc => 
+      doc.data().status === "active"
+    );
+    
+    if (activeSubscriptions.length > 0) {
+      const subscription = activeSubscriptions[0];
+      return {
+        id: subscription.id,
+        ...subscription.data(),
+      };
+    }
+    
+    // Si no hay activas, buscar pending
+    const pendingSubscriptions = querySnapshot.docs.filter(doc => 
+      doc.data().status === "pending"
+    );
+    
+    if (pendingSubscriptions.length > 0) {
+      const subscription = pendingSubscriptions[0];
+      return {
+        id: subscription.id,
+        ...subscription.data(),
+      };
+    }
+    
+    // Si no hay ni activas ni pending, devolver la más reciente
     const subscription = querySnapshot.docs[0];
     return {
       id: subscription.id,
@@ -212,10 +241,39 @@ export const getPaymentsBySubscription = async (subscriptionId) => {
 export const isSubscriptionActive = (subscription) => {
   if (!subscription) return false;
   
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Checking subscription status:", subscription);
+  }
+  
+  // Si el status es pending, considerarla como no activa para mostrar el banner de vencida
+  if (subscription.status === "pending") {
+    return false;
+  }
+  
+  // Si el status no es active, no está activa
+  if (subscription.status !== "active") {
+    return false;
+  }
+  
+  // Si no tiene fecha de expiración, considerarla activa (para planes indefinidos)
+  if (!subscription.expiresAt) {
+    return true;
+  }
+  
   const now = new Date();
   const expiresAt = subscription.expiresAt?.toDate?.() || new Date(subscription.expiresAt);
   
-  return subscription.status === "active" && expiresAt > now;
+  const isActive = expiresAt > now;
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Subscription expiry check:", {
+      now: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      isActive
+    });
+  }
+  
+  return isActive;
 };
 
 export const getSubscriptionDaysRemaining = (subscription) => {

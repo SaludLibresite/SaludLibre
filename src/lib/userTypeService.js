@@ -8,8 +8,11 @@ import { db } from "./firebase";
  */
 export async function detectUserType(user) {
   if (!user) {
+    console.log('detectUserType: No user provided');
     return { type: null, profile: null };
   }
+
+  console.log('detectUserType: Checking user:', user.email);
 
   try {
     // Check if user is a doctor
@@ -21,6 +24,12 @@ export async function detectUserType(user) {
 
     if (!doctorsSnapshot.empty) {
       const doctorData = doctorsSnapshot.docs[0].data();
+      console.log('detectUserType: Doctor found:', {
+        id: doctorsSnapshot.docs[0].id,
+        isGoogleUser: doctorData.isGoogleUser,
+        profileComplete: doctorData.profileComplete,
+        nombre: doctorData.nombre
+      });
       return {
         type: "doctor",
         profile: {
@@ -29,6 +38,8 @@ export async function detectUserType(user) {
         },
       };
     }
+
+    console.log('detectUserType: No doctor profile found, checking patients...');
 
     // Check if user is a patient
     const patientsQuery = query(

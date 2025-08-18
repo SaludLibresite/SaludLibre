@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
-import { MapPinIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 // Global loader instance to avoid multiple initializations
 let globalLoader = null;
@@ -22,10 +22,14 @@ export default function GoogleMapsLocationPicker({
   className = "",
 }) {
   const mapRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
   const [map, setMap] = useState(null);
   const [marker, setMarker] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
     initialLocation || {
       lat: -34.6037, // Buenos Aires default
@@ -74,6 +78,31 @@ export default function GoogleMapsLocationPicker({
           title: "Tu ubicación del consultorio",
         });
 
+        // Initialize autocomplete
+        if (searchInputRef.current) {
+          const autocomplete = new google.maps.places.Autocomplete(
+            searchInputRef.current,
+            {
+              types: ["address"],
+              componentRestrictions: { country: "AR" }, // Restrict to Argentina
+              fields: ["place_id", "geometry", "name", "formatted_address"],
+            }
+          );
+
+          autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (place.geometry) {
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              const address = place.formatted_address;
+
+              updateLocation(lat, lng, address, mapInstance, markerInstance);
+            }
+          });
+
+          autocompleteRef.current = autocomplete;
+        }
+
         // Add click listener to map
         mapInstance.addListener("click", (event) => {
           const lat = event.latLng.lat();
@@ -114,6 +143,24 @@ export default function GoogleMapsLocationPicker({
     }
   }, []);
 
+  // Helper function to update location
+  const updateLocation = (lat, lng, address, mapInstance, markerInstance) => {
+    const locationData = { lat, lng, address };
+    
+    setSelectedLocation(locationData);
+    onLocationSelect(locationData);
+    
+    // Update map and marker
+    if (mapInstance && markerInstance) {
+      mapInstance.setCenter({ lat, lng });
+      markerInstance.setPosition({ lat, lng });
+      mapInstance.setZoom(16);
+    }
+    
+    setSearchQuery(address);
+    setShowSuggestions(false);
+  };
+
   // Reverse geocoding to get address from coordinates
   const reverseGeocode = async (lat, lng, google) => {
     try {
@@ -132,15 +179,20 @@ export default function GoogleMapsLocationPicker({
 
         setSelectedLocation(locationData);
         onLocationSelect(locationData);
+        setSearchQuery(address);
       }
     } catch (error) {
       console.error("Error reverse geocoding:", error);
     }
   };
 
-  // Search for location
-  const handleSearch = async () => {
-    if (!searchQuery.trim() || !map) return;
+  // Search for suggestions as user types
+  const searchSuggestions = async (query) => {
+    if (!query.trim() || query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
 
     try {
       const google = await new Promise((resolve, reject) => {
@@ -156,9 +208,78 @@ export default function GoogleMapsLocationPicker({
         }
       });
 
+      const service = new google.maps.places.AutocompleteService();
+      service.getPlacePredictions(
+        {
+          input: query,
+          componentRestrictions: { country: "AR" },
+          types: ["address"],
+        },
+        (predictions, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK) {
+            setSuggestions(predictions || []);
+            setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error getting suggestions:", error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = async (suggestion) => {
+    try {
+      const google = window.google;
+      const service = new google.maps.places.PlacesService(map);
+      
+      service.getDetails(
+        {
+          placeId: suggestion.place_id,
+          fields: ["geometry", "formatted_address"],
+        },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place.geometry) {
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            const address = place.formatted_address;
+
+            updateLocation(lat, lng, address, map, marker);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error getting place details:", error);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    searchSuggestions(value);
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Search for location (fallback for manual search)
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !map) return;
+
+    try {
+      const google = window.google || await getGoogleMapsLoader().load();
       const geocoder = new google.maps.Geocoder();
       const response = await geocoder.geocode({
-        address: searchQuery + ", Argentina", // Bias search to Argentina
+        address: searchQuery + ", Argentina",
       });
 
       if (response.results[0]) {
@@ -167,15 +288,7 @@ export default function GoogleMapsLocationPicker({
         const lng = location.lng();
         const address = response.results[0].formatted_address;
 
-        const locationData = { lat, lng, address };
-
-        setSelectedLocation(locationData);
-        onLocationSelect(locationData);
-
-        // Update map and marker
-        map.setCenter({ lat, lng });
-        marker.setPosition({ lat, lng });
-        map.setZoom(16);
+        updateLocation(lat, lng, address, map, marker);
       }
     } catch (error) {
       console.error("Error searching location:", error);
@@ -242,33 +355,65 @@ export default function GoogleMapsLocationPicker({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Search Bar */}
-      <div className="flex space-x-2">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="Buscar dirección (ej: Av. Corrientes 1234, CABA)"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-          />
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+      {/* Search Bar with Autocomplete */}
+      <div className="relative">
+        <div className="flex space-x-2">
+          <div className="flex-1 relative">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+              onFocus={() => searchQuery.length >= 3 && setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              placeholder="Buscar dirección (ej: Av. Corrientes 1234, CABA)"
+              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+            />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={getCurrentLocation}
+            disabled={isLoading}
+            className="px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+            title="Usar mi ubicación actual"
+          >
+            <MapPinIcon className="h-5 w-5" />
+          </button>
         </div>
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-        >
-          Buscar
-        </button>
-        <button
-          onClick={getCurrentLocation}
-          disabled={isLoading}
-          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          title="Usar mi ubicación actual"
-        >
-          <MapPinIcon className="h-5 w-5" />
-        </button>
+
+        {/* Suggestions Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={suggestion.place_id}
+                onClick={() => handleSuggestionSelect(suggestion)}
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+              >
+                <div className="flex items-start space-x-3">
+                  <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {suggestion.structured_formatting?.main_text || suggestion.description}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {suggestion.structured_formatting?.secondary_text || ""}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Selected Location Display */}
@@ -312,13 +457,12 @@ export default function GoogleMapsLocationPicker({
       {/* Instructions */}
       <div className="text-sm text-gray-600 space-y-1">
         <p>
-          • Haz clic en el mapa o arrastra el marcador para seleccionar tu
-          ubicación
+          • Escribe en el campo de búsqueda para ver sugerencias de direcciones
         </p>
         <p>
-          • Usa la barra de búsqueda para encontrar una dirección específica
+          • Haz clic en el mapa o arrastra el marcador para ajustar tu ubicación
         </p>
-        <p>• El botón de ubicación te llevará a tu posición actual</p>
+        <p>• Usa el botón de ubicación para detectar tu posición actual</p>
       </div>
     </div>
   );

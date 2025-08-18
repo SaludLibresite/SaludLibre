@@ -81,21 +81,75 @@ export async function getDoctorBySlug(slug) {
 // Get doctor by user ID (for authenticated users)
 export async function getDoctorByUserId(userId) {
   try {
+    console.log('getDoctorByUserId called with userId:', userId);
     const doctorsRef = collection(db, DOCTORS_COLLECTION);
     const q = query(doctorsRef, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
+    
+    console.log('Query executed, docs found:', querySnapshot.size);
 
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
+      const doctorData = doc.data();
+      console.log('Doctor found:', { id: doc.id, email: doctorData.email, userId: doctorData.userId });
       return {
         id: doc.id,
-        ...doc.data(),
+        ...doctorData,
       };
     } else {
+      console.log('No doctor profile found for userId:', userId);
+      
+      // Additional debugging: let's check if there are any doctors with similar email
+      try {
+        const allDocsQuery = query(doctorsRef);
+        const allDocsSnapshot = await getDocs(allDocsQuery);
+        console.log('Total doctors in database:', allDocsSnapshot.size);
+        
+        allDocsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          console.log('Existing doctor:', { 
+            id: doc.id, 
+            email: data.email, 
+            userId: data.userId,
+            isGoogleUser: data.isGoogleUser 
+          });
+        });
+      } catch (debugError) {
+        console.error('Debug query error:', debugError);
+      }
+      
       return null; // No doctor profile found for this user
     }
   } catch (error) {
     console.error("Error getting doctor by user ID:", error);
+    throw error;
+  }
+}
+
+// Get doctor by email (alternative lookup method)
+export async function getDoctorByEmail(email) {
+  try {
+    console.log('getDoctorByEmail called with email:', email);
+    const doctorsRef = collection(db, DOCTORS_COLLECTION);
+    const q = query(doctorsRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    console.log('Email query executed, docs found:', querySnapshot.size);
+
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      const doctorData = doc.data();
+      console.log('Doctor found by email:', { id: doc.id, email: doctorData.email, userId: doctorData.userId });
+      return {
+        id: doc.id,
+        ...doctorData,
+      };
+    } else {
+      console.log('No doctor profile found for email:', email);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error getting doctor by email:", error);
     throw error;
   }
 }
@@ -144,20 +198,24 @@ export async function deleteDoctor(id) {
 }
 
 // Generate slug from name and specialty
-export function generateSlug(name, specialty) {
+export function generateSlug(name, specialty = "") {
   const nameSlug = name
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .trim();
 
-  const specialtySlug = specialty
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .trim();
+  if (specialty) {
+    const specialtySlug = specialty
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .trim();
 
-  return `${nameSlug}-${specialtySlug}-${Date.now()}`;
+    return `${nameSlug}-${specialtySlug}-${Date.now()}`;
+  }
+
+  return `${nameSlug}-${Date.now()}`;
 }
 
 // Calculate distance between two coordinates using Haversine formula
@@ -217,6 +275,151 @@ export async function getDoctorsNearLocation(
     return nearbyDoctors;
   } catch (error) {
     console.error("Error getting nearby doctors:", error);
+    throw error;
+  }
+}
+
+// Check if email already exists in doctors collection (for Google auth)
+// Only checks for non-Google users to avoid conflicts
+export async function checkEmailExists(email) {
+  try {
+    const doctorsRef = collection(db, DOCTORS_COLLECTION);
+    const q = query(doctorsRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    // Check if any of the found doctors are NOT Google users
+    let hasNonGoogleUser = false;
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (!data.isGoogleUser) {
+        hasNonGoogleUser = true;
+      }
+    });
+    
+    return hasNonGoogleUser;
+  } catch (error) {
+    console.error("Error checking email exists:", error);
+    return false;
+  }
+}
+
+// Check if email exists with traditional registration (not Google)
+export async function checkEmailExistsTraditional(email) {
+  try {
+    const doctorsRef = collection(db, DOCTORS_COLLECTION);
+    const q = query(doctorsRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return false;
+    }
+    
+    // Check if any of the doctors with this email are NOT Google users
+    let hasTraditionalUser = false;
+    querySnapshot.forEach((doc) => {
+      const doctor = doc.data();
+      if (!doctor.isGoogleUser) {
+        hasTraditionalUser = true;
+      }
+    });
+    
+    return hasTraditionalUser;
+  } catch (error) {
+    console.error("Error checking email exists:", error);
+    return false;
+  }
+}
+
+// Create doctor profile from Google authentication
+export async function createDoctorFromGoogle(user, referralCode = null) {
+  try {
+    // Generate a base name from display name or email
+    const baseName = user.displayName || user.email.split('@')[0];
+    
+    const doctorData = {
+      userId: user.uid,
+      email: user.email,
+      nombre: baseName,
+      imagen: user.photoURL || "img/doctor-1.jpg", // Use standard field name
+      // Mark as incomplete profile that needs to be filled
+      profileCompleted: false, // Use consistent field name
+      isGoogleUser: true,
+      // Basic required fields with default values to avoid validation issues
+      telefono: "Sin especificar",
+      especialidad: "Por definir",
+      descripcion: "Perfil en configuración - Complete su información profesional",
+      horario: "Lunes a Viernes, 9:00 AM - 5:00 PM",
+      genero: "Sin especificar",
+      ubicacion: "Sin especificar",
+      latitude: null,
+      longitude: null,
+      formattedAddress: "",
+      consultaOnline: false,
+      rango: "Normal",
+      verified: false,
+      slug: generateSlug(baseName, 'Médico'), // Generate slug immediately
+      // Timestamps
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      // Referral information
+      referralCode: referralCode || null,
+      isActive: true,
+    };
+
+    console.log('Creating doctor document with data:', {
+      userId: doctorData.userId,
+      email: doctorData.email,
+      nombre: doctorData.nombre,
+      slug: doctorData.slug
+    });
+
+    const docRef = await addDoc(collection(db, DOCTORS_COLLECTION), doctorData);
+    
+    console.log('Doctor document created successfully with ID:', docRef.id);
+
+    return {
+      id: docRef.id,
+      ...doctorData,
+    };
+  } catch (error) {
+    console.error("Error creating doctor from Google:", error);
+    throw error;
+  }
+}
+
+// Check if doctor profile is complete
+export async function isDoctorProfileComplete(userId) {
+  try {
+    const doctor = await getDoctorByUserId(userId);
+    if (!doctor) return false;
+    
+    return doctor.profileComplete === true;
+  } catch (error) {
+    console.error("Error checking doctor profile completeness:", error);
+    return false;
+  }
+}
+
+// Update doctor profile completion status
+export async function updateDoctorProfileCompletion(doctorId, profileData) {
+  try {
+    const updateData = {
+      ...profileData,
+      profileComplete: true,
+      updatedAt: new Date(),
+    };
+
+    // Generate slug if nombre is provided
+    if (profileData.nombre) {
+      updateData.slug = generateSlug(profileData.nombre, profileData.especialidad);
+    }
+
+    const docRef = doc(db, DOCTORS_COLLECTION, doctorId);
+    await updateDoc(docRef, updateData);
+
+    return updateData;
+  } catch (error) {
+    console.error("Error updating doctor profile completion:", error);
     throw error;
   }
 }

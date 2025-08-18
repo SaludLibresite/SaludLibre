@@ -10,6 +10,12 @@ import {
   getAllSubscriptions,
 } from "../../lib/subscriptionsService";
 import {
+  getFixedPlans,
+  updateFixedPlan,
+  initializeDefaultPlans,
+  isFixedPlan
+} from "../../lib/fixedPlansService";
+import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
@@ -53,11 +59,15 @@ export default function SubscriptionsManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [allPlans, allSubscriptions] = await Promise.all([
-        getAllSubscriptionPlans(),
+      
+      // Inicializar planes por defecto si es necesario
+      await initializeDefaultPlans();
+      
+      const [fixedPlans, allSubscriptions] = await Promise.all([
+        getFixedPlans(),
         getAllSubscriptions(),
       ]);
-      setPlans(allPlans);
+      setPlans(fixedPlans);
       setSubscriptions(allSubscriptions);
     } catch (error) {
       console.error("Error loading data:", error);
@@ -68,37 +78,31 @@ export default function SubscriptionsManagement() {
 
   const handleSavePlan = async () => {
     try {
+      if (!editingPlan) {
+        alert("No se pueden crear nuevos planes. Solo editar los existentes.");
+        return;
+      }
+
       const planData = {
-        ...planForm,
+        name: planForm.name,
+        description: planForm.description,
         price: parseFloat(planForm.price),
         features: planForm.features.filter((f) => f.trim() !== ""),
       };
 
-      if (editingPlan) {
-        await updateSubscriptionPlan(editingPlan.id, planData);
-      } else {
-        await createSubscriptionPlan(planData);
-      }
+      await updateFixedPlan(editingPlan.id, planData);
 
       await loadData();
       setShowPlanModal(false);
       resetForm();
     } catch (error) {
       console.error("Error saving plan:", error);
-      alert("Error al guardar el plan");
+      alert("Error al guardar el plan: " + error.message);
     }
   };
 
   const handleDeletePlan = async (planId) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar este plan?")) return;
-
-    try {
-      await deleteSubscriptionPlan(planId);
-      await loadData();
-    } catch (error) {
-      console.error("Error deleting plan:", error);
-      alert("Error al eliminar el plan");
-    }
+    alert("No se pueden eliminar los planes fijos del sistema.");
   };
 
   const resetForm = () => {
@@ -191,16 +195,9 @@ export default function SubscriptionsManagement() {
                 Administra los planes de suscripción y pagos
               </p>
             </div>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowPlanModal(true);
-              }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Nuevo Plan
-            </button>
+            <div className="text-sm text-gray-600">
+              Solo se pueden editar los 3 planes existentes: Free, Medium y Plus
+            </div>
           </div>
         </div>
 
@@ -387,7 +384,7 @@ export default function SubscriptionsManagement() {
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                {editingPlan ? "Editar Plan" : "Nuevo Plan"}
+                Editar Plan - {editingPlan?.name}
               </h2>
 
               <div className="space-y-4">
@@ -435,21 +432,29 @@ export default function SubscriptionsManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duración (días)
+                    Duración (días) - Fijo
                   </label>
                   <input
                     type="number"
-                    value={planForm.duration}
-                    onChange={(e) =>
-                      setPlanForm({ ...planForm, duration: parseInt(e.target.value) })
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={30}
+                    disabled
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 text-gray-500"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    La duración es fija para todos los planes (30 días)
+                  </p>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Nota:</strong> Las características mostradas son solo informativas. 
+                    Las funcionalidades reales se controlan automáticamente según el plan.
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Características
+                    Características (Solo visuales)
                   </label>
                   {planForm.features.map((feature, index) => (
                     <div key={index} className="flex items-center space-x-2 mb-2">
@@ -476,29 +481,15 @@ export default function SubscriptionsManagement() {
                   </button>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={planForm.isActive}
-                      onChange={(e) =>
-                        setPlanForm({ ...planForm, isActive: e.target.checked })
-                      }
-                      className="mr-2"
-                    />
-                    Activo
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={planForm.isPopular}
-                      onChange={(e) =>
-                        setPlanForm({ ...planForm, isPopular: e.target.checked })
-                      }
-                      className="mr-2"
-                    />
-                    Más Popular
-                  </label>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">
+                    <strong>Configuración automática:</strong>
+                  </p>
+                  <ul className="text-xs text-gray-500 mt-2 space-y-1">
+                    <li>• Todos los planes están siempre activos</li>
+                    <li>• Solo el Plan Medium está marcado como "Más Popular"</li>
+                    <li>• La duración es fija de 30 días para todos</li>
+                  </ul>
                 </div>
               </div>
 
@@ -507,7 +498,7 @@ export default function SubscriptionsManagement() {
                   onClick={handleSavePlan}
                   className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  {editingPlan ? "Actualizar" : "Crear"} Plan
+                  Actualizar Plan
                 </button>
                 <button
                   onClick={() => setShowPlanModal(false)}

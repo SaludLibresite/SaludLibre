@@ -8,12 +8,41 @@ export default async function handler(req, res) {
   try {
     const { planId, planName, price, userId, userEmail } = req.body;
 
+    // Validar datos requeridos
+    if (!planId || !planName || !price || !userId || !userEmail) {
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        required: ['planId', 'planName', 'price', 'userId', 'userEmail']
+      });
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userEmail)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    // Validar precio
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({ message: 'Invalid price value' });
+    }
+
+    // Validar configuración de MercadoPago
+    if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
+      return res.status(500).json({ message: 'MercadoPago access token not configured' });
+    }
+
+    if (!process.env.NEXT_PUBLIC_APP_URL) {
+      return res.status(500).json({ message: 'App URL not configured' });
+    }
+
     // Crear la preferencia usando la API REST de MercadoPago
     const preference = {
       items: [
         {
           title: `Suscripción ${planName}`,
-          unit_price: parseFloat(price),
+          unit_price: numericPrice,
           quantity: 1,
           currency_id: 'ARS',
         }
@@ -29,17 +58,17 @@ export default async function handler(req, res) {
       auto_return: 'approved',
       notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
       external_reference: `${userId}_${planId}_${Date.now()}`,
-      expires: true,
-      expiration_date_from: new Date().toISOString(),
-      expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 horas
-      payment_methods: {
-        excluded_payment_types: [
-          { id: 'ticket' }, // Excluir efectivo
-        ],
-        installments: 12, // Máximo 12 cuotas
-      },
       statement_descriptor: 'MEDICOS-AR',
     };
+
+    console.log('Creating MercadoPago preference with data:', {
+      preference,
+      tokenInfo: {
+        hasToken: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+        tokenPrefix: process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 15) + '...',
+        appUrl: process.env.NEXT_PUBLIC_APP_URL
+      }
+    });
 
     // Llamar a la API de MercadoPago directamente
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -53,8 +82,13 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('MercadoPago API Error:', errorData);
-      throw new Error(`MercadoPago API Error: ${response.status}`);
+      console.error('MercadoPago API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        preference: preference
+      });
+      throw new Error(`MercadoPago API Error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const preferenceData = await response.json();

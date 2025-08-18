@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "../../components/admin/AdminLayout";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import FeatureProtectedRoute from "../../components/FeatureProtectedRoute";
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
 import { createPatient } from "../../lib/patientsService";
@@ -206,8 +207,9 @@ export default function NuevoPacientePage() {
 
   return (
     <ProtectedRoute>
-      <AdminLayout>
-        <div className="p-6">
+      <FeatureProtectedRoute feature="nuevo-paciente">
+        <AdminLayout>
+          <div className="p-6">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-4">
@@ -661,6 +663,7 @@ export default function NuevoPacientePage() {
           </div>
         </div>
       </AdminLayout>
+      </FeatureProtectedRoute>
     </ProtectedRoute>
   );
 }

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../context/AuthContext';
 import { videoConsultationService } from '../../../lib/videoConsultationService';
+import ProtectedRoute from '../../../components/ProtectedRoute';
+import FeatureProtectedRoute from '../../../components/FeatureProtectedRoute';
 import {
   VideoCameraIcon,
   UserIcon,
@@ -305,18 +307,24 @@ export default function DoctorVideoConsultation() {
   // Loading validation
   if (isValidating) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <UserGroupIcon className="h-16 w-16 mx-auto mb-4 text-blue-500 animate-pulse" />
-          <h3 className="text-lg font-semibold mb-2">Validando acceso...</h3>
-          <p className="text-gray-600">Verificando permisos de la sala</p>
-        </div>
-      </div>
+      <ProtectedRoute>
+        <FeatureProtectedRoute feature="video-consultation">
+          <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <UserGroupIcon className="h-16 w-16 mx-auto mb-4 text-blue-500 animate-pulse" />
+              <h3 className="text-lg font-semibold mb-2">Validando acceso...</h3>
+              <p className="text-gray-600">Verificando permisos de la sala</p>
+            </div>
+          </div>
+        </FeatureProtectedRoute>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <ProtectedRoute>
+      <FeatureProtectedRoute feature="video-consultation">
+        <div className="min-h-screen bg-gray-900">
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -404,5 +412,7 @@ export default function DoctorVideoConsultation() {
         </div>
       )}
     </div>
+    </FeatureProtectedRoute>
+    </ProtectedRoute>
   );
 }

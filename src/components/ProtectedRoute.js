@@ -36,8 +36,31 @@ export default function ProtectedRoute({ children, requiredUserType = "doctor" }
         return;
       }
 
-      // If user type is still unknown after auth is complete
-      if (!userType) {
+      // Special case: if user type is still unknown but we're on an admin page
+      // and currentUser exists, give it a bit more time for type detection
+      if (!userType && requiredUserType === 'doctor') {
+        // Check if this is a new Google user by looking at URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const isNewGoogleUser = urlParams.get('newGoogleUser') === 'true';
+        
+        if (isNewGoogleUser) {
+          // For new Google users, wait a bit longer for user type detection
+          console.log('New Google user detected, waiting for user type detection...');
+          return;
+        }
+        
+        // For other cases, give it more time before redirecting
+        setTimeout(() => {
+          if (!userType) {
+            console.warn('User type not detected after timeout, redirecting to home');
+            router.push('/');
+          }
+        }, 3000);
+        return;
+      }
+
+      // If user type is still unknown after auth is complete (for non-doctor routes)
+      if (!userType && requiredUserType !== 'doctor') {
         console.warn('User type not detected, redirecting to home');
         router.push('/');
         return;

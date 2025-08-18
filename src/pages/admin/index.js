@@ -1,17 +1,21 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import AdminLayout from "../../components/admin/AdminLayout";
 import DashboardStats from "../../components/admin/DashboardStats";
 import RecentAppointments from "../../components/admin/RecentAppointments";
 import UpcomingAppointments from "../../components/admin/UpcomingAppointments";
 import PendingAppointments from "../../components/admin/PendingAppointments";
 import ProtectedRoute from "../../components/ProtectedRoute";
+import CompleteProfileModal from "../../components/admin/CompleteProfileModal";
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
 
 export default function AdminDashboard() {
   const { currentUser } = useAuth();
+  const router = useRouter();
   const [doctorData, setDoctorData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
 
   useEffect(() => {
     async function loadDoctorData() {
@@ -20,6 +24,15 @@ export default function AdminDashboard() {
       try {
         const doctor = await getDoctorByUserId(currentUser.uid);
         setDoctorData(doctor);
+        
+        // Check if profile needs completion
+        if (doctor && (doctor.profileCompleted === false || 
+                      doctor.especialidad === "Por definir" || 
+                      doctor.telefono === "Sin especificar" ||
+                      doctor.genero === "Sin especificar" ||
+                      doctor.ubicacion === "Sin especificar")) {
+          setShowCompleteProfileModal(true);
+        }
       } catch (error) {
         console.error("Error loading doctor data:", error);
       } finally {
@@ -29,6 +42,11 @@ export default function AdminDashboard() {
 
     loadDoctorData();
   }, [currentUser]);
+
+  const handleProfileCompleted = (updatedDoctor) => {
+    setDoctorData(updatedDoctor);
+    setShowCompleteProfileModal(false);
+  };
 
   return (
     <ProtectedRoute>
@@ -59,6 +77,16 @@ export default function AdminDashboard() {
             <UpcomingAppointments />
           </div>
         </div>
+        
+        {/* Complete Profile Modal */}
+        {showCompleteProfileModal && doctorData && (
+          <CompleteProfileModal
+            doctor={doctorData}
+            isOpen={showCompleteProfileModal}
+            onClose={() => setShowCompleteProfileModal(false)}
+            onComplete={handleProfileCompleted}
+          />
+        )}
       </AdminLayout>
     </ProtectedRoute>
   );
