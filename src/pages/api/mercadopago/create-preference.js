@@ -66,6 +66,7 @@ export default async function handler(req, res) {
       tokenInfo: {
         hasToken: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
         tokenPrefix: process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 15) + '...',
+        tokenSuffix: '...' + process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(process.env.MERCADOPAGO_ACCESS_TOKEN.length - 15),
         appUrl: process.env.NEXT_PUBLIC_APP_URL
       }
     });
@@ -80,13 +81,23 @@ export default async function handler(req, res) {
       body: JSON.stringify(preference),
     });
 
+    console.log('MercadoPago API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+    });
+
     if (!response.ok) {
       const errorData = await response.json();
       console.error('MercadoPago API Error Details:', {
         status: response.status,
         statusText: response.statusText,
         errorData,
-        preference: preference
+        preference: preference,
+        requestHeaders: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 15)}...`,
+        }
       });
       throw new Error(`MercadoPago API Error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
