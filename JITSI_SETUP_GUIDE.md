@@ -9,7 +9,7 @@ Esta guía te ayudará a configurar las videoconsultas en tu aplicación Doctore
 - Creación de salas con búsqueda de pacientes
 - Gestión de consultas programadas
 - Integración con Firebase para persistencia
-- Sistema de permisos y acceso seguro
+- Sistema de permisos y acceso segurox
 - Configuración personalizada por rol (doctor/paciente)
 - Auto-ingreso y manejo de participantes
 - Persistencia de estado con refresh
