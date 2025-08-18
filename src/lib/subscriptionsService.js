@@ -276,6 +276,64 @@ export const updatePaymentBySubscription = async (subscriptionId, updates) => {
   }
 };
 
+// Función para activar manualmente una suscripción (Solo para superadmin)
+export const manuallyActivateSubscription = async (userId, subscriptionData) => {
+  try {
+    const { planId, planName, price, startDate, endDate, activatedBy } = subscriptionData;
+    
+    // Desactivar suscripciones existentes del usuario
+    const existingSubscriptions = await getDocs(
+      query(
+        collection(db, SUBSCRIPTIONS_COLLECTION),
+        where("userId", "==", userId),
+        where("status", "==", "active")
+      )
+    );
+    
+    // Desactivar suscripciones activas existentes
+    for (const doc of existingSubscriptions.docs) {
+      await updateDoc(doc.ref, {
+        status: 'inactive',
+        deactivatedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
+    
+    // Crear nueva suscripción activa
+    const newSubscription = {
+      userId,
+      planId,
+      planName,
+      price,
+      status: 'active',
+      activatedAt: Timestamp.fromDate(startDate),
+      expiresAt: Timestamp.fromDate(endDate),
+      activationType: 'manual',
+      activatedBy,
+      paymentMethod: 'manual_activation',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+    
+    const docRef = await addDoc(collection(db, SUBSCRIPTIONS_COLLECTION), newSubscription);
+    
+    // Crear registro de pago manual
+    await createPayment({
+      subscriptionId: docRef.id,
+      status: 'manual',
+      paymentMethod: 'manual_activation',
+      transactionAmount: price,
+      approvedAt: Timestamp.now(),
+      activatedBy,
+    });
+    
+    return { id: docRef.id, ...newSubscription };
+  } catch (error) {
+    console.error("Error manually activating subscription:", error);
+    throw error;
+  }
+};
+
 export const getPaymentsBySubscription = async (subscriptionId) => {
   try {
     const querySnapshot = await getDocs(

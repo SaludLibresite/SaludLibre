@@ -1,5 +1,4 @@
-import { updateSubscription, updatePayment, getUserSubscription, getSubscriptionByPreferenceId } from '../../../lib/subscriptionsService';
-import { updateDoctor } from '../../../lib/doctorsService';
+import { updateDoctor, getDoctorById } from '../../../lib/doctorsService';
 import crypto from 'crypto';
 
 // Validar firma del webhook de MercadoPago
@@ -119,50 +118,57 @@ async function processApprovedPayment(paymentInfo) {
       transaction_amount: paymentInfo.transaction_amount
     });
 
-    // Buscar la suscripción por preferenceId en lugar de external_reference
-    const preferenceId = paymentInfo.preference_id;
+    // Extraer userId del external_reference
+    const [userId, planId] = paymentInfo.external_reference.split('_');
     
-    // Buscar suscripción por preferenceId
-    const subscription = await getSubscriptionByPreferenceId(preferenceId);
-    
-    if (!subscription) {
-      console.error('Subscription not found for preference:', preferenceId);
+    if (!userId) {
+      console.error('Could not extract userId from external_reference:', paymentInfo.external_reference);
       return;
     }
 
-    console.log('Found subscription:', subscription);
+    // Verificar que el doctor existe
+    const doctor = await getDoctorById(userId);
+    if (!doctor) {
+      console.error('Doctor not found:', userId);
+      return;
+    }
+
+    console.log('Found doctor:', { id: doctor.id, nombre: doctor.nombre });
 
     // Calcular fecha de expiración (30 días desde ahora)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    // Actualizar suscripción a activa
-    await updateSubscription(subscription.id, {
-      status: 'active',
-      activatedAt: new Date(),
-      expiresAt: expiresAt,
-      paymentId: paymentInfo.id,
-      lastPaymentDate: new Date(paymentInfo.date_approved),
-    });
-
-    // Actualizar el pago
-    await updatePayment(subscription.id, {
-      status: 'approved',
-      paymentId: paymentInfo.id,
-      approvedAt: new Date(paymentInfo.date_approved),
-      paymentMethod: paymentInfo.payment_method_id,
-      transactionAmount: paymentInfo.transaction_amount,
-    });
+    // Determinar el nombre del plan basado en el planId
+    const planNames = {
+      'plan_basico': 'Plan Básico',
+      'plan_premium': 'Plan Premium',
+      'plan_profesional': 'Plan Profesional'
+    };
+    const planName = planNames[planId] || 'Plan Desconocido';
 
     // Actualizar el doctor con la información de suscripción
-    await updateDoctor(subscription.userId, {
+    await updateDoctor(userId, {
+      // Información de suscripción
       subscriptionStatus: 'active',
-      subscriptionPlan: subscription.planName,
+      subscriptionPlan: planName,
+      subscriptionPlanId: planId,
       subscriptionExpiresAt: expiresAt,
+      subscriptionActivatedAt: new Date(),
+      
+      // Información del pago
+      lastPaymentId: paymentInfo.id,
+      lastPaymentDate: new Date(paymentInfo.date_approved),
+      lastPaymentAmount: paymentInfo.transaction_amount,
+      lastPaymentMethod: paymentInfo.payment_method_id,
+      
+      // Información adicional
+      preferenceId: paymentInfo.preference_id,
+      verified: true, // Activar verificación automáticamente al pagar
       updatedAt: new Date(),
     });
 
-    console.log(`Payment approved for user ${userId}, subscription activated`);
+    console.log(`✅ Payment approved and subscription activated for doctor ${userId} (${doctor.nombre})`);
 
   } catch (error) {
     console.error('Error processing approved payment:', error);
@@ -174,29 +180,28 @@ async function processRejectedPayment(paymentInfo) {
   try {
     const [userId, planId] = paymentInfo.external_reference.split('_');
     
-    const subscription = await getUserSubscription(userId);
-    
-    if (!subscription) {
-      console.error('Subscription not found for user:', userId);
+    if (!userId) {
+      console.error('Could not extract userId from external_reference:', paymentInfo.external_reference);
       return;
     }
 
-    // Actualizar suscripción como rechazada
-    await updateSubscription(subscription.id, {
-      status: 'rejected',
-      rejectedAt: new Date(),
+    const doctor = await getDoctorById(userId);
+    if (!doctor) {
+      console.error('Doctor not found:', userId);
+      return;
+    }
+
+    // Actualizar el doctor con información del pago rechazado
+    await updateDoctor(userId, {
+      subscriptionStatus: 'rejected',
+      lastPaymentId: paymentInfo.id,
+      lastPaymentStatus: 'rejected',
+      lastPaymentDate: new Date(),
       rejectionReason: paymentInfo.status_detail,
+      updatedAt: new Date(),
     });
 
-    // Actualizar el pago
-    await updatePayment(subscription.id, {
-      status: 'rejected',
-      paymentId: paymentInfo.id,
-      rejectedAt: new Date(),
-      rejectionReason: paymentInfo.status_detail,
-    });
-
-    console.log(`Payment rejected for user ${userId}`);
+    console.log(`❌ Payment rejected for doctor ${userId} (${doctor.nombre})`);
 
   } catch (error) {
     console.error('Error processing rejected payment:', error);
@@ -208,23 +213,29 @@ async function processPendingPayment(paymentInfo) {
   try {
     const [userId, planId] = paymentInfo.external_reference.split('_');
     
-    const subscription = await getUserSubscription(userId);
-    
-    if (!subscription) {
-      console.error('Subscription not found for user:', userId);
+    if (!userId) {
+      console.error('Could not extract userId from external_reference:', paymentInfo.external_reference);
       return;
     }
 
-    // Actualizar el pago como pendiente con más información
-    await updatePayment(subscription.id, {
-      status: 'pending',
-      paymentId: paymentInfo.id,
-      paymentMethod: paymentInfo.payment_method_id,
-      statusDetail: paymentInfo.status_detail,
+    const doctor = await getDoctorById(userId);
+    if (!doctor) {
+      console.error('Doctor not found:', userId);
+      return;
+    }
+
+    // Actualizar el doctor con información del pago pendiente
+    await updateDoctor(userId, {
+      subscriptionStatus: 'pending',
+      lastPaymentId: paymentInfo.id,
+      lastPaymentStatus: 'pending',
+      lastPaymentMethod: paymentInfo.payment_method_id,
+      lastPaymentDate: new Date(),
+      paymentStatusDetail: paymentInfo.status_detail,
       updatedAt: new Date(),
     });
 
-    console.log(`Payment pending for user ${userId}`);
+    console.log(`⏳ Payment pending for doctor ${userId} (${doctor.nombre})`);
 
   } catch (error) {
     console.error('Error processing pending payment:', error);

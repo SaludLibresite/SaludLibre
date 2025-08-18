@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
-import { getUserSubscription, updateSubscription, updatePaymentBySubscription, getSubscriptionByPreferenceId } from "../../lib/subscriptionsService";
-import { updateDoctor } from "../../lib/doctorsService";
+import { getDoctorById, updateDoctor } from "../../lib/doctorsService";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
@@ -10,7 +9,7 @@ export default function SubscriptionSuccess() {
   const router = useRouter();
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState(null);
+  const [doctor, setDoctor] = useState(null);
   const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
@@ -66,78 +65,56 @@ export default function SubscriptionSuccess() {
         return;
       }
 
-      // Buscar la suscripción por preference_id
-      let subscription = await getSubscriptionByPreferenceId(preference_id);
-      
-      // Si no se encuentra por preference_id, buscar por userId (plan de respaldo)
-      if (!subscription) {
-        console.log('Subscription not found by preference_id, trying by userId...');
-        const userSubscription = await getUserSubscription(userId);
-        if (userSubscription && userSubscription.status === 'pending') {
-          subscription = userSubscription;
-          console.log('Found pending subscription for user:', subscription);
-        }
-      }
-      
-      if (!subscription) {
-        console.error('No subscription found for preference or user:', { preference_id, userId });
+      // Obtener el doctor actual
+      const doctor = await getDoctorById(userId);
+      if (!doctor) {
+        console.error('Doctor not found:', userId);
         setLoading(false);
         return;
       }
 
-      console.log('Found subscription:', subscription);
+      console.log('Found doctor:', doctor);
 
       // Calcular fecha de expiración (30 días desde ahora)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      // Actualizar suscripción a activa
-      await updateSubscription(subscription.id, {
-        status: 'active',
-        activatedAt: new Date(),
-        expiresAt: expiresAt,
-        paymentId: paymentInfo.id,
-        lastPaymentDate: new Date(paymentInfo.date_approved),
-      });
-
-      console.log('Subscription updated to active:', subscription.id);
-
-      // Actualizar el pago (no crítico si falla)
-      try {
-        await updatePaymentBySubscription(subscription.id, {
-          status: 'approved',
-          paymentId: paymentInfo.id,
-          approvedAt: new Date(paymentInfo.date_approved),
-          paymentMethod: paymentInfo.payment_method_id,
-          transactionAmount: paymentInfo.transaction_amount,
-        });
-        console.log('Payment updated for subscription:', subscription.id);
-      } catch (paymentError) {
-        console.warn('Error updating payment (non-critical):', paymentError);
-      }
+      // Determinar el nombre del plan
+      const planNames = {
+        'plan_basico': 'Plan Básico',
+        'plan_premium': 'Plan Premium',
+        'plan_profesional': 'Plan Profesional'
+      };
+      const planName = planNames[planId] || 'Plan Desconocido';
 
       // Actualizar el doctor con la información de suscripción
       await updateDoctor(userId, {
+        // Información de suscripción
         subscriptionStatus: 'active',
-        subscriptionPlan: subscription.planName,
+        subscriptionPlan: planName,
+        subscriptionPlanId: planId,
         subscriptionExpiresAt: expiresAt,
+        subscriptionActivatedAt: new Date(),
+        
+        // Información del pago
+        lastPaymentId: paymentInfo.id,
+        lastPaymentDate: new Date(paymentInfo.date_approved),
+        lastPaymentAmount: paymentInfo.transaction_amount,
+        lastPaymentMethod: paymentInfo.payment_method_id,
+        
+        // Información adicional
+        preferenceId: preference_id,
+        verified: true, // Activar verificación automáticamente
         updatedAt: new Date(),
       });
 
       console.log('Doctor updated with subscription info for userId:', userId);
 
-      // Cargar la suscripción actualizada
-      const updatedSubscription = await getUserSubscription(currentUser.uid);
-      setSubscription(updatedSubscription);
+      // Cargar el doctor actualizado
+      const updatedDoctor = await getDoctorById(userId);
+      setDoctor(updatedDoctor);
 
-      console.log('Subscription updated successfully:', updatedSubscription);
-
-      // Verificar que el doctor fue actualizado
-      if (updatedSubscription && updatedSubscription.status === 'active') {
-        console.log('✅ Subscription activation completed successfully!');
-      } else {
-        console.error('❌ Subscription may not have been activated properly');
-      }
+      console.log('✅ Subscription activation completed successfully!', updatedDoctor);
 
     } catch (error) {
       console.error("Error processing payment and updating subscription:", error);
@@ -192,7 +169,7 @@ export default function SubscriptionSuccess() {
           </p>
         </div>
 
-        {subscription ? (
+        {doctor && doctor.subscriptionStatus === 'active' ? (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Detalles de tu Suscripción
@@ -200,24 +177,33 @@ export default function SubscriptionSuccess() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Plan:</span>
-                <span className="font-medium">{subscription.planName}</span>
+                <span className="font-medium">{doctor.subscriptionPlan}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Precio:</span>
-                <span className="font-medium">${subscription.price}/mes</span>
+                <span className="text-gray-600">Monto:</span>
+                <span className="font-medium">${doctor.lastPaymentAmount}/mes</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Estado:</span>
                 <span className="font-medium text-green-600">
-                  {subscription.status}
+                  {doctor.subscriptionStatus === 'active' ? 'Activa' : doctor.subscriptionStatus}
                 </span>
               </div>
-              {subscription.expiresAt && (
+              {doctor.subscriptionExpiresAt && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Expira:</span>
                   <span className="font-medium">
-                    {subscription.expiresAt.toDate?.()?.toLocaleDateString() ||
-                      new Date(subscription.expiresAt).toLocaleDateString()}
+                    {doctor.subscriptionExpiresAt.toDate?.()?.toLocaleDateString() ||
+                      new Date(doctor.subscriptionExpiresAt).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+              {doctor.lastPaymentDate && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Último pago:</span>
+                  <span className="font-medium">
+                    {doctor.lastPaymentDate.toDate?.()?.toLocaleDateString() ||
+                      new Date(doctor.lastPaymentDate).toLocaleDateString()}
                   </span>
                 </div>
               )}
