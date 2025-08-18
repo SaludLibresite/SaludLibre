@@ -240,6 +240,42 @@ export const updatePayment = async (paymentId, updates) => {
   }
 };
 
+export const updatePaymentBySubscription = async (subscriptionId, updates) => {
+  try {
+    // Buscar el pago por subscriptionId
+    const querySnapshot = await getDocs(
+      query(
+        collection(db, PAYMENTS_COLLECTION),
+        where("subscriptionId", "==", subscriptionId),
+        orderBy("createdAt", "desc")
+      )
+    );
+    
+    if (querySnapshot.empty) {
+      console.log('No payment found for subscription:', subscriptionId);
+      // Crear un nuevo pago si no existe
+      const paymentData = {
+        subscriptionId,
+        ...updates,
+      };
+      return await createPayment(paymentData);
+    }
+    
+    // Actualizar el pago más reciente
+    const paymentDoc = querySnapshot.docs[0];
+    const paymentRef = doc(db, PAYMENTS_COLLECTION, paymentDoc.id);
+    await updateDoc(paymentRef, {
+      ...updates,
+      updatedAt: Timestamp.now(),
+    });
+    
+    return { id: paymentDoc.id, ...updates };
+  } catch (error) {
+    console.error("Error updating payment by subscription:", error);
+    throw error;
+  }
+};
+
 export const getPaymentsBySubscription = async (subscriptionId) => {
   try {
     const querySnapshot = await getDocs(

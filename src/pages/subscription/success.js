@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
-import { getUserSubscription, updateSubscription, updatePayment, getSubscriptionByPreferenceId } from "../../lib/subscriptionsService";
+import { getUserSubscription, updateSubscription, updatePaymentBySubscription, getSubscriptionByPreferenceId } from "../../lib/subscriptionsService";
 import { updateDoctor } from "../../lib/doctorsService";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -22,9 +22,9 @@ export default function SubscriptionSuccess() {
   const processPaymentAndUpdateSubscription = async () => {
     try {
       setProcessingPayment(true);
-      const { payment_id, preference_id, status, collection_status } = router.query;
+      const { payment_id, preference_id, status, collection_status, external_reference } = router.query;
 
-      console.log('Processing payment:', { payment_id, preference_id, status, collection_status });
+      console.log('Processing payment:', { payment_id, preference_id, status, collection_status, external_reference });
 
       // Verificar que el pago fue aprobado
       if (status !== 'approved' || collection_status !== 'approved') {
@@ -43,10 +43,44 @@ export default function SubscriptionSuccess() {
 
       console.log('Payment info from MercadoPago:', paymentInfo);
 
+      // Extraer userId del external_reference
+      let userId, planId;
+      if (external_reference) {
+        [userId, planId] = external_reference.split('_');
+        console.log('Extracted from external_reference:', { userId, planId });
+      } else if (paymentInfo.external_reference) {
+        [userId, planId] = paymentInfo.external_reference.split('_');
+        console.log('Extracted from payment external_reference:', { userId, planId });
+      }
+
+      if (!userId) {
+        console.error('Could not extract userId from external_reference');
+        setLoading(false);
+        return;
+      }
+
+      // Verificar que el userId coincida con el usuario actual
+      if (userId !== currentUser.uid) {
+        console.error('UserId mismatch:', { extractedUserId: userId, currentUserId: currentUser.uid });
+        setLoading(false);
+        return;
+      }
+
       // Buscar la suscripción por preference_id
-      const subscription = await getSubscriptionByPreferenceId(preference_id);
+      let subscription = await getSubscriptionByPreferenceId(preference_id);
+      
+      // Si no se encuentra por preference_id, buscar por userId (plan de respaldo)
       if (!subscription) {
-        console.error('Subscription not found for preference:', preference_id);
+        console.log('Subscription not found by preference_id, trying by userId...');
+        const userSubscription = await getUserSubscription(userId);
+        if (userSubscription && userSubscription.status === 'pending') {
+          subscription = userSubscription;
+          console.log('Found pending subscription for user:', subscription);
+        }
+      }
+      
+      if (!subscription) {
+        console.error('No subscription found for preference or user:', { preference_id, userId });
         setLoading(false);
         return;
       }
@@ -66,28 +100,44 @@ export default function SubscriptionSuccess() {
         lastPaymentDate: new Date(paymentInfo.date_approved),
       });
 
-      // Actualizar el pago
-      await updatePayment(subscription.id, {
-        status: 'approved',
-        paymentId: paymentInfo.id,
-        approvedAt: new Date(paymentInfo.date_approved),
-        paymentMethod: paymentInfo.payment_method_id,
-        transactionAmount: paymentInfo.transaction_amount,
-      });
+      console.log('Subscription updated to active:', subscription.id);
+
+      // Actualizar el pago (no crítico si falla)
+      try {
+        await updatePaymentBySubscription(subscription.id, {
+          status: 'approved',
+          paymentId: paymentInfo.id,
+          approvedAt: new Date(paymentInfo.date_approved),
+          paymentMethod: paymentInfo.payment_method_id,
+          transactionAmount: paymentInfo.transaction_amount,
+        });
+        console.log('Payment updated for subscription:', subscription.id);
+      } catch (paymentError) {
+        console.warn('Error updating payment (non-critical):', paymentError);
+      }
 
       // Actualizar el doctor con la información de suscripción
-      await updateDoctor(subscription.userId, {
+      await updateDoctor(userId, {
         subscriptionStatus: 'active',
         subscriptionPlan: subscription.planName,
         subscriptionExpiresAt: expiresAt,
         updatedAt: new Date(),
       });
 
+      console.log('Doctor updated with subscription info for userId:', userId);
+
       // Cargar la suscripción actualizada
       const updatedSubscription = await getUserSubscription(currentUser.uid);
       setSubscription(updatedSubscription);
 
       console.log('Subscription updated successfully:', updatedSubscription);
+
+      // Verificar que el doctor fue actualizado
+      if (updatedSubscription && updatedSubscription.status === 'active') {
+        console.log('✅ Subscription activation completed successfully!');
+      } else {
+        console.error('❌ Subscription may not have been activated properly');
+      }
 
     } catch (error) {
       console.error("Error processing payment and updating subscription:", error);
