@@ -13,7 +13,10 @@ export default function SubscriptionSuccess() {
 
   useEffect(() => {
     if (currentUser) {
-      loadSubscription();
+      // Dar tiempo para que el webhook procese el pago
+      setTimeout(() => {
+        loadSubscription();
+      }, 2000);
     }
   }, [currentUser]);
 
@@ -21,6 +24,13 @@ export default function SubscriptionSuccess() {
     try {
       const userSubscription = await getUserSubscription(currentUser.uid);
       setSubscription(userSubscription);
+      
+      // Si no encuentra la suscripción o está pending, intentar de nuevo en unos segundos
+      if (!userSubscription || userSubscription.status === 'pending') {
+        setTimeout(() => {
+          loadSubscription();
+        }, 3000);
+      }
     } catch (error) {
       console.error("Error loading subscription:", error);
     } finally {

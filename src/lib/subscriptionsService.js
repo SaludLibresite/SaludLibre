@@ -148,15 +148,37 @@ export const getUserSubscription = async (userId) => {
         ...subscription.data(),
       };
     }
+
+    // Si no hay suscripciones activas ni pending, devolver null
+    return null;
+  } catch (error) {
+    console.error("Error getting user subscription:", error);
+    throw error;
+  }
+};
+
+export const getSubscriptionByPreferenceId = async (preferenceId) => {
+  try {
+    const querySnapshot = await getDocs(
+      query(
+        collection(db, SUBSCRIPTIONS_COLLECTION),
+        where("paymentPreferenceId", "==", preferenceId),
+        orderBy("createdAt", "desc")
+      )
+    );
     
-    // Si no hay ni activas ni pending, devolver la más reciente
+    if (querySnapshot.empty) {
+      console.log('No subscription found for preference:', preferenceId);
+      return null;
+    }
+    
     const subscription = querySnapshot.docs[0];
     return {
       id: subscription.id,
       ...subscription.data(),
     };
   } catch (error) {
-    console.error("Error getting user subscription:", error);
+    console.error("Error getting subscription by preference:", error);
     throw error;
   }
 };

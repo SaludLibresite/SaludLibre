@@ -1,4 +1,4 @@
-import { updateSubscription, updatePayment, getUserSubscription } from '../../../lib/subscriptionsService';
+import { updateSubscription, updatePayment, getUserSubscription, getSubscriptionByPreferenceId } from '../../../lib/subscriptionsService';
 import { updateDoctor } from '../../../lib/doctorsService';
 import crypto from 'crypto';
 
@@ -107,16 +107,24 @@ export default async function handler(req, res) {
 
 async function processApprovedPayment(paymentInfo) {
   try {
-    // Extraer datos de la referencia externa
-    const [userId, planId] = paymentInfo.external_reference.split('_');
+    console.log('Processing approved payment:', {
+      id: paymentInfo.id,
+      external_reference: paymentInfo.external_reference,
+      transaction_amount: paymentInfo.transaction_amount
+    });
+
+    // Buscar la suscripción por preferenceId en lugar de external_reference
+    const preferenceId = paymentInfo.preference_id;
     
-    // Buscar la suscripción pendiente
-    const subscription = await getUserSubscription(userId);
+    // Buscar suscripción por preferenceId
+    const subscription = await getSubscriptionByPreferenceId(preferenceId);
     
     if (!subscription) {
-      console.error('Subscription not found for user:', userId);
+      console.error('Subscription not found for preference:', preferenceId);
       return;
     }
+
+    console.log('Found subscription:', subscription);
 
     // Calcular fecha de expiración (30 días desde ahora)
     const expiresAt = new Date();
@@ -141,7 +149,7 @@ async function processApprovedPayment(paymentInfo) {
     });
 
     // Actualizar el doctor con la información de suscripción
-    await updateDoctor(userId, {
+    await updateDoctor(subscription.userId, {
       subscriptionStatus: 'active',
       subscriptionPlan: subscription.planName,
       subscriptionExpiresAt: expiresAt,

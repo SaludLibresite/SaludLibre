@@ -57,8 +57,8 @@ export default async function handler(req, res) {
       },
       auto_return: 'approved',
       notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
-      external_reference: `${userId}_${planId}_${Date.now()}`,
-      statement_descriptor: 'MEDICOS-AR',
+      external_reference: `sub_${Date.now()}`,
+      statement_descriptor: 'SALUDLIBRE',
     };
 
     console.log('Creating MercadoPago preference with data:', {
