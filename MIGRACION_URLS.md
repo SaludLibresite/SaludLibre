@@ -23,7 +23,7 @@ Las imágenes existentes fueron subidas con el bucket URL incorrecto (`doctore-e
 ```bash
 # Detener el servidor (Ctrl+C)
 npm run dev  # Reiniciar para que next.config.mjs tome efecto
-```
+```a
 
 ### Paso 2: Verificar URLs antiguas
 1. Ve a la página de especialidades
