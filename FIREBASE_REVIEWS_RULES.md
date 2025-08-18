@@ -7,7 +7,7 @@
 match /reviews/{document} {
   // Patients can create reviews for their own appointmentsa
   allow create: if request.auth != null &&
-    request.auth.uid != null &&ss
+    request.auth.uid != null &&sss
     request.resource.data.patientId != null &&a
     exists(/databases/$(database)/documents/patients/$(request.resource.data.patientId)) &&
     get(/databases/$(database)/documents/patients/$(request.resource.data.patientId)).data.userId == request.auth.uid;
