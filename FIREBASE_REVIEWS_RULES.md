@@ -1,5 +1,5 @@
 # Firebase Security Rules for Reviews Collection
-
+6
 ## Add these rules to your Firestore Security Rules
 
 ```javascript
