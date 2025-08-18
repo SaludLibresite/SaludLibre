@@ -1,5 +1,5 @@
-import { getUserSubscription } from '../../../lib/subscriptionsService';
-import { getDoctor } from '../../../lib/doctorsService';
+import { getUserSubscription } from '../../../../lib/subscriptionsService';
+import { getDoctorById } from '../../../../lib/doctorsService';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
     // Obtener datos del usuario
     const subscription = await getUserSubscription(userId);
-    const doctor = await getDoctor(userId);
+    const doctor = await getDoctorById(userId);
 
     res.status(200).json({
       userId,
