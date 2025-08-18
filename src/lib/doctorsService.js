@@ -5,6 +5,7 @@ import {
   getDoc,
   addDoc,
   updateDoc,
+  setDoc,
   deleteDoc,
   query,
   where,
@@ -182,6 +183,22 @@ export async function updateDoctor(id, doctorData) {
     return true;
   } catch (error) {
     console.error("Error updating doctor:", error);
+    throw error;
+  }
+}
+
+// Create or update doctor (upsert)
+export async function upsertDoctor(id, doctorData) {
+  try {
+    const docRef = doc(db, DOCTORS_COLLECTION, id);
+    await setDoc(docRef, {
+      ...doctorData,
+      updatedAt: new Date(),
+    }, { merge: true }); // merge: true permite actualizar o crear
+
+    return true;
+  } catch (error) {
+    console.error("Error upserting doctor:", error);
     throw error;
   }
 }

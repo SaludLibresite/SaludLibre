@@ -1,4 +1,5 @@
-import { updateDoctor, getDoctorById } from '../../../lib/doctorsService';
+import { updateDoctor, upsertDoctor, getDoctorByUserId } from '../../../lib/doctorsService';
+import { getActiveSubscriptionPlans } from '../../../lib/subscriptionsService';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -12,14 +13,26 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'UserId is required' });
     }
 
-    // Verificar que el doctor existe
-    const doctor = await getDoctorById(userId);
-    if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+    // Obtener los planes activos para encontrar el plan gratuito
+    const activePlans = await getActiveSubscriptionPlans();
+    const freePlan = activePlans.find(plan => plan.price === 0 || plan.price === undefined);
+    
+    if (!freePlan) {
+      return res.status(400).json({ message: 'Plan gratuito no disponible' });
     }
 
-    // Verificar que no tenga ya una suscripción activa
-    if (doctor.subscriptionStatus === 'active' && doctor.subscriptionExpiresAt) {
+    console.log('Free plan found:', { id: freePlan.id, name: freePlan.name });
+
+    // Intentar obtener el doctor (puede no existir)
+    let doctor = null;
+    try {
+      doctor = await getDoctorByUserId(userId);
+    } catch (error) {
+      console.log('Doctor not found, will update with subscription info:', userId);
+    }
+
+    // Si el doctor existe, verificar que no tenga ya una suscripción activa
+    if (doctor && doctor.subscriptionStatus === 'active' && doctor.subscriptionExpiresAt) {
       const expirationDate = doctor.subscriptionExpiresAt.toDate ? 
         doctor.subscriptionExpiresAt.toDate() : 
         new Date(doctor.subscriptionExpiresAt);
@@ -35,28 +48,45 @@ export default async function handler(req, res) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    // Actualizar el doctor con el plan gratuito
-    await updateDoctor(userId, {
+    const subscriptionData = {
       subscriptionStatus: 'active',
-      subscriptionPlan: 'Plan Gratuito',
-      subscriptionPlanId: 'plan_gratuito',
+      subscriptionPlan: freePlan.name,
+      subscriptionPlanId: freePlan.id, // Usar el ID real del plan
       subscriptionExpiresAt: expiresAt,
       subscriptionActivatedAt: new Date(),
       lastPaymentAmount: 0,
       lastPaymentMethod: 'free',
       verified: true, // Activar verificación con plan gratuito
       updatedAt: new Date(),
-    });
+    };
 
-    console.log(`✅ Free plan activated for doctor ${userId} (${doctor.nombre})`);
+    let updatedDoctor = null;
+    
+    if (doctor) {
+      // Si el doctor existe, actualizar usando su ID de documento
+      await updateDoctor(doctor.id, subscriptionData);
+      updatedDoctor = { ...doctor, ...subscriptionData };
+    } else {
+      // Si no existe, usar upsert con userId como ID del documento
+      await upsertDoctor(userId, {
+        userId: userId,
+        ...subscriptionData
+      });
+      updatedDoctor = { id: userId, userId: userId, ...subscriptionData };
+    }
+
+    console.log(`✅ Free plan activated for user ${userId}${doctor ? ` (${doctor.nombre})` : ''}`);
+    console.log('Updated doctor data:', updatedDoctor);
 
     res.status(200).json({ 
       message: 'Plan gratuito activado exitosamente',
       subscription: {
         status: 'active',
-        plan: 'Plan Gratuito',
+        plan: freePlan.name,
+        planId: freePlan.id,
         expiresAt: expiresAt
-      }
+      },
+      doctorId: updatedDoctor.id
     });
 
   } catch (error) {
