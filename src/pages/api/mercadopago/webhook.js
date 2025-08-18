@@ -1,5 +1,45 @@
 import { updateSubscription, updatePayment, getUserSubscription } from '../../../lib/subscriptionsService';
 import { updateDoctor } from '../../../lib/doctorsService';
+import crypto from 'crypto';
+
+// Validar firma del webhook de MercadoPago
+function validateWebhookSignature(req) {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  if (!secret) {
+    console.warn('MERCADOPAGO_WEBHOOK_SECRET not configured - webhook validation disabled');
+    return true; // En desarrollo, permitir sin validación
+  }
+
+  const signature = req.headers['x-signature'];
+  const requestId = req.headers['x-request-id'];
+  
+  if (!signature || !requestId) {
+    return false;
+  }
+
+  // Extraer hash de la firma
+  const signatureParts = signature.split(',');
+  const tsPart = signatureParts.find(part => part.startsWith('ts='));
+  const vPart = signatureParts.find(part => part.startsWith('v1='));
+  
+  if (!tsPart || !vPart) {
+    return false;
+  }
+
+  const timestamp = tsPart.replace('ts=', '');
+  const hash = vPart.replace('v1=', '');
+
+  // Crear el string a validar
+  const dataString = `id:${req.body.id};request-id:${requestId};ts:${timestamp};`;
+  
+  // Calcular hash HMAC
+  const expectedHash = crypto
+    .createHmac('sha256', secret)
+    .update(dataString)
+    .digest('hex');
+
+  return hash === expectedHash;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,6 +47,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Validar firma del webhook
+    if (!validateWebhookSignature(req)) {
+      console.error('Invalid webhook signature');
+      return res.status(401).json({ message: 'Invalid signature' });
+    }
     const { 
       id, 
       topic, 
