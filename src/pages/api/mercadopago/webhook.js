@@ -42,6 +42,12 @@ function validateWebhookSignature(req) {
 }
 
 export default async function handler(req, res) {
+  console.log('=== WEBHOOK CALLED ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('Query:', req.query);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
-import { getUserSubscription } from "../../lib/subscriptionsService";
+import { getUserSubscription, updateSubscription, updatePayment, getSubscriptionByPreferenceId } from "../../lib/subscriptionsService";
+import { updateDoctor } from "../../lib/doctorsService";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
@@ -10,40 +11,117 @@ export default function SubscriptionSuccess() {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
-      // Dar tiempo para que el webhook procese el pago
-      setTimeout(() => {
-        loadSubscription();
-      }, 2000);
+    if (currentUser && router.query.payment_id) {
+      processPaymentAndUpdateSubscription();
     }
-  }, [currentUser]);
+  }, [currentUser, router.query]);
 
-  const loadSubscription = async () => {
+  const processPaymentAndUpdateSubscription = async () => {
     try {
-      const userSubscription = await getUserSubscription(currentUser.uid);
-      setSubscription(userSubscription);
-      
-      // Si no encuentra la suscripción o está pending, intentar de nuevo en unos segundos
-      if (!userSubscription || userSubscription.status === 'pending') {
-        setTimeout(() => {
-          loadSubscription();
-        }, 3000);
+      setProcessingPayment(true);
+      const { payment_id, preference_id, status, collection_status } = router.query;
+
+      console.log('Processing payment:', { payment_id, preference_id, status, collection_status });
+
+      // Verificar que el pago fue aprobado
+      if (status !== 'approved' || collection_status !== 'approved') {
+        console.error('Payment not approved:', { status, collection_status });
+        setLoading(false);
+        return;
       }
+
+      // Obtener información del pago desde MercadoPago
+      const paymentInfo = await fetchPaymentInfo(payment_id);
+      if (!paymentInfo) {
+        console.error('Could not fetch payment info');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Payment info from MercadoPago:', paymentInfo);
+
+      // Buscar la suscripción por preference_id
+      const subscription = await getSubscriptionByPreferenceId(preference_id);
+      if (!subscription) {
+        console.error('Subscription not found for preference:', preference_id);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Found subscription:', subscription);
+
+      // Calcular fecha de expiración (30 días desde ahora)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      // Actualizar suscripción a activa
+      await updateSubscription(subscription.id, {
+        status: 'active',
+        activatedAt: new Date(),
+        expiresAt: expiresAt,
+        paymentId: paymentInfo.id,
+        lastPaymentDate: new Date(paymentInfo.date_approved),
+      });
+
+      // Actualizar el pago
+      await updatePayment(subscription.id, {
+        status: 'approved',
+        paymentId: paymentInfo.id,
+        approvedAt: new Date(paymentInfo.date_approved),
+        paymentMethod: paymentInfo.payment_method_id,
+        transactionAmount: paymentInfo.transaction_amount,
+      });
+
+      // Actualizar el doctor con la información de suscripción
+      await updateDoctor(subscription.userId, {
+        subscriptionStatus: 'active',
+        subscriptionPlan: subscription.planName,
+        subscriptionExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      });
+
+      // Cargar la suscripción actualizada
+      const updatedSubscription = await getUserSubscription(currentUser.uid);
+      setSubscription(updatedSubscription);
+
+      console.log('Subscription updated successfully:', updatedSubscription);
+
     } catch (error) {
-      console.error("Error loading subscription:", error);
+      console.error("Error processing payment and updating subscription:", error);
     } finally {
+      setProcessingPayment(false);
       setLoading(false);
     }
   };
 
-  if (loading) {
+  const fetchPaymentInfo = async (paymentId) => {
+    try {
+      const response = await fetch(`/api/mercadopago/payment-info/${paymentId}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error fetching payment info');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching payment info:', error);
+      return null;
+    }
+  };
+
+  if (loading || processingPayment) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando tu suscripción...</p>
+          <p className="mt-4 text-gray-600">
+            {processingPayment ? 'Procesando tu pago y activando suscripción...' : 'Verificando tu suscripción...'}
+          </p>
         </div>
       </div>
     );
@@ -64,7 +142,7 @@ export default function SubscriptionSuccess() {
           </p>
         </div>
 
-        {subscription && (
+        {subscription ? (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Detalles de tu Suscripción
@@ -94,6 +172,15 @@ export default function SubscriptionSuccess() {
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
+            <h3 className="text-lg font-medium text-yellow-900 mb-2">
+              Procesando tu suscripción
+            </h3>
+            <p className="text-yellow-800">
+              Tu pago ha sido procesado exitosamente. Tu suscripción será activada en unos momentos.
+            </p>
           </div>
         )}
 
