@@ -6,7 +6,11 @@ import {
   getReferralsByDoctorId,
   getReferralStats,
   getReferralLink,
+  createRewardRequest,
 } from "../../lib/referralsService";
+import { REFERRAL_REWARDS_CONFIG, getAvailableRewards } from "../../lib/referralRewardsConfig";
+import { canDoctorRefer, getReferralConfiguration } from "../../lib/referralConfigService";
+import ReferralProgressBar from "./ReferralProgressBar";
 import {
   UserIcon,
   ClockIcon,
@@ -17,6 +21,7 @@ import {
   TrophyIcon,
   ShareIcon,
   LinkIcon,
+  GiftIcon,
 } from "@heroicons/react/24/outline";
 
 export default function ReferralsList() {
@@ -30,6 +35,9 @@ export default function ReferralsList() {
   const [loading, setLoading] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [requestingReward, setRequestingReward] = useState(false);
+  const [canRefer, setCanRefer] = useState({ canRefer: true, reason: null });
+  const [currentConfig, setCurrentConfig] = useState(null);
 
   // Load doctor profile on component mount (EXACT COPY FROM ProfileSettings)
   useEffect(() => {
@@ -45,9 +53,10 @@ export default function ReferralsList() {
           });
 
           // Load referral data
-          const [referralsData, statsData] = await Promise.all([
+          const [referralsData, statsData, configData] = await Promise.all([
             getReferralsByDoctorId(doctorData.id),
             getReferralStats(doctorData.id),
+            getReferralConfiguration(),
           ]);
 
           setReferrals(referralsData || []);
@@ -60,7 +69,12 @@ export default function ReferralsList() {
               },
             }
           );
+          setCurrentConfig(configData);
           setTopReferrers([]);
+
+          // Check if doctor can refer
+          const canReferResult = await canDoctorRefer(doctorData.id);
+          setCanRefer(canReferResult);
         }
       } catch (error) {
         console.error("Error loading doctor profile:", error);
@@ -112,12 +126,43 @@ export default function ReferralsList() {
     alert(`${type} copiado al portapapeles`);
   };
 
+  // Helper function to calculate available rewards with dynamic config
+  const getAvailableRewardsWithConfig = (confirmedReferrals, approvedRewards = 0, pendingRewards = 0) => {
+    const totalEarned = Math.floor(confirmedReferrals / configuration.referralsPerReward);
+    return Math.max(0, totalEarned - approvedRewards - pendingRewards);
+  };
+
   const shareViaWhatsApp = () => {
     if (!referralStats?.referralCode) return;
     const link = getReferralLink(referralStats.referralCode);
     const message = `¡Únete a nuestra plataforma médica! Usa mi código de referencia: ${referralStats.referralCode}\n\nRegistrate aquí: ${link}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
+  };
+
+  const handleRequestReward = async () => {
+    if (!doctorId) {
+      alert("Error: Los datos del doctor no están disponibles");
+      return;
+    }
+
+    try {
+      setRequestingReward(true);
+      
+      await createRewardRequest(doctorId);
+      
+      alert(`¡Solicitud de recompensa de ${currentConfig?.rewardDays || REFERRAL_REWARDS_CONFIG.REWARD_DAYS} días enviada! El superadmin la revisará pronto.`);
+      
+      // Reload stats to update pending rewards
+      const statsData = await getReferralStats(doctorId);
+      setReferralStats(statsData);
+      
+    } catch (error) {
+      console.error("Error requesting reward:", error);
+      alert("Error al solicitar recompensa: " + (error.message || error.toString()));
+    } finally {
+      setRequestingReward(false);
+    }
   };
 
   const filteredReferrals = referrals.filter((referral) => {
@@ -180,6 +225,18 @@ export default function ReferralsList() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-2">Tu Código de Referencia</h2>
+            
+            {/* Referral Status */}
+            {!canRefer.canRefer && (
+              <div className="mb-4 bg-red-500/20 border border-red-300 rounded-lg p-3">
+                <div className="flex items-center">
+                  <XMarkIcon className="h-5 w-5 text-red-200 mr-2" />
+                  <span className="text-sm font-medium">Sistema de referidos deshabilitado</span>
+                </div>
+                <p className="text-xs text-red-100 mt-1">{canRefer.reason}</p>
+              </div>
+            )}
+            
             {referralStats?.referralCode ? (
               <div className="flex items-center space-x-4">
                 <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
@@ -193,6 +250,7 @@ export default function ReferralsList() {
                       copyToClipboard(referralStats.referralCode, "Código")
                     }
                     className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                    disabled={!canRefer.canRefer}
                   >
                     <CopyIcon className="h-5 w-5" />
                   </button>
@@ -204,18 +262,20 @@ export default function ReferralsList() {
                       )
                     }
                     className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                    disabled={!canRefer.canRefer}
                   >
                     <LinkIcon className="h-5 w-5" />
                   </button>
                   <button
                     onClick={shareViaWhatsApp}
                     className="bg-green-500 hover:bg-green-600 p-2 rounded-lg transition-colors"
+                    disabled={!canRefer.canRefer}
                   >
                     <ShareIcon className="h-5 w-5" />
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : canRefer.canRefer ? (
               <button
                 onClick={handleGenerateCode}
                 disabled={generatingCode}
@@ -223,6 +283,10 @@ export default function ReferralsList() {
               >
                 {generatingCode ? "Generando..." : "Generar Código"}
               </button>
+            ) : (
+              <div className="bg-red-500/20 border border-red-300 rounded-lg p-3">
+                <p className="text-sm">No puedes generar un código de referido en este momento.</p>
+              </div>
             )}
           </div>
         </div>
@@ -249,7 +313,80 @@ export default function ReferralsList() {
             </div>
           </div>
         )}
+
+        {/* Rewards Section */}
+        {referralStats?.referralRewards && (
+          <div className="mt-6 border-t border-white/20 pt-6">
+            <h3 className="text-lg font-semibold mb-4">🎁 Sistema de Recompensas</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {Math.floor((referralStats.referralStats?.confirmedReferrals || 0) / REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD)}
+                </div>
+                <div className="text-white/80">Recompensas Ganadas</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {referralStats.referralRewards?.pendingRewards || 0}
+                </div>
+                <div className="text-white/80">Pendientes</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {referralStats.referralRewards?.approvedRewards || 0}
+                </div>
+                <div className="text-white/80">Aprobadas</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {referralStats.referralRewards?.totalRewardsEarned || 0}
+                </div>
+                <div className="text-white/80">Días Gratis</div>
+              </div>
+            </div>
+            
+            {/* Request Reward Button */}
+            {canRefer.canRefer && getAvailableRewardsWithConfig(
+              referralStats.referralStats?.confirmedReferrals || 0,
+              referralStats.referralRewards?.approvedRewards || 0,
+              referralStats.referralRewards?.pendingRewards || 0
+            ) > 0 && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={handleRequestReward}
+                  disabled={requestingReward}
+                  className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2 mx-auto"
+                >
+                  <GiftIcon className="h-4 w-4" />
+                  <span>{requestingReward ? "Solicitando..." : `Solicitar ${configuration.rewardDays} Días Gratis`}</span>
+                </button>
+                <p className="text-xs text-white/70 mt-2">
+                  ¡Tienes derecho a una recompensa de {configuration.rewardDays} días gratis! (Cada {configuration.referralsPerReward} referidos confirmados = {configuration.rewardDays} días gratis)
+                </p>
+              </div>
+            )}
+            
+            {referralStats.referralRewards?.pendingRewards > 0 && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-white/80">
+                  ⏳ Tienes {referralStats.referralRewards.pendingRewards} recompensa(s) esperando aprobación del administrador
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Progress Bar Section */}
+      {referralStats && canRefer.canRefer && (
+        <div className="mt-6">
+          <ReferralProgressBar 
+            confirmedReferrals={referralStats.referralStats?.confirmedReferrals || 0}
+            pendingRewards={referralStats.referralRewards?.pendingRewards || 0}
+            approvedRewards={referralStats.referralRewards?.approvedRewards || 0}
+          />
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="bg-white rounded-lg shadow">

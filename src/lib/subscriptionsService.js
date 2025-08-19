@@ -402,3 +402,45 @@ export const getSubscriptionDaysRemaining = (subscription) => {
   
   return Math.max(0, diffDays);
 };
+
+// Extend subscription by specified days (for referral rewards)
+export const extendSubscription = async (subscriptionId, additionalDays, extendedBy) => {
+  try {
+    const subscriptionRef = doc(db, SUBSCRIPTIONS_COLLECTION, subscriptionId);
+    const subscriptionSnap = await getDoc(subscriptionRef);
+    
+    if (!subscriptionSnap.exists()) {
+      throw new Error("Subscription not found");
+    }
+    
+    const subscriptionData = subscriptionSnap.data();
+    const currentEndDate = subscriptionData.endDate?.toDate?.() || new Date(subscriptionData.endDate);
+    
+    // Add the additional days to the current end date
+    const newEndDate = new Date(currentEndDate);
+    newEndDate.setDate(newEndDate.getDate() + additionalDays);
+    
+    await updateDoc(subscriptionRef, {
+      endDate: Timestamp.fromDate(newEndDate),
+      extendedBy: extendedBy || "system",
+      extendedDays: (subscriptionData.extendedDays || 0) + additionalDays,
+      lastExtension: {
+        date: Timestamp.now(),
+        days: additionalDays,
+        reason: "referral_reward",
+        extendedBy,
+      },
+      updatedAt: Timestamp.now(),
+    });
+    
+    return {
+      id: subscriptionId,
+      oldEndDate: currentEndDate,
+      newEndDate,
+      additionalDays,
+    };
+  } catch (error) {
+    console.error("Error extending subscription:", error);
+    throw error;
+  }
+};

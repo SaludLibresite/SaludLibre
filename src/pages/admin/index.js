@@ -5,6 +5,7 @@ import DashboardStats from "../../components/admin/DashboardStats";
 import RecentAppointments from "../../components/admin/RecentAppointments";
 import UpcomingAppointments from "../../components/admin/UpcomingAppointments";
 import PendingAppointments from "../../components/admin/PendingAppointments";
+import ReferralRewardNotification from "../../components/admin/ReferralRewardNotification";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import CompleteProfileModal from "../../components/admin/CompleteProfileModal";
 import { useAuth } from "../../context/AuthContext";
@@ -66,6 +67,9 @@ export default function AdminDashboard() {
           </div>
 
           <DashboardStats />
+
+          {/* Referral Reward Notification */}
+          <ReferralRewardNotification />
 
           {/* Pending Appointments - Full Width */}
           <div className="mt-8">

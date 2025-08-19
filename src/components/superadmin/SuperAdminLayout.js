@@ -13,6 +13,7 @@ import {
   ChevronRightIcon,
   UserIcon,
   CurrencyDollarIcon,
+  GiftIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SuperAdminLayout({ children }) {
@@ -53,6 +54,11 @@ export default function SuperAdminLayout({ children }) {
       name: 'Suscriptores',
       href: '/superadmin/subscriptions-overview',
       icon: UserIcon,
+    },
+    {
+      name: 'Recompensas',
+      href: '/superadmin/referral-rewards',
+      icon: GiftIcon,
     },
   ];
 

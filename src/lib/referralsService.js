@@ -14,6 +14,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { REFERRAL_REWARDS_CONFIG } from "./referralRewardsConfig";
+import { getReferralConfiguration, canDoctorRefer } from "./referralConfigService";
 
 const REFERRALS_COLLECTION = "referrals";
 const PATIENT_REFERRALS_COLLECTION = "patient_referrals";
@@ -151,6 +153,12 @@ export function generateDoctorReferralCode(doctorName) {
 // Create or get referral code for a doctor
 export async function createReferralCode(doctorId, doctorName) {
   try {
+    // Check if the doctor can refer based on current configuration
+    const canReferResult = await canDoctorRefer(doctorId);
+    if (!canReferResult.canRefer) {
+      throw new Error(canReferResult.reason);
+    }
+
     // Check if doctor already has a referral code
     const doctorRef = doc(db, DOCTORS_COLLECTION, doctorId);
     const doctorSnap = await getDoc(doctorRef);
@@ -188,6 +196,18 @@ export async function createReferralCode(doctorId, doctorName) {
           confirmedReferrals: 0,
           lastReferralDate: null,
         },
+        referralRewards: {
+          eligibleRewards: 0,
+          pendingRewards: 0,
+          approvedRewards: 0,
+          totalRewardsEarned: 0,
+        },
+        referralSettings: {
+          enabled: true,
+          lastToggled: new Date(),
+          toggledBy: "self",
+          reasonDisabled: null,
+        },
       });
     } else {
       // Create new doctor document if it doesn't exist
@@ -201,6 +221,18 @@ export async function createReferralCode(doctorId, doctorName) {
           pendingReferrals: 0,
           confirmedReferrals: 0,
           lastReferralDate: null,
+        },
+        referralRewards: {
+          eligibleRewards: 0,
+          pendingRewards: 0,
+          approvedRewards: 0,
+          totalRewardsEarned: 0,
+        },
+        referralSettings: {
+          enabled: true,
+          lastToggled: new Date(),
+          toggledBy: "self",
+          reasonDisabled: null,
         },
         createdAt: new Date(),
       });
@@ -256,6 +288,14 @@ export async function registerReferral(
   referredDoctorData
 ) {
   try {
+    // Check if the referrer can still refer
+    const canReferResult = await canDoctorRefer(referrerDoctorId);
+    if (!canReferResult.canRefer) {
+      console.warn(`Referrer ${referrerDoctorId} cannot refer: ${canReferResult.reason}`);
+      // Don't throw error, just don't create the referral
+      return null;
+    }
+
     // Create referral record
     const referralData = {
       referrerDoctorId,
@@ -306,6 +346,9 @@ export async function confirmReferral(referralId, referrerDoctorId) {
       "referralStats.confirmedReferrals": increment(1),
     });
 
+    // Update eligible rewards
+    await updateEligibleRewards(referrerDoctorId);
+
     return true;
   } catch (error) {
     console.error("Error confirming referral:", error);
@@ -355,12 +398,261 @@ export async function getReferralStats(doctorId) {
           confirmedReferrals: 0,
           lastReferralDate: null,
         },
+        referralRewards: data.referralRewards || {
+          eligibleRewards: 0,
+          pendingRewards: 0,
+          approvedRewards: 0,
+          totalRewardsEarned: 0,
+        },
       };
     }
 
     return null;
   } catch (error) {
     console.error("Error getting referral stats:", error);
+    throw error;
+  }
+}
+
+// Get all doctors with referral data for superadmin
+export async function getAllDoctorsWithReferrals() {
+  try {
+    const doctorsQuery = query(
+      collection(db, DOCTORS_COLLECTION),
+      where("referralCode", "!=", null)
+    );
+
+    const querySnapshot = await getDocs(doctorsQuery);
+    const doctorsWithReferrals = [];
+
+    for (const doc of querySnapshot.docs) {
+      const doctorData = doc.data();
+      const referrals = await getReferralsByDoctorId(doc.id);
+      
+      // Calculate eligible rewards using config
+      const confirmedReferrals = doctorData.referralStats?.confirmedReferrals || 0;
+      const eligibleRewards = Math.floor(confirmedReferrals / REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD);
+      const currentEligibleRewards = doctorData.referralRewards?.eligibleRewards || 0;
+      
+      // Get doctor's full name with fallback
+      const doctorName = doctorData.nombre || 
+                        `${doctorData.firstName || ''} ${doctorData.lastName || ''}`.trim() ||
+                        'Doctor';
+      
+      doctorsWithReferrals.push({
+        id: doc.id,
+        ...doctorData,
+        displayName: doctorName,
+        referrals,
+        newEligibleRewards: Math.max(0, eligibleRewards - currentEligibleRewards),
+        progressToNextReward: confirmedReferrals % REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD,
+        nextRewardIn: REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD - (confirmedReferrals % REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD),
+      });
+    }
+
+    return doctorsWithReferrals.sort((a, b) => 
+      (b.referralStats?.confirmedReferrals || 0) - (a.referralStats?.confirmedReferrals || 0)
+    );
+  } catch (error) {
+    console.error("Error getting all doctors with referrals:", error);
+    throw error;
+  }
+}
+
+// Update eligible rewards for a doctor
+export async function updateEligibleRewards(doctorId) {
+  try {
+    // Get current configuration
+    const config = await getReferralConfiguration();
+    
+    const doctorRef = doc(db, DOCTORS_COLLECTION, doctorId);
+    const doctorSnap = await getDoc(doctorRef);
+    
+    if (doctorSnap.exists()) {
+      const data = doctorSnap.data();
+      const confirmedReferrals = data.referralStats?.confirmedReferrals || 0;
+      const eligibleRewards = Math.floor(confirmedReferrals / config.referralsPerReward);
+      
+      await updateDoc(doctorRef, {
+        "referralRewards.eligibleRewards": eligibleRewards,
+      });
+      
+      return eligibleRewards;
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error("Error updating eligible rewards:", error);
+    throw error;
+  }
+}
+
+// Create a reward request
+export async function createRewardRequest(doctorId, rewardType = "subscription_extension") {
+  try {
+    // Check if doctor can still refer and request rewards
+    const canReferResult = await canDoctorRefer(doctorId);
+    if (!canReferResult.canRefer) {
+      throw new Error(canReferResult.reason);
+    }
+
+    // Get current configuration for reward days
+    const config = await getReferralConfiguration();
+    
+    const rewardData = {
+      doctorId,
+      rewardType,
+      status: "pending", // pending, approved, rejected
+      rewardValue: config.rewardDays,
+      createdAt: new Date(),
+      approvedAt: null,
+      approvedBy: null,
+    };
+
+    const rewardRef = await addDoc(collection(db, "referral_rewards"), rewardData);
+
+    // Update doctor's pending rewards count
+    const doctorRef = doc(db, DOCTORS_COLLECTION, doctorId);
+    await updateDoc(doctorRef, {
+      "referralRewards.pendingRewards": increment(1),
+    });
+
+    return rewardRef.id;
+  } catch (error) {
+    console.error("Error creating reward request:", error);
+    throw error;
+  }
+}
+
+// Get all pending reward requests for superadmin
+export async function getPendingRewardRequests() {
+  try {
+    const rewardsQuery = query(
+      collection(db, "referral_rewards"),
+      where("status", "==", "pending"),
+      orderBy("createdAt", "desc")
+    );
+
+    const querySnapshot = await getDocs(rewardsQuery);
+    const pendingRewards = [];
+
+    for (const doc of querySnapshot.docs) {
+      const rewardData = doc.data();
+      
+      // Get doctor data
+      const doctorRef = await getDoc(doc(db, DOCTORS_COLLECTION, rewardData.doctorId));
+      const doctorData = doctorRef.exists() ? doctorRef.data() : null;
+
+      pendingRewards.push({
+        id: doc.id,
+        ...rewardData,
+        doctorData,
+      });
+    }
+
+    return pendingRewards;
+  } catch (error) {
+    console.error("Error getting pending reward requests:", error);
+    throw error;
+  }
+}
+
+// Approve a reward request
+export async function approveRewardRequest(rewardId, approvedBy) {
+  try {
+    const rewardRef = doc(db, "referral_rewards", rewardId);
+    const rewardSnap = await getDoc(rewardRef);
+    
+    if (!rewardSnap.exists()) {
+      throw new Error("Reward request not found");
+    }
+    
+    const rewardData = rewardSnap.data();
+    
+    // Update reward status
+    await updateDoc(rewardRef, {
+      status: "approved",
+      approvedAt: new Date(),
+      approvedBy,
+    });
+
+    // Update doctor's reward stats
+    const doctorRef = doc(db, DOCTORS_COLLECTION, rewardData.doctorId);
+    await updateDoc(doctorRef, {
+      "referralRewards.pendingRewards": increment(-1),
+      "referralRewards.approvedRewards": increment(1),
+      "referralRewards.totalRewardsEarned": increment(rewardData.rewardValue || 30),
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error approving reward request:", error);
+    throw error;
+  }
+}
+
+// Reject a reward request
+export async function rejectRewardRequest(rewardId, rejectedBy, reason = "") {
+  try {
+    const rewardRef = doc(db, "referral_rewards", rewardId);
+    const rewardSnap = await getDoc(rewardRef);
+    
+    if (!rewardSnap.exists()) {
+      throw new Error("Reward request not found");
+    }
+    
+    const rewardData = rewardSnap.data();
+    
+    // Update reward status
+    await updateDoc(rewardRef, {
+      status: "rejected",
+      rejectedAt: new Date(),
+      rejectedBy,
+      rejectionReason: reason,
+    });
+
+    // Update doctor's pending rewards count
+    const doctorRef = doc(db, DOCTORS_COLLECTION, rewardData.doctorId);
+    await updateDoc(doctorRef, {
+      "referralRewards.pendingRewards": increment(-1),
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error rejecting reward request:", error);
+    throw error;
+  }
+}
+
+// Update all doctors' eligible rewards (utility function)
+export async function updateAllEligibleRewards() {
+  try {
+    const doctorsQuery = query(
+      collection(db, DOCTORS_COLLECTION),
+      where("referralCode", "!=", null)
+    );
+
+    const querySnapshot = await getDocs(doctorsQuery);
+    const updates = [];
+
+    for (const doc of querySnapshot.docs) {
+      const doctorData = doc.data();
+      const confirmedReferrals = doctorData.referralStats?.confirmedReferrals || 0;
+      const eligibleRewards = Math.floor(confirmedReferrals / 3);
+      
+      if (eligibleRewards !== (doctorData.referralRewards?.eligibleRewards || 0)) {
+        updates.push(
+          updateDoc(doc.ref, {
+            "referralRewards.eligibleRewards": eligibleRewards,
+          })
+        );
+      }
+    }
+
+    await Promise.all(updates);
+    return updates.length;
+  } catch (error) {
+    console.error("Error updating all eligible rewards:", error);
     throw error;
   }
 }
