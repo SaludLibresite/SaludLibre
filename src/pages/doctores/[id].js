@@ -187,45 +187,95 @@ export default function DoctorDetailPage({
     return () => clearInterval(interval);
   }, [doctor?.horario]);
 
+  // Render SEO first for better server-side rendering
+  const seoComponent = (
+    <SEO
+      title={`Dr. ${doctor?.nombre} - ${doctor?.especialidad} | Salud Libre`}
+      description={
+        doctor?.descripcion || 
+        `Consulta con Dr. ${doctor?.nombre}, especialista en ${doctor?.especialidad}. ${doctor?.formattedAddress || doctor?.ubicacion}. Agenda tu cita médica.`
+      }
+      image={
+        doctor?.photoURL ||
+        (doctor?.imagen?.startsWith("http")
+          ? doctor?.imagen
+          : `https://saludlibre.com/${doctor?.imagen || "img/doctor-1.jpg"}`)
+      }
+      url={`https://saludlibre.com/doctores/${doctor?.slug}`}
+      pinColor="#3B82F6"
+    >
+      {/* JSON-LD structured data for better SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Physician",
+            "name": doctor?.nombre,
+            "description": doctor?.descripcion,
+            "specialty": doctor?.especialidad,
+            "image": doctor?.photoURL || doctor?.imagen,
+            "telephone": doctor?.telefono,
+            "email": doctor?.email,
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": doctor?.formattedAddress || doctor?.ubicacion
+            },
+            "geo": doctor?.latitude && doctor?.longitude ? {
+              "@type": "GeoCoordinates",
+              "latitude": doctor.latitude,
+              "longitude": doctor.longitude
+            } : undefined,
+            "url": `https://saludlibre.com/doctores/${doctor?.slug}`,
+            "priceRange": "$$",
+            "availableLanguage": "Spanish"
+          })
+        }}
+      />
+    </SEO>
+  );
+
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="text-red-500 text-6xl">⚠️</div>
-          <p className="text-gray-600 text-center">
-            Error al cargar la información del doctor
-          </p>
-          <button
-            onClick={() => router.push("/doctores")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Volver a la lista
-          </button>
+      <>
+        {seoComponent}
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="text-red-500 text-6xl">⚠️</div>
+            <p className="text-gray-600 text-center">
+              Error al cargar la información del doctor
+            </p>
+            <button
+              onClick={() => router.push("/doctores")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Volver a la lista
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Loading state
   if (router.isFallback || !doctor) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-600 border-t-transparent"></div>
-          <p className="text-gray-600">Cargando información del doctor...</p>
+      <>
+        {seoComponent}
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-600 border-t-transparent"></div>
+            <p className="text-gray-600">Cargando información del doctor...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <main className="bg-gray-50 min-h-screen">
-      <SEO
-        title={doctor.nombre + " | Salud Libre"}
-        description={doctor.descripcion}
-        image={doctor.imagen}
-      />
+      {seoComponent}
       <NavBar />
 
       <motion.div
@@ -950,6 +1000,13 @@ export async function getServerSideProps(context) {
           permanent: false,
         },
       };
+    }
+
+    // Log for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[SSR] Loading doctor: ${doctorData.nombre} (${doctorData.especialidad})`);
+      console.log(`[SSR] Doctor image: ${doctorData.photoURL || doctorData.imagen}`);
+      console.log(`[SSR] Doctor slug: ${doctorData.slug}`);
     }
 
     // Load reviews for this doctor
