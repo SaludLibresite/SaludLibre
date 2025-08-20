@@ -286,6 +286,11 @@ export default function DoctorDetailPage() {
 
   return (
     <main className="bg-gray-50 min-h-screen">
+      <SEO
+        title={doctor.nombre + " | Salud Libre"}
+        description={doctor.descripcion}
+        image={doctor.photoURL}
+      />
       <NavBar />
 
       <motion.div
