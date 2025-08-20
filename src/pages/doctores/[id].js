@@ -290,7 +290,7 @@ export default function DoctorDetailPage() {
       <SEO
         title={doctor.nombre + " | Salud Libre"}
         description={doctor.descripcion}
-        image={doctor.photoURL}
+        image={doctor.imagen}
       />
       <NavBar />
 
