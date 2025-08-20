@@ -555,7 +555,7 @@ export default function DoctorDetailPage({
             <DoctorReviews
               reviews={reviews}
               averageRating={averageRating}
-              loading={reviewsLoading}
+              loading={false}
             />
           </div>
 
@@ -852,28 +852,87 @@ const loadDoctorReviews = async (doctorId) => {
     ]);
 
     // Transform reviews to match the expected format for DoctorReviews component
-    const transformedReviews = doctorReviews.map((review) => ({
-      id: review.id,
-      name: review.patientName,
-      photo: "/img/user2.png", // Default photo since we don't store patient photos
-      rating: review.rating,
-      date: review.createdAt?.toDate
-        ? review.createdAt.toDate().toISOString().split("T")[0]
-        : new Date(review.createdAt).toISOString().split("T")[0],
-      comment: review.comment || "",
-      verified: true, // All reviews from our system are verified
-      aspects: review.aspects,
-      wouldRecommend: review.wouldRecommend,
-      appointmentDate: review.appointmentDate?.toDate
-        ? review.appointmentDate.toDate()
-        : new Date(review.appointmentDate),
-    }));
+    const transformedReviews = doctorReviews.map((review) => {
+      // Helper function to convert Firestore dates to strings
+      const formatDate = (dateValue) => {
+        if (!dateValue) return null;
+        
+        if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+          return dateValue.toDate().toISOString().split("T")[0];
+        } else if (dateValue instanceof Date) {
+          return dateValue.toISOString().split("T")[0];
+        } else if (dateValue.seconds && dateValue.nanoseconds !== undefined) {
+          return new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000).toISOString().split("T")[0];
+        } else if (typeof dateValue === 'string') {
+          return new Date(dateValue).toISOString().split("T")[0];
+        }
+        
+        return new Date(dateValue).toISOString().split("T")[0];
+      };
+
+      const formatFullDate = (dateValue) => {
+        if (!dateValue) return null;
+        
+        if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+          return dateValue.toDate().toISOString();
+        } else if (dateValue instanceof Date) {
+          return dateValue.toISOString();
+        } else if (dateValue.seconds && dateValue.nanoseconds !== undefined) {
+          return new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000).toISOString();
+        } else if (typeof dateValue === 'string') {
+          return new Date(dateValue).toISOString();
+        }
+        
+        return new Date(dateValue).toISOString();
+      };
+
+      return {
+        id: review.id,
+        name: review.patientName,
+        photo: "/img/user2.png", // Default photo since we don't store patient photos
+        rating: review.rating,
+        date: formatDate(review.createdAt),
+        comment: review.comment || "",
+        verified: true, // All reviews from our system are verified
+        aspects: review.aspects,
+        wouldRecommend: review.wouldRecommend,
+        appointmentDate: formatFullDate(review.appointmentDate),
+      };
+    });
 
     return { transformedReviews, ratingData };
   } catch (error) {
     console.error("Error loading doctor reviews:", error);
     return { transformedReviews: [], ratingData: null };
   }
+};
+
+// Helper function to serialize Firestore objects
+const serializeFirestoreData = (data) => {
+  if (!data) return data;
+  
+  const serialized = { ...data };
+  
+  // Convert Firestore Timestamps to ISO strings
+  Object.keys(serialized).forEach(key => {
+    const value = serialized[key];
+    
+    // Check if it's a Firestore Timestamp or Date object
+    if (value && typeof value === 'object') {
+      if (value.toDate && typeof value.toDate === 'function') {
+        // Firestore Timestamp
+        serialized[key] = value.toDate().toISOString();
+      } else if (value instanceof Date) {
+        // JavaScript Date
+        serialized[key] = value.toISOString();
+      } else if (value.seconds && value.nanoseconds !== undefined) {
+        // Firestore Timestamp object format
+        serialized[key] = new Date(value.seconds * 1000 + value.nanoseconds / 1000000).toISOString();
+      }
+    }
+  });
+  
+  return serialized;
 };
 
 export async function getServerSideProps(context) {
@@ -915,10 +974,14 @@ export async function getServerSideProps(context) {
       })
       .slice(0, 3);
 
+    // Serialize all data to ensure JSON compatibility
+    const serializedDoctor = serializeFirestoreData(doctorData);
+    const serializedRelatedDoctors = relatedDoctors.map(doctor => serializeFirestoreData(doctor));
+
     return {
       props: {
-        doctor: doctorData,
-        relatedDoctors,
+        doctor: serializedDoctor,
+        relatedDoctors: serializedRelatedDoctors,
         reviews: transformedReviews,
         averageRating: ratingData,
         error: null,
