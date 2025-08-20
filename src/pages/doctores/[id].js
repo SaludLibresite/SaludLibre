@@ -49,19 +49,25 @@ const cardHover = {
   },
 };
 
-export default function DoctorDetailPage() {
+export default function DoctorDetailPage({ 
+  doctor, 
+  relatedDoctors, 
+  reviews, 
+  averageRating, 
+  error 
+}) {
   const router = useRouter();
-  const { id } = router.query;
-  const [doctor, setDoctor] = useState(null);
-  const [relatedDoctors, setRelatedDoctors] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
-  const [averageRating, setAverageRating] = useState(null);
   const { currentUser } = useAuth();
+
+  // If there's an error, redirect to doctors page
+  useEffect(() => {
+    if (error) {
+      router.push("/doctores");
+    }
+  }, [error, router]);
 
   // Function to check if today is doctor's birthday
   const isBirthday = (fechaNacimiento) => {
@@ -159,99 +165,6 @@ export default function DoctorDetailPage() {
     router.push("/paciente/login");
   };
 
-  // Load doctor reviews
-  const loadDoctorReviews = async (doctorId) => {
-    try {
-      setReviewsLoading(true);
-
-      // Load reviews and average rating
-      const [doctorReviews, ratingData] = await Promise.all([
-        getReviewsByDoctorId(doctorId),
-        getDoctorAverageRating(doctorId),
-      ]);
-
-      // Transform reviews to match the expected format for DoctorReviews component
-      const transformedReviews = doctorReviews.map((review) => ({
-        id: review.id,
-        name: review.patientName,
-        photo: "/img/user2.png", // Default photo since we don't store patient photos
-        rating: review.rating,
-        date: review.createdAt?.toDate
-          ? review.createdAt.toDate().toISOString().split("T")[0]
-          : new Date(review.createdAt).toISOString().split("T")[0],
-        comment: review.comment || "",
-        verified: true, // All reviews from our system are verified
-        aspects: review.aspects,
-        wouldRecommend: review.wouldRecommend,
-        appointmentDate: review.appointmentDate?.toDate
-          ? review.appointmentDate.toDate()
-          : new Date(review.appointmentDate),
-      }));
-
-      setReviews(transformedReviews);
-      setAverageRating(ratingData);
-    } catch (error) {
-      console.error("Error loading doctor reviews:", error);
-      setReviews([]);
-      setAverageRating(null);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
-
-  // Load doctor data
-  useEffect(() => {
-    async function loadDoctor() {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-
-        // Get doctor by slug
-        const doctorData = await getDoctorBySlug(id);
-
-        // Check if doctor is verified
-        if (doctorData.verified !== true) {
-          router.push("/doctores"); // Redirect if not verified
-          return;
-        }
-
-        setDoctor(doctorData);
-
-        // Load reviews for this doctor
-        await loadDoctorReviews(doctorData.id);
-
-        // Get all doctors to find related ones
-        const allDoctors = await getAllDoctors();
-        const related = allDoctors
-          .filter(
-            (d) =>
-              d.id !== doctorData.id &&
-              d.especialidad === doctorData.especialidad &&
-              d.verified === true
-          )
-          .sort((a, b) => {
-            // Prioritize VIP doctors
-            const rankA = getDoctorRank(a);
-            const rankB = getDoctorRank(b);
-            if (rankA === "VIP" && rankB !== "VIP") return -1;
-            if (rankB === "VIP" && rankA !== "VIP") return 1;
-            return 0;
-          })
-          .slice(0, 3);
-
-        setRelatedDoctors(related);
-      } catch (error) {
-        console.error("Error loading doctor:", error);
-        router.push("/doctores"); // Redirect to doctors list if not found
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadDoctor();
-  }, [id, router]);
-
   useEffect(() => {
     if (!doctor?.horario) return;
 
@@ -274,7 +187,28 @@ export default function DoctorDetailPage() {
     return () => clearInterval(interval);
   }, [doctor?.horario]);
 
-  if (loading || !doctor) {
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="text-red-500 text-6xl">⚠️</div>
+          <p className="text-gray-600 text-center">
+            Error al cargar la información del doctor
+          </p>
+          <button
+            onClick={() => router.push("/doctores")}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Volver a la lista
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (router.isFallback || !doctor) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-4">
@@ -906,4 +840,101 @@ export default function DoctorDetailPage() {
       <Footer />
     </main>
   );
+}
+
+// Load doctor reviews function
+const loadDoctorReviews = async (doctorId) => {
+  try {
+    // Load reviews and average rating
+    const [doctorReviews, ratingData] = await Promise.all([
+      getReviewsByDoctorId(doctorId),
+      getDoctorAverageRating(doctorId),
+    ]);
+
+    // Transform reviews to match the expected format for DoctorReviews component
+    const transformedReviews = doctorReviews.map((review) => ({
+      id: review.id,
+      name: review.patientName,
+      photo: "/img/user2.png", // Default photo since we don't store patient photos
+      rating: review.rating,
+      date: review.createdAt?.toDate
+        ? review.createdAt.toDate().toISOString().split("T")[0]
+        : new Date(review.createdAt).toISOString().split("T")[0],
+      comment: review.comment || "",
+      verified: true, // All reviews from our system are verified
+      aspects: review.aspects,
+      wouldRecommend: review.wouldRecommend,
+      appointmentDate: review.appointmentDate?.toDate
+        ? review.appointmentDate.toDate()
+        : new Date(review.appointmentDate),
+    }));
+
+    return { transformedReviews, ratingData };
+  } catch (error) {
+    console.error("Error loading doctor reviews:", error);
+    return { transformedReviews: [], ratingData: null };
+  }
+};
+
+export async function getServerSideProps(context) {
+  const { id } = context.params;
+
+  try {
+    // Get doctor by slug
+    const doctorData = await getDoctorBySlug(id);
+
+    // Check if doctor exists and is verified
+    if (!doctorData || doctorData.verified !== true) {
+      return {
+        redirect: {
+          destination: "/doctores",
+          permanent: false,
+        },
+      };
+    }
+
+    // Load reviews for this doctor
+    const { transformedReviews, ratingData } = await loadDoctorReviews(doctorData.id);
+
+    // Get all doctors to find related ones
+    const allDoctors = await getAllDoctors();
+    const relatedDoctors = allDoctors
+      .filter(
+        (d) =>
+          d.id !== doctorData.id &&
+          d.especialidad === doctorData.especialidad &&
+          d.verified === true
+      )
+      .sort((a, b) => {
+        // Prioritize VIP doctors
+        const rankA = getDoctorRank(a);
+        const rankB = getDoctorRank(b);
+        if (rankA === "VIP" && rankB !== "VIP") return -1;
+        if (rankB === "VIP" && rankA !== "VIP") return 1;
+        return 0;
+      })
+      .slice(0, 3);
+
+    return {
+      props: {
+        doctor: doctorData,
+        relatedDoctors,
+        reviews: transformedReviews,
+        averageRating: ratingData,
+        error: null,
+      },
+    };
+  } catch (error) {
+    console.error("Error loading doctor data:", error);
+    
+    return {
+      props: {
+        doctor: null,
+        relatedDoctors: [],
+        reviews: [],
+        averageRating: null,
+        error: "Error loading doctor data",
+      },
+    };
+  }
 }
