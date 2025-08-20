@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAllDoctors } from "../lib/doctorsService";
 import { getAllSpecialties } from "../lib/specialtiesService";
+import { getDoctorRank } from "../lib/subscriptionUtils";
 
 const SearchIcon = () => (
   <svg
@@ -69,14 +70,14 @@ const DoctorResult = ({ doctor }) => (
           )}
           <span
             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              doctor.rango === "VIP"
+              getDoctorRank(doctor) === "VIP"
                 ? "bg-amber-50 text-amber-700"
-                : doctor.rango === "Intermedio"
+                : getDoctorRank(doctor) === "Intermedio"
                 ? "bg-blue-50 text-blue-700"
                 : "bg-gray-50 text-gray-700"
             }`}
           >
-            {doctor.rango}
+            {getDoctorRank(doctor)}
           </span>
           {doctor.ageGroup && (
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">

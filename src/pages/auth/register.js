@@ -186,7 +186,10 @@ export default function Register() {
         userId: user.uid,
         nombre: formData.nombre,
         slug: generateSlug(formData.nombre, formData.especialidad),
-        rango: formData.rango,
+        // Todos los doctores empiezan con plan gratuito
+        subscriptionStatus: 'inactive',
+        subscriptionPlan: 'Plan Free',
+        subscriptionPlanId: 'plan-free',
         imagen: "img/doctor-1.jpg", // Default image
         descripcion:
           formData.descripcion || `${formData.especialidad} especialista`,

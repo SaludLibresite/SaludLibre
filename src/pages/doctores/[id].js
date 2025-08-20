@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/Footer";
 import DoctorCard from "../../components/doctoresPage/DoctorCard";
 import { getDoctorBySlug, getAllDoctors } from "../../lib/doctorsService";
+import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { createAppointment } from "../../lib/appointmentsService";
 import {
   getReviewsByDoctorId,
@@ -230,8 +231,10 @@ export default function DoctorDetailPage() {
           )
           .sort((a, b) => {
             // Prioritize VIP doctors
-            if (a.rango === "VIP" && b.rango !== "VIP") return -1;
-            if (b.rango === "VIP" && a.rango !== "VIP") return 1;
+            const rankA = getDoctorRank(a);
+            const rankB = getDoctorRank(b);
+            if (rankA === "VIP" && rankB !== "VIP") return -1;
+            if (rankB === "VIP" && rankA !== "VIP") return 1;
             return 0;
           })
           .slice(0, 3);
@@ -316,7 +319,7 @@ export default function DoctorDetailPage() {
                         e.target.src = "/img/doctor-1.jpg"; // Fallback image
                       }}
                     />
-                    {doctor.rango === "VIP" && (
+                    {getDoctorRank(doctor) === "VIP" && (
                       <div className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full">
                         Premium
                       </div>
@@ -368,7 +371,7 @@ export default function DoctorDetailPage() {
                       <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
                         {doctor.nombre}
                       </h1>
-                      {doctor.rango === "VIP" && (
+                      {getDoctorRank(doctor) === "VIP" && (
                         <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
                           Premium
                         </span>

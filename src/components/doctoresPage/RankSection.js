@@ -1,10 +1,12 @@
 import React from "react";
 import DoctorCard from "./DoctorCard";
+import { getDoctorRank } from "../../lib/subscriptionUtils";
 
 export default function RankSection({ doctors, index }) {
   const getGridCols = () => {
     const firstDoctor = doctors[0];
-    switch (firstDoctor.rango) {
+    const rank = getDoctorRank(firstDoctor);
+    switch (rank) {
       case "VIP":
         return "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8";
       case "Intermedio":

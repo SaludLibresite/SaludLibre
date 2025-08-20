@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { getDoctorRank, cleanDoctorName } from "../../lib/subscriptionUtils";
+import Link from "next/link";
 
 const checkDoctorAvailability = (horario) => {
   // Return false if horario is not provided or invalid
@@ -100,6 +102,9 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
 
+  // Obtener el rango basado en la suscripción actual
+  const doctorRank = getDoctorRank(doctor);
+
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), delay);
     return () => clearTimeout(timer);
@@ -123,7 +128,8 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
   }, [doctor.horario]);
 
   const handleWhatsAppClick = () => {
-    const message = `Hola Dr. ${doctor.nombre}, quisiera agendar una consulta`;
+    const doctorName = cleanDoctorName(doctor.nombre);
+    const message = `Hola ${doctorName}, quisiera agendar una consulta`;
     const whatsappUrl = `https://wa.me/${doctor.telefono.replace(
       /\D/g,
       ""
@@ -136,7 +142,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
   };
 
   const getCardStyle = () => {
-    switch (doctor.rango) {
+    switch (doctorRank) {
       case "VIP":
         return "p-0 border-2 border-amber-200 shadow-lg hover:shadow-2xl hover:border-amber-300";
       case "Intermedio":
@@ -154,7 +160,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
     >
       <div className="relative group">
         {/* Premium Badge */}
-        {doctor.rango === "VIP" && (
+        {doctorRank === "VIP" && (
           <div
             className="absolute -top-4 -right-2 bg-gradient-to-r from-amber-400 to-amber-500 
             text-white text-sm font-medium px-4 py-1.5 rounded-full z-10 shadow-md
@@ -174,15 +180,15 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white/20 
                 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
               />
-              {(doctor.rango === "VIP" || doctor.rango === "Intermedio") && (
+              {(doctorRank === "VIP" || doctorRank === "Intermedio") && (
                 <img
                   src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
                   alt={doctor.nombre}
                   className={`rounded-2xl mx-auto object-cover shadow-md transition-transform duration-300
                   ${
-                    doctor.rango === "VIP"
+                    doctorRank === "VIP"
                       ? "w-52 h-48 md:w-44 md:h-44"
-                      : doctor.rango === "Intermedio"
+                      : doctorRank === "Intermedio"
                       ? "w-40 h-40"
                       : "w-32 h-32"
                   }`}
@@ -199,29 +205,29 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 <h3
                   className={`font-semibold transition-colors duration-300 leading-tight
                   ${
-                    doctor.rango === "VIP"
+                    doctorRank === "VIP"
                       ? "text-2xl text-blue-800"
-                      : doctor.rango === "Intermedio"
+                      : doctorRank === "Intermedio"
                       ? "text-xl text-blue-700"
                       : "text-lg text-blue-600"
                   }`}
                 >
-                  Dr. {doctor.nombre}
+                  {cleanDoctorName(doctor.nombre)}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 mt-2.5">
                   <span
                     className={`inline-block px-3.5 py-1.5 rounded-full text-sm font-medium
                     ${
-                      doctor.rango === "VIP"
+                      doctorRank === "VIP"
                         ? "bg-amber-50 text-amber-700"
-                        : doctor.rango === "Intermedio"
+                        : doctorRank === "Intermedio"
                         ? "bg-blue-50 text-blue-700"
                         : "bg-slate-50 text-slate-700"
                     }`}
                   >
                     {doctor.especialidad}
                   </span>
-                  {doctor.rango === "VIP" && (
+                  {doctorRank === "VIP" && (
                     <span
                       className={`inline-flex items-center px-3 py-1.5 rounded-full ${
                         isAvailable
@@ -268,9 +274,9 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                       {doctor.distance} km
                     </span>
                   )}
-                  {(doctor.rango === "VIP" ||
-                    doctor.rango === "Intermedio") && (
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-purple-50 text-purple-600 text-sm font-medium gap-1.5">
+                  {(doctorRank === "VIP" ||
+                    doctorRank === "Intermedio") && (
+                    <p className="inline-flex items-start px-3 py-1.5 text-purple-600 text-sm font-medium gap-1.5">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
@@ -283,17 +289,19 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                           clipRule="evenodd"
                         />
                       </svg>
-                      {doctor.ubicacion}
-                    </span>
+                      <span className="flex-1">
+                        {doctor.ubicacion}
+                      </span>
+                    </p>
                   )}
                 </div>
               </div>
 
-              {(doctor.rango === "VIP" || doctor.rango === "Intermedio") && (
+              {(doctorRank === "VIP" || doctorRank === "Intermedio") && (
                 <p
                   className={`text-slate-600 leading-relaxed
                   ${
-                    doctor.rango === "VIP"
+                    doctorRank === "VIP"
                       ? "text-base line-clamp-3"
                       : "text-sm line-clamp-2"
                   }`}
@@ -346,7 +354,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
           {/* Action Buttons */}
           <div className="mt-6 space-y-3">
             <div className="flex gap-3">
-              {(doctor.rango === "VIP" || doctor.rango === "Intermedio") && (
+              {(doctorRank === "VIP" || doctorRank === "Intermedio") && (
                 <button
                   onClick={handleWhatsAppClick}
                   className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 
@@ -369,9 +377,9 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                   transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]
                   font-medium
                   ${
-                    doctor.rango === "VIP"
+                    doctorRank === "VIP"
                       ? "bg-blue-500 hover:bg-blue-600"
-                      : doctor.rango === "Intermedio"
+                      : doctorRank === "Intermedio"
                       ? "bg-blue-500 hover:bg-blue-600"
                       : "bg-blue-400 hover:bg-blue-500"
                   }`}
@@ -392,15 +400,13 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                 Call
               </button>
             </div>
-            <button
-              onClick={() =>
-                (window.location.href = `/doctores/${doctor.slug}`)
-              }
+            <Link
+               href={`/doctores/${doctor.slug}`}
               className="w-full text-slate-600 hover:text-slate-800 py-2.5 text-center 
-                transition-all duration-300 hover:bg-slate-50 rounded-xl font-medium"
+                transition-all duration-300 hover:bg-slate-100 rounded-xl font-medium border block"
             >
-              View Profile
-            </button>
+              Ver perfil
+            </Link>
           </div>
         </div>
       </div>

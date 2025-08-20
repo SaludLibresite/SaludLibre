@@ -6,6 +6,7 @@ import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import { getAllDoctors } from "../../lib/doctorsService";
+import { getDoctorRank } from "../../lib/subscriptionUtils";
 import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useRouter } from "next/router";
@@ -65,7 +66,11 @@ export default function DoctoresPage() {
     ...new Set(doctoresData.map((d) => d.especialidad)),
   ].sort();
   const generos = [...new Set(doctoresData.map((d) => d.genero))].sort();
-  const rangos = ["VIP", "Intermedio", "Normal"];
+  const rangos = [
+    { value: "VIP", label: "Plan Plus (Premium)" },
+    { value: "Intermedio", label: "Plan Medium" }, 
+    { value: "Normal", label: "Plan Free (Básico)" }
+  ];
   const ubicaciones = [...new Set(doctoresData.map((d) => d.ubicacion))].sort();
   const prepagas = [
     ...new Set(doctoresData.flatMap((d) => d.prepagas || [])),
@@ -111,7 +116,7 @@ export default function DoctoresPage() {
     },
     {
       id: "rango",
-      label: "Rango",
+      label: "Plan de Suscripción",
       value: selectedRango,
       setter: setSelectedRango,
       options: rangos,
@@ -175,7 +180,11 @@ export default function DoctoresPage() {
       selectedAgeGroup === "" ||
       d.ageGroup === selectedAgeGroup ||
       (!d.ageGroup && selectedAgeGroup === "ambos"); // Default to "ambos" for doctors without ageGroup set
-    const rangoMatch = selectedRango === "" || d.rango === selectedRango;
+    
+    // Usar la nueva función para obtener el rango
+    const doctorRank = getDoctorRank(d);
+    const rangoMatch = selectedRango === "" || doctorRank === selectedRango;
+    
     const ubicacionMatch =
       selectedUbicacion === "" || d.ubicacion === selectedUbicacion;
     const prepagaMatch =
@@ -222,12 +231,12 @@ export default function DoctoresPage() {
   const endIndex = startIndex + DOCTORS_PER_PAGE;
   const currentDoctors = filteredDoctors.slice(startIndex, endIndex);
 
-  const vipDoctors = currentDoctors.filter((d) => d.rango === "VIP");
+  const vipDoctors = currentDoctors.filter((d) => getDoctorRank(d) === "VIP");
   const intermedioDoctors = currentDoctors.filter(
-    (d) => d.rango === "Intermedio"
+    (d) => getDoctorRank(d) === "Intermedio"
   );
   const normalDoctors = currentDoctors.filter(
-    (d) => d.rango === "Normal" || !d.rango
+    (d) => getDoctorRank(d) === "Normal"
   );
 
   useEffect(() => {
