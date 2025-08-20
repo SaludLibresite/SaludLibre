@@ -17,6 +17,7 @@ import {
   getDoctorAverageRating,
 } from "../../lib/reviewsService";
 import { useAuth } from "../../context/AuthContext";
+import SEO from "../../components/SEO";
 
 // Animation variants
 const fadeInUp = {
