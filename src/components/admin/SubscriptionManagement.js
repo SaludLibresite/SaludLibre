@@ -391,12 +391,14 @@ export default function SubscriptionManagement() {
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {plans.map((plan, index) => {
-            // Mejorar la detección del plan actual
-            const isCurrentPlan = doctor?.subscriptionPlanId === plan.id || 
-              (plan.price === 0 && doctor?.subscriptionPlanId === 'plan_gratuito') ||
-              (plan.name === 'Plan Gratuito' && doctor?.subscriptionPlan === 'Plan Gratuito');
+            // Detectar el plan actual basándose en doctor.subscriptionPlan y el estado de la suscripción
+            const isCurrentPlan = isSubscriptionActive() && 
+              (doctor?.subscriptionPlan === plan.name ||
+               (plan.name === 'Plan Free' && doctor?.subscriptionPlan === 'Plan Free') ||
+               (plan.name === 'Plan Medium' && doctor?.subscriptionPlan === 'Plan Medium') ||
+               (plan.name === 'Plan Plus' && doctor?.subscriptionPlan === 'Plan Plus'));
             
-            const isCurrentlyActive = isCurrentPlan && isActive;
+            const isCurrentlyActive = isCurrentPlan;
             
             return (
               <div
@@ -502,10 +504,10 @@ export default function SubscriptionManagement() {
                     onClick={() => handleSubscribe(plan)}
                     disabled={
                       processingPayment === plan.id ||
-                      (isCurrentlyActive && plan.price > 0) // Solo deshabilitar si es el plan actual Y es de pago
+                      isCurrentlyActive // Deshabilitar si es el plan actual
                     }
                     className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
-                      (isCurrentlyActive && plan.price > 0)
+                      isCurrentlyActive
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                         : plan.featured
                         ? "bg-white text-blue-600 hover:bg-gray-50 shadow-lg hover:shadow-xl"
@@ -517,20 +519,15 @@ export default function SubscriptionManagement() {
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-3"></div>
                         Procesando...
                       </div>
-                    ) : (isCurrentlyActive && plan.price > 0) ? (
+                    ) : isCurrentlyActive ? (
                       <span className="flex items-center justify-center">
                         <CheckIcon className="h-5 w-5 mr-2" />
                         Plan Actual
                       </span>
-                    ) : isCurrentlyActive && plan.price === 0 ? (
-                      <span className="flex items-center justify-center">
-                        <CheckIcon className="h-5 w-5 mr-2" />
-                        Plan Actual (Gratis)
-                      </span>
                     ) : (plan.price === 0 || plan.price === undefined) ? (
                       "🚀 Activar Gratis"
                     ) : (
-                      `� Upgrade a $${plan.price?.toLocaleString()}/mes`
+                      `💎 Upgrade a $${plan.price?.toLocaleString()}/mes`
                     )}
                   </button>
                 </div>
