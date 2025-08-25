@@ -35,23 +35,12 @@ export const cleanDoctorName = (nombre) => {
  * @returns {string} - Rango mapeado (VIP, Intermedio, Normal)
  */
 export const getDoctorRank = (doctor) => {
-  // Si no tiene suscripción activa, es Normal (Plan Free)
-  if (!doctor.subscriptionStatus || doctor.subscriptionStatus !== 'active') {
+  // Solo verificar si tiene suscripción activa basándose en los campos especificados
+  if (!hasActiveSubscription(doctor)) {
     return 'Normal';
   }
 
-  // Si tiene suscripción expirada, es Normal (Plan Free)
-  if (doctor.subscriptionExpiresAt) {
-    const expirationDate = doctor.subscriptionExpiresAt.toDate 
-      ? doctor.subscriptionExpiresAt.toDate() 
-      : new Date(doctor.subscriptionExpiresAt);
-    
-    if (expirationDate < new Date()) {
-      return 'Normal';
-    }
-  }
-
-  // Mapear por nombre del plan
+  // Mapear solo por subscriptionPlan (ignorar subscriptionPlanId)
   switch (doctor.subscriptionPlan) {
     case 'Plan Plus':
       return 'VIP';
@@ -69,6 +58,7 @@ export const getDoctorRank = (doctor) => {
  * @returns {boolean} - true si tiene suscripción activa
  */
 export const hasActiveSubscription = (doctor) => {
+  // Solo verificar subscriptionStatus y subscriptionExpiresAt
   if (!doctor.subscriptionStatus || doctor.subscriptionStatus !== 'active') {
     return false;
   }

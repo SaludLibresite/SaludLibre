@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
 import { getUserSubscription, isSubscriptionActive } from "../../lib/subscriptionsService";
+import { isSubscriptionActiveFromDoctor } from "../../lib/subscriptionPermissions";
 import { useSidebarStore } from "../../store/sidebarStore";
 import CompleteProfileModal from "./CompleteProfileModal";
 import {
@@ -120,7 +121,7 @@ export default function AdminLayout({ children }) {
     }
   }, [showWelcomeMessage]);
 
-  const hasActiveSubscription = isSubscriptionActive(subscription);
+  const hasActiveSubscription = doctorData ? isSubscriptionActiveFromDoctor(doctorData) : false;
   const navigation = hasActiveSubscription ? premiumNavigation : baseNavigation;
 
   const handleLogout = async () => {
@@ -211,7 +212,7 @@ export default function AdminLayout({ children }) {
 
       {/* Desktop Sidebar - Hidden on mobile */}
       <div
-        className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 ${sidebarWidth} bg-gradient-to-b from-amber-50 to-yellow-50 shadow-xl border-r border-amber-100 transition-all duration-300 ease-in-out`}
+        className={`hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex-col ${sidebarWidth} bg-gradient-to-b from-amber-50 to-yellow-50 shadow-xl border-r border-amber-100 transition-all duration-300 ease-in-out`}
       >
         {/* Logo section */}
         <div className="flex h-16 items-center justify-center border-b border-amber-200 bg-white/50 backdrop-blur-sm">
@@ -239,7 +240,7 @@ export default function AdminLayout({ children }) {
           </button>
         </div>
 
-        <nav className="mt-4 px-2 space-y-1">
+        <nav className="mt-4 px-2 space-y-1 flex-1">
           {/* Subscription Status Banner */}
           {!subscriptionLoading && !hasActiveSubscription && !isCollapsed && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -326,7 +327,7 @@ export default function AdminLayout({ children }) {
         </nav>
 
         {/* User info section */}
-        <div className="absolute bottom-20 left-0 right-0 px-2">
+        <div className="px-2 py-4">
           {!isCollapsed && doctorData && (
             <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-amber-200">
               <div className="flex items-center space-x-3">
@@ -347,7 +348,7 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* Logout button */}
-        <div className="absolute bottom-4 left-0 right-0 px-2">
+        <div className="px-2 pb-4">
           <button
             onClick={handleLogout}
             className={`flex items-center w-full px-3 py-3 text-sm font-medium text-red-600 rounded-xl hover:bg-red-50 transition-colors duration-200 group ${
@@ -374,7 +375,7 @@ export default function AdminLayout({ children }) {
 
       {/* Main content */}
       <div
-        className={`transition-all duration-300 ease-in-out lg:${contentMargin}`}
+        className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}
       >
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">

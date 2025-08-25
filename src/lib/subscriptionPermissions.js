@@ -77,6 +77,28 @@ export const hasFeatureAccess = async (userId, feature) => {
 };
 
 /**
+ * Verifica si el doctor tiene acceso a una funcionalidad específica basándose en sus datos directos
+ * @param {Object} doctor - Objeto doctor con información de suscripción
+ * @param {string} feature - Nombre de la funcionalidad a verificar
+ * @returns {boolean} - true si tiene acceso, false si no
+ */
+export const hasFeatureAccessFromDoctor = (doctor, feature) => {
+  try {
+    // Determinar el plan basándose en los datos del doctor
+    const planKey = determinePlanKeyFromDoctor(doctor);
+    
+    // Verificar si el plan incluye la funcionalidad
+    const permissions = SUBSCRIPTION_PERMISSIONS[planKey] || SUBSCRIPTION_PERMISSIONS.free;
+    return permissions.includes(feature);
+    
+  } catch (error) {
+    console.error('Error checking feature access from doctor:', error);
+    // En caso de error, dar acceso solo a funcionalidades del plan free
+    return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+  }
+};
+
+/**
  * Obtiene todas las funcionalidades disponibles para el usuario
  * @param {string} userId - ID del usuario
  * @returns {Promise<string[]>} - Array de funcionalidades disponibles
@@ -99,7 +121,44 @@ export const getUserFeatures = async (userId) => {
 };
 
 /**
- * Determina la clave del plan basada en el precio y nombre del plan
+ * Determina la clave del plan basada en los campos de suscripción del doctor
+ * @param {Object} doctor - Objeto doctor con información de suscripción
+ * @returns {string} - Clave del plan (free, medium, plus)
+ */
+const determinePlanKeyFromDoctor = (doctor) => {
+  // Verificar si tiene suscripción activa basándose solo en los campos especificados
+  if (!doctor.subscriptionStatus || doctor.subscriptionStatus !== 'active') {
+    return 'free';
+  }
+
+  // Verificar si la suscripción no ha expirado
+  if (doctor.subscriptionExpiresAt) {
+    const expirationDate = doctor.subscriptionExpiresAt.toDate 
+      ? doctor.subscriptionExpiresAt.toDate() 
+      : new Date(doctor.subscriptionExpiresAt);
+    
+    if (expirationDate <= new Date()) {
+      return 'free';
+    }
+  }
+
+  // Mapear basándose solo en subscriptionPlan (ignorar subscriptionPlanId)
+  const planName = doctor.subscriptionPlan?.toLowerCase() || '';
+  
+  if (planName.includes('plus') || planName.includes('premium')) {
+    return 'plus';
+  }
+  
+  if (planName.includes('medium') || planName.includes('medio')) {
+    return 'medium';
+  }
+  
+  // Por defecto, plan free
+  return 'free';
+};
+
+/**
+ * Determina la clave del plan basada en el precio y nombre del plan (para suscripciones legacy)
  * @param {string} planId - ID del plan
  * @param {string} planName - Nombre del plan
  * @param {number} price - Precio del plan
@@ -129,6 +188,61 @@ const determinePlanKey = (planId, planName, price = 0) => {
   
   if (lowerPlanName.includes('plus') || lowerPlanName.includes('premium')) {
     return 'plus';
+  }
+  
+  return 'free';
+};
+
+/**
+ * Obtiene el nombre legible del plan del usuario basándose en los datos del doctor
+ * @param {Object} doctor - Objeto doctor con información de suscripción
+ * @returns {string} - Nombre del plan
+ */
+export const getUserPlanNameFromDoctor = (doctor) => {
+  try {
+    const planKey = determinePlanKeyFromDoctor(doctor);
+    
+    switch (planKey) {
+      case 'medium':
+        return 'Medium';
+      case 'plus':
+        return 'Plus';
+      default:
+        return 'Free';
+    }
+    
+  } catch (error) {
+    console.error('Error getting user plan name from doctor:', error);
+    return 'Free';
+  }
+};
+
+/**
+ * Verifica si el doctor tiene una suscripción activa basándose en sus datos directos
+ * @param {Object} doctor - Objeto doctor con información de suscripción
+ * @returns {boolean} - true si tiene suscripción activa
+ */
+export const isSubscriptionActiveFromDoctor = (doctor) => {
+  try {
+    // Verificar si tiene suscripción activa basándose solo en los campos especificados
+    if (!doctor.subscriptionStatus || doctor.subscriptionStatus !== 'active') {
+      return false;
+    }
+
+    // Verificar si la suscripción no ha expirado
+    if (doctor.subscriptionExpiresAt) {
+      const expirationDate = doctor.subscriptionExpiresAt.toDate 
+        ? doctor.subscriptionExpiresAt.toDate() 
+        : new Date(doctor.subscriptionExpiresAt);
+      
+      return expirationDate > new Date();
+    }
+
+    return true;
+    
+  } catch (error) {
+    console.error('Error checking subscription status from doctor:', error);
+    return false;
   }
 };
 
