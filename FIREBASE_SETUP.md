@@ -6,7 +6,7 @@
 
 1. Ve a [Firebase Console](https://console.firebase.google.com/)a
 2. Haz clic en "Crear un proyecto"a
-3. Nombra tu proyecto (ej: "medicos-ar")
+3. Nombra tu proyecto (ej: "medicos-ar")a
 4. Habilita Google Analytics (opcional)
 5. Espera a que se cree el proyectoa
 s
