@@ -248,7 +248,7 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Management Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Doctors Management Card */}
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
@@ -288,6 +288,48 @@ export default function SuperAdminDashboard() {
                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   Gestionar Doctores →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Zones Management Card */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4">
+              <h2 className="text-xl font-bold text-white">
+                Gestión de Zonas
+              </h2>
+              <p className="text-emerald-100">
+                Crea y administra zonas geográficas para agrupar doctores
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Zonas creadas:</span>
+                  <span className="font-semibold text-emerald-600">
+                    0
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Doctores agrupados:</span>
+                  <span className="font-semibold text-blue-600">
+                    {stats.totalDoctors}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Zonas activas:</span>
+                  <span className="font-semibold text-green-600">
+                    0
+                  </span>
+                </div>
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push("/superadmin/zones")}
+                  className="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                >
+                  Gestionar Zonas →
                 </button>
               </div>
             </div>

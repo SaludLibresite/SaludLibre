@@ -14,6 +14,7 @@ import {
   UserIcon,
   CurrencyDollarIcon,
   GiftIcon,
+  MapIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SuperAdminLayout({ children }) {
@@ -44,6 +45,11 @@ export default function SuperAdminLayout({ children }) {
       name: 'Especialidades',
       href: '/superadmin/specialties',
       icon: Cog6ToothIcon,
+    },
+    {
+      name: 'Zonas',
+      href: '/superadmin/zones',
+      icon: MapIcon,
     },
     {
       name: 'Planes',

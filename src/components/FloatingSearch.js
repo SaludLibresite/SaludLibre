@@ -147,7 +147,7 @@ const SpecialtyResult = ({ specialty }) => (
   </motion.div>
 );
 
-const SearchFilters = ({ filters, isVisible }) => (
+const SearchFilters = ({ filters, isVisible, onResetFilters }) => (
   <motion.div
     initial={{ height: 0, opacity: 0 }}
     animate={{ height: isVisible ? "auto" : 0, opacity: isVisible ? 1 : 0 }}
@@ -182,6 +182,22 @@ const SearchFilters = ({ filters, isVisible }) => (
         </select>
       </div>
     ))}
+    
+    {/* Reset Filters Button */}
+    {onResetFilters && (
+      <div className="space-y-2 flex items-end">
+        <button
+          onClick={onResetFilters}
+          className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2 text-sm font-medium"
+          title="Limpiar todos los filtros"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Limpiar</span>
+        </button>
+      </div>
+    )}
   </motion.div>
 );
 
@@ -406,7 +422,7 @@ const SearchModal = ({
   );
 };
 
-const FloatingSearch = ({ search, setSearch, filters }) => {
+const FloatingSearch = ({ search, setSearch, filters, onResetFilters }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchBarRect, setSearchBarRect] = useState(null);
@@ -447,7 +463,11 @@ const FloatingSearch = ({ search, setSearch, filters }) => {
               </div>
             </div>
 
-            <SearchFilters filters={filters} isVisible={!isScrolled} />
+            <SearchFilters 
+              filters={filters} 
+              isVisible={!isScrolled} 
+              onResetFilters={onResetFilters}
+            />
           </div>
         </motion.div>
 

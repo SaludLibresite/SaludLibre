@@ -8,6 +8,7 @@ import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButt
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
+import { getActiveZones, groupDoctorsByZones } from "../../lib/zonesService";
 import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useRouter } from "next/router";
@@ -23,11 +24,14 @@ export default function DoctoresPage() {
   const [selectedConsultaOnline, setSelectedConsultaOnline] = useState("");
   const [selectedRango, setSelectedRango] = useState("");
   const [selectedUbicacion, setSelectedUbicacion] = useState("");
+  const [selectedZone, setSelectedZone] = useState("");
   const [selectedPrepaga, setSelectedPrepaga] = useState("");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [doctoresData, setDoctoresData] = useState([]);
+  const [zones, setZones] = useState([]);
+  const [doctorsByZone, setDoctorsByZone] = useState({});
   const [initialLoading, setInitialLoading] = useState(true);
   const [nearbyDoctors, setNearbyDoctors] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -40,7 +44,7 @@ export default function DoctoresPage() {
     }
   }, [router.isReady, router.query.search]);
 
-  // Load doctors from Firebase
+    // Load doctors from Firebase
   useEffect(() => {
     async function loadDoctors() {
       try {
@@ -51,9 +55,22 @@ export default function DoctoresPage() {
           (doctor) => doctor.verified === true
         );
         setDoctoresData(verifiedDoctors);
+
+        // Load zones and group doctors by zones
+        try {
+          const activeZones = await getActiveZones();
+          setZones(activeZones);
+          
+          const groupedDoctors = await groupDoctorsByZones(verifiedDoctors);
+          setDoctorsByZone(groupedDoctors);
+        } catch (zoneError) {
+          console.error("Error loading zones:", zoneError);
+          // If zones fail to load, we'll still show all doctors
+          setZones([]);
+          setDoctorsByZone({});
+        }
       } catch (error) {
         console.error("Error loading doctors:", error);
-        setDoctoresData([]);
       } finally {
         setInitialLoading(false);
       }
@@ -74,7 +91,17 @@ export default function DoctoresPage() {
     { value: "Intermedio", label: "Plan Medium" }, 
     { value: "Normal", label: "Plan Free (Básico)" }
   ];
-  const ubicaciones = [...new Set(doctoresData.map((d) => d.ubicacion))].sort();
+  
+  // Use zones for location filter, fallback to individual locations if zones not available
+  const zoneOptions = zones.length > 0 
+    ? zones.map(zone => ({ value: zone.name, label: `${zone.name} (${doctorsByZone[zone.name]?.length || 0} doctores)` }))
+    : [];
+  
+  // Fallback to individual locations if no zones are available
+  const ubicaciones = zones.length === 0 
+    ? [...new Set(doctoresData.map((d) => d.ubicacion))].sort()
+    : [];
+    
   const prepagas = [
     ...new Set(doctoresData.flatMap((d) => d.prepagas || [])),
   ].sort();
@@ -124,13 +151,20 @@ export default function DoctoresPage() {
       setter: setSelectedRango,
       options: rangos,
     },
-    {
+    // Conditionally show zone or individual location filter
+    ...(zones.length > 0 ? [{
+      id: "zone",
+      label: "Zona",
+      value: selectedZone,
+      setter: setSelectedZone,
+      options: zoneOptions,
+    }] : [{
       id: "ubicacion",
       label: "Ubicación",
       value: selectedUbicacion,
       setter: setSelectedUbicacion,
       options: ubicaciones,
-    },
+    }]),
     {
       id: "prepaga",
       label: "Prepaga",
@@ -155,6 +189,7 @@ export default function DoctoresPage() {
     setSelectedAgeGroup("");
     setSelectedRango("");
     setSelectedUbicacion("");
+    setSelectedZone("");
     setSelectedPrepaga("");
     setCurrentPage(1);
   };
@@ -163,6 +198,19 @@ export default function DoctoresPage() {
     setNearbyDoctors(null);
     setUserLocation(null);
     setShowingNearby(false);
+    setCurrentPage(1);
+  };
+
+  const handleResetAllFilters = () => {
+    setSearch("");
+    setCategoria("");
+    setSelectedGenero("");
+    setSelectedConsultaOnline("");
+    setSelectedAgeGroup("");
+    setSelectedRango("");
+    setSelectedUbicacion("");
+    setSelectedZone("");
+    setSelectedPrepaga("");
     setCurrentPage(1);
   };
 
@@ -191,8 +239,16 @@ export default function DoctoresPage() {
     const doctorRank = getDoctorRank(d);
     const rangoMatch = selectedRango === "" || doctorRank === selectedRango;
     
-    const ubicacionMatch =
-      selectedUbicacion === "" || d.ubicacion === selectedUbicacion;
+    // Zone or location match based on what's available
+    let locationMatch = true;
+    if (zones.length > 0 && selectedZone !== "") {
+      // Use zone-based filtering
+      locationMatch = doctorsByZone[selectedZone]?.some(zoneDoctor => zoneDoctor.id === d.id) || false;
+    } else if (zones.length === 0 && selectedUbicacion !== "") {
+      // Fallback to individual location filtering
+      locationMatch = d.ubicacion === selectedUbicacion;
+    }
+    
     const prepagaMatch =
       selectedPrepaga === "" ||
       (d.prepagas && d.prepagas.includes(selectedPrepaga));
@@ -204,7 +260,7 @@ export default function DoctoresPage() {
       consultaOnlineMatch &&
       ageGroupMatch &&
       rangoMatch &&
-      ubicacionMatch &&
+      locationMatch &&
       prepagaMatch
     );
   });
@@ -320,6 +376,7 @@ export default function DoctoresPage() {
           search={search}
           setSearch={setSearch}
           filters={filters}
+          onResetFilters={handleResetAllFilters}
         />
 
         {/* Results Section */}
