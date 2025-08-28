@@ -216,96 +216,106 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center " style={{ zIndex: 1000 }}>
       <div className="bg-white shadow-2xl w-full h-[90dvh] flex flex-col justify-between">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Doctores en el Mapa
-            </h2>
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-              {doctorsWithLocation.length} doctores encontrados
-            </span>
-          </div>
-          
-          {/* Legend en el header */}
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 border border-white shadow-sm"></div>
-              <span className="text-gray-700 font-medium">Premium</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white shadow-sm"></div>
-              <span className="text-gray-700 font-medium">Plus</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 border border-white shadow-sm"></div>
-              <span className="text-gray-700 font-medium">Básico</span>
-            </div>
-            {userLocation && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500 border border-white shadow-sm"></div>
-                <span className="text-gray-700 font-medium">Tu ubicación</span>
-              </div>
-            )}
-          </div>
-          
-          {/* Barra de búsqueda */}
-          <div className="relative flex-1 max-w-md mx-6">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleSearchKeyPress}
-                placeholder="Buscar zona, barrio o dirección..."
-                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <svg
-                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <button
-                onClick={() => searchPlace(searchQuery)}
-                disabled={isSearching}
-                className="absolute right-2 top-1.5 px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isSearching ? '...' : 'Buscar'}
-              </button>
+        <div className="p-4 md:p-6 border-b border-gray-200">
+          {/* Fila superior: Título y botón cerrar */}
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900">
+                Doctores en el Mapa
+              </h2>
+              <span className="px-2 py-1 md:px-3 bg-blue-100 text-blue-800 rounded-full text-xs md:text-sm font-medium">
+                {doctorsWithLocation.length} doctores
+              </span>
             </div>
             
-            {/* Resultados de búsqueda */}
-            {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
-                {searchResults.map((place, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToPlace(place)}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium text-gray-900">{place.name}</div>
-                    <div className="text-sm text-gray-600">{place.formatted_address}</div>
-                  </button>
-                ))}
-              </div>
-            )}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          
+          {/* Fila inferior: Leyenda y búsqueda */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            {/* Legend - responsive */}
+            <div className="flex items-center gap-2 md:gap-4 text-xs order-2 md:order-1">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 border border-white shadow-sm"></div>
+                <span className="text-gray-700 font-medium hidden sm:inline">Premium</span>
+                <span className="text-gray-700 font-medium sm:hidden">★</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white shadow-sm"></div>
+                <span className="text-gray-700 font-medium hidden sm:inline">Plus</span>
+                <span className="text-gray-700 font-medium sm:hidden">+</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 border border-white shadow-sm"></div>
+                <span className="text-gray-700 font-medium hidden sm:inline">Básico</span>
+                <span className="text-gray-700 font-medium sm:hidden">○</span>
+              </div>
+              {userLocation && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-red-500 border border-white shadow-sm"></div>
+                  <span className="text-gray-700 font-medium hidden sm:inline">Tu ubicación</span>
+                  <span className="text-gray-700 font-medium sm:hidden">📍</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Barra de búsqueda */}
+            <div className="relative flex-1 max-w-md order-1 md:order-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
+                  placeholder="Buscar zona, barrio o dirección..."
+                  className="w-full pl-8 md:pl-10 pr-16 md:pr-20 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <svg
+                  className="absolute left-2 md:left-3 top-2.5 h-4 w-4 md:h-5 md:w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <button
+                  onClick={() => searchPlace(searchQuery)}
+                  disabled={isSearching}
+                  className="absolute right-1 md:right-2 top-1 md:top-1.5 px-2 md:px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isSearching ? '...' : 'Buscar'}
+                </button>
+              </div>
+              
+              {/* Resultados de búsqueda */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
+                  {searchResults.map((place, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToPlace(place)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900 text-sm">{place.name}</div>
+                      <div className="text-xs text-gray-600">{place.formatted_address}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Mapa */}
