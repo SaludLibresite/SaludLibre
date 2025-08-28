@@ -7,6 +7,7 @@ import PaginationControls from "../../components/doctoresPage/PaginationControls
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
+import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
 import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useRouter } from "next/router";
@@ -65,7 +66,9 @@ export default function DoctoresPage() {
   const categorias = [
     ...new Set(doctoresData.map((d) => d.especialidad)),
   ].sort();
-  const generos = [...new Set(doctoresData.map((d) => d.genero))].sort();
+  
+  // Use utility function to normalize gender values
+  const generos = normalizeGenderArray(doctoresData.map((d) => d.genero));
   const rangos = [
     { value: "VIP", label: "Plan Plus (Premium)" },
     { value: "Intermedio", label: "Plan Medium" }, 
@@ -171,7 +174,10 @@ export default function DoctoresPage() {
       d.nombre?.toLowerCase().includes(search.toLowerCase()) ||
       d.especialidad?.toLowerCase().includes(search.toLowerCase());
     const categoriaMatch = categoria === "" || d.especialidad === categoria;
-    const generoMatch = selectedGenero === "" || d.genero === selectedGenero;
+    
+    // Use utility function to normalize doctor's gender for comparison
+    const generoMatch = selectedGenero === "" || normalizeGenero(d.genero) === selectedGenero;
+    
     const consultaOnlineMatch =
       selectedConsultaOnline === "" ||
       (selectedConsultaOnline === "true" && d.consultaOnline) ||
