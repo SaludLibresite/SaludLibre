@@ -5,6 +5,8 @@ import LoaderComponent from "../../components/doctoresPage/LoaderComponent";
 import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
+import DoctorsMapPanel from "../../components/doctoresPage/DoctorsMapPanel";
+import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
@@ -32,6 +34,7 @@ export default function DoctoresPage() {
   const [nearbyDoctors, setNearbyDoctors] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [showingNearby, setShowingNearby] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   // Read search parameter from URL
   useEffect(() => {
@@ -166,6 +169,15 @@ export default function DoctoresPage() {
     setCurrentPage(1);
   };
 
+  // Map functionality
+  const handleToggleMap = () => {
+    setIsMapOpen(!isMapOpen);
+  };
+
+  const handleCloseMap = () => {
+    setIsMapOpen(false);
+  };
+
   // Use nearby doctors if available, otherwise use filtered doctors
   const doctorsToShow = showingNearby ? nearbyDoctors : doctoresData;
 
@@ -232,10 +244,21 @@ export default function DoctoresPage() {
     selectedPrepaga,
   ]);
 
-  const totalPages = Math.ceil(filteredDoctors.length / DOCTORS_PER_PAGE);
+  // Ordenar los doctores filtrados: primero todos los premium (VIP), luego intermedio, luego normal
+  const sortedFilteredDoctors = filteredDoctors.sort((a, b) => {
+    const rankA = getDoctorRank(a);
+    const rankB = getDoctorRank(b);
+    
+    // Definir el orden de prioridad: VIP (premium) primero, luego Intermedio, luego Normal
+    const rankOrder = { "VIP": 0, "Intermedio": 1, "Normal": 2 };
+    
+    return rankOrder[rankA] - rankOrder[rankB];
+  });
+
+  const totalPages = Math.ceil(sortedFilteredDoctors.length / DOCTORS_PER_PAGE);
   const startIndex = (currentPage - 1) * DOCTORS_PER_PAGE;
   const endIndex = startIndex + DOCTORS_PER_PAGE;
-  const currentDoctors = filteredDoctors.slice(startIndex, endIndex);
+  const currentDoctors = sortedFilteredDoctors.slice(startIndex, endIndex);
 
   const vipDoctors = currentDoctors.filter((d) => getDoctorRank(d) === "VIP");
   const intermedioDoctors = currentDoctors.filter(
@@ -243,6 +266,11 @@ export default function DoctoresPage() {
   );
   const normalDoctors = currentDoctors.filter(
     (d) => getDoctorRank(d) === "Normal"
+  );
+
+  // Count doctors with location data
+  const doctorsWithLocation = sortedFilteredDoctors.filter(doctor => 
+    doctor.latitude && doctor.longitude && !isNaN(doctor.latitude) && !isNaN(doctor.longitude)
   );
 
   useEffect(() => {
@@ -326,7 +354,7 @@ export default function DoctoresPage() {
         <div className="space-y-16 container mx-auto">
           {isLoading ? (
             <LoaderComponent />
-          ) : filteredDoctors.length > 0 ? (
+          ) : sortedFilteredDoctors.length > 0 ? (
             <>
               {vipDoctors.length > 0 && (
                 <RankSection doctors={vipDoctors} index={0} />
@@ -371,6 +399,22 @@ export default function DoctoresPage() {
           )}
         </div>
       </main>
+
+      {/* Map Panel */}
+      <DoctorsMapPanel
+        isOpen={isMapOpen}
+        onClose={handleCloseMap}
+        doctors={sortedFilteredDoctors}
+        userLocation={userLocation}
+      />
+
+      {/* Map Toggle Button */}
+      <MapToggleButton
+        onClick={handleToggleMap}
+        isMapOpen={isMapOpen}
+        doctorsCount={doctorsWithLocation.length}
+      />
+
       <Footer />
     </div>
   );

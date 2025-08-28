@@ -8,11 +8,11 @@ export default function RankSection({ doctors, index }) {
     const rank = getDoctorRank(firstDoctor);
     switch (rank) {
       case "VIP":
-        return "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8";
-      case "Intermedio":
         return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6";
-      default:
+      case "Intermedio":
         return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5";
+      default:
+        return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4";
     }
   };
 
