@@ -1,6 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
+
+// Dynamic import para evitar problemas con Turbopack
+const GoogleMapComponent = React.lazy(() =>
+  import('@react-google-maps/api').then(module => ({
+    default: ({ children, ...props }) => {
+      const { GoogleMap, LoadScript, Marker, InfoWindow } = module;
+      return (
+        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
+          <GoogleMap {...props}>
+            {children}
+          </GoogleMap>
+        </LoadScript>
+      );
+    }
+  }))
+);
+
+const MarkerComponent = React.lazy(() =>
+  import('@react-google-maps/api').then(module => ({ default: module.Marker }))
+);
+
+const InfoWindowComponent = React.lazy(() =>
+  import('@react-google-maps/api').then(module => ({ default: module.InfoWindow }))
+);
 
 const mapContainerStyle = {
   width: '100%',
@@ -321,11 +344,15 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
         {/* Mapa */}
         <div className="relative">
           {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-            <LoadScript
-              googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-              libraries={['places']}
-            >
-              <GoogleMap
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-full bg-gray-100">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando mapa...</p>
+                </div>
+              </div>
+            }>
+              <GoogleMapComponent
                 ref={mapRef}
                 mapContainerStyle={mapContainerStyle}
                 center={userLocation || defaultCenter}
@@ -335,7 +362,7 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
               >
                 {/* User location marker */}
                 {userLocation && window.google && window.google.maps && (
-                  <Marker
+                  <MarkerComponent
                     position={userLocation}
                     icon={getUserLocationIcon()}
                     title="Tu ubicación"
@@ -346,7 +373,7 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                 {window.google && window.google.maps && doctorsWithLocation.map((doctor) => {
                   const markerIcon = getMarkerIcon(doctor);
                   return (
-                    <Marker
+                    <MarkerComponent
                       key={doctor.id}
                       position={{ lat: doctor.latitude, lng: doctor.longitude }}
                       icon={markerIcon}
@@ -358,7 +385,7 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
 
                 {/* Info window for selected doctor */}
                 {selectedDoctor && (
-                  <InfoWindow
+                  <InfoWindowComponent
                     position={{ lat: selectedDoctor.latitude, lng: selectedDoctor.longitude }}
                     onCloseClick={() => setSelectedDoctor(null)}
                   >
@@ -487,10 +514,10 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                         </div>
                       </div>
                     </div>
-                  </InfoWindow>
+                  </InfoWindowComponent>
                 )}
-              </GoogleMap>
-            </LoadScript>
+              </GoogleMapComponent>
+            </Suspense>
           ) : (
             <div className="flex items-center justify-center h-full bg-gray-100">
               <div className="text-center p-8">

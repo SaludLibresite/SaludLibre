@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Configuración para resolver problemas con Turbopack y dependencias
+  transpilePackages: ['@react-google-maps/api'],
+  experimental: {
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+  },
   images: {
     remotePatterns: [
       // Firebase Storage - formato estándar
