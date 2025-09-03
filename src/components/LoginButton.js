@@ -245,7 +245,7 @@ export function LoginButton({ isMobile = false }) {
             whileTap={{ scale: 0.98 }}
           >
             <HeartIcon className="w-5 h-5" />
-            <span className="font-medium">Portal de Pacientes</span>
+            <span className="font-medium">Pacientes</span>
           </motion.div>
         </Link>
 
@@ -257,7 +257,7 @@ export function LoginButton({ isMobile = false }) {
             whileTap={{ scale: 0.98 }}
           >
             <UserIcon className="w-5 h-5" />
-            <span className="font-medium">Portal de Doctores</span>
+            <span className="font-medium">Doctores</span>
           </motion.div>
         </Link>
       </div>
@@ -265,16 +265,20 @@ export function LoginButton({ isMobile = false }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       {/* Patient Login */}
       <Link href="/paciente/login">
         <motion.div
-          className="flex items-center gap-2 px-4 py-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200 cursor-pointer group"
+          className="flex items-center gap-2 px-4 py-2 text-green-600 hover:text-white hover:bg-gradient-to-r hover:from-green-500 hover:to-emerald-500 border border-green-200 hover:border-green-300 rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md group transform hover:scale-[1.02]"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <HeartIcon className="w-4 h-4" />
-          <span className="hidden sm:inline font-medium">Pacientes</span>
+          <div className="p-1 bg-green-100 rounded-md group-hover:bg-white/20 transition-colors duration-200">
+            <HeartIcon className="w-3.5 h-3.5 text-green-600 group-hover:text-white transition-colors duration-200" />
+          </div>
+          <div className="flex flex-col">
+            <span className="hidden sm:inline font-medium text-gray-900 group-hover:text-white transition-colors duration-200">Pacientes</span>
+          </div>
         </motion.div>
       </Link>
 
@@ -284,12 +288,16 @@ export function LoginButton({ isMobile = false }) {
       {/* Doctor Login */}
       <Link href="/auth/login">
         <motion.div
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg transform hover:scale-[1.02]"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <UserIcon className="w-4 h-4" />
-          <span className="font-medium">Doctores</span>
+          <div className="p-1 bg-white/20 rounded-md">
+            <UserIcon className="w-3.5 h-3.5 text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-medium">Doctores</span>
+          </div>
         </motion.div>
       </Link>
     </div>
