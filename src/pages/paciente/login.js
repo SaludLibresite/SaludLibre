@@ -74,12 +74,17 @@ export default function PatientLogin() {
       [field]: value,
     }));
 
-    // Clear error when user starts typing
+    // Clear error and message when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
         [field]: "",
       }));
+    }
+
+    // Clear general message when user starts typing
+    if (message) {
+      setMessage("");
     }
   };
 
@@ -171,7 +176,12 @@ export default function PatientLogin() {
         }, 2000);
       }
     } catch (error) {
-      console.error("Error logging in:", error);
+      console.error("Error logging in:", {
+        code: error.code,
+        message: error.message,
+        email: formData.email,
+        timestamp: new Date().toISOString()
+      });
 
       let errorMessage = "Error al iniciar sesión";
 
@@ -185,17 +195,34 @@ export default function PatientLogin() {
         case "auth/invalid-email":
           errorMessage = "Email inválido";
           break;
+        case "auth/invalid-credential":
+          errorMessage = "Email o contraseña incorrectos. Verifique sus credenciales e intente nuevamente";
+          break;
         case "auth/user-disabled":
           errorMessage = "Esta cuenta ha sido deshabilitada";
           break;
         case "auth/too-many-requests":
           errorMessage = "Demasiados intentos fallidos. Intente más tarde";
           break;
+        case "auth/network-request-failed":
+          errorMessage = "Error de conexión. Verifique su conexión a internet e intente nuevamente";
+          break;
+        case "auth/operation-not-allowed":
+          errorMessage = "Inicio de sesión con email/contraseña no está habilitado. Contacte al administrador";
+          break;
         default:
           errorMessage = error.message || "Error al iniciar sesión";
       }
 
       setMessage(errorMessage);
+
+      // Clear password field for security on authentication errors
+      if (error.code && error.code.startsWith('auth/')) {
+        setFormData(prev => ({
+          ...prev,
+          password: ''
+        }));
+      }
     } finally {
       setLoading(false);
     }
