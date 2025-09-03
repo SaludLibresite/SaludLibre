@@ -26,7 +26,7 @@ import {
 
 export default function ReferralsList() {
   const { currentUser } = useAuth();
-  const [profile, setProfile] = useState({});
+  const [profile, setProfile] = useState({ nombre: "", especialidad: "", email: "" });
   const [doctorId, setDoctorId] = useState(null);
   const [referrals, setReferrals] = useState([]);
   const [topReferrers, setTopReferrers] = useState([]);
@@ -39,25 +39,61 @@ export default function ReferralsList() {
   const [canRefer, setCanRefer] = useState({ canRefer: true, reason: null });
   const [currentConfig, setCurrentConfig] = useState(null);
 
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Loading timeout reached, forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 seconds timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   // Load doctor profile on component mount (EXACT COPY FROM ProfileSettings)
   useEffect(() => {
     async function loadDoctorProfile() {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log('No current user available, cannot load doctor profile');
+        setLoading(false);
+        return;
+      }
+
+      if (!currentUser.uid) {
+        console.log('Current user has no uid, cannot load doctor profile');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Loading doctor profile for user:', currentUser.uid, 'email:', currentUser.email);
 
       try {
+        console.log('Fetching doctor data for userId:', currentUser.uid);
         const doctorData = await getDoctorByUserId(currentUser.uid);
+        console.log('Doctor data received:', doctorData ? 'YES' : 'NO', doctorData ? { id: doctorData.id, nombre: doctorData.nombre, email: doctorData.email } : null);
+
         if (doctorData) {
           setDoctorId(doctorData.id);
           setProfile({
+            nombre: doctorData.nombre || "",
+            especialidad: doctorData.especialidad || "",
+            email: doctorData.email || "",
             ...doctorData,
           });
 
           // Load referral data
-          const [referralsData, statsData, configData] = await Promise.all([
-            getReferralsByDoctorId(doctorData.id),
-            getReferralStats(doctorData.id),
-            getReferralConfiguration(),
-          ]);
+          let referralsData = [];
+          let statsData = null;
+
+          if (doctorData.id) {
+            [referralsData, statsData] = await Promise.all([
+              getReferralsByDoctorId(doctorData.id),
+              getReferralStats(doctorData.id),
+            ]);
+          }
+
+          const configData = await getReferralConfiguration();
 
           setReferrals(referralsData || []);
           setReferralStats(
@@ -73,12 +109,49 @@ export default function ReferralsList() {
           setTopReferrers([]);
 
           // Check if doctor can refer
-          const canReferResult = await canDoctorRefer(doctorData.id);
-          setCanRefer(canReferResult);
+          if (doctorData.id) {
+            const canReferResult = await canDoctorRefer(doctorData.id);
+            setCanRefer(canReferResult);
+          }
+        } else {
+          console.warn("No doctor data found for user:", currentUser.uid);
+          setDoctorId(null);
+          setProfile({
+            nombre: "Usuario",
+            especialidad: "Sin especialidad",
+            email: currentUser?.email || ""
+          });
+          // Set default referral data for users without doctor profile
+          setReferrals([]);
+          setReferralStats({
+            referralStats: {
+              totalReferrals: 0,
+              pendingReferrals: 0,
+              confirmedReferrals: 0,
+            },
+          });
+          setCurrentConfig(await getReferralConfiguration());
         }
       } catch (error) {
         console.error("Error loading doctor profile:", error);
+        setDoctorId(null);
+        setProfile({
+          nombre: "Usuario",
+          especialidad: "Sin especialidad",
+          email: currentUser?.email || ""
+        });
+        // Set default referral data on error
+        setReferrals([]);
+        setReferralStats({
+          referralStats: {
+            totalReferrals: 0,
+            pendingReferrals: 0,
+            confirmedReferrals: 0,
+          },
+        });
+        setCurrentConfig(await getReferralConfiguration().catch(() => null));
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
       }
     }
@@ -87,8 +160,8 @@ export default function ReferralsList() {
   }, [currentUser]);
 
   const handleGenerateCode = async () => {
-    if (!doctorId || !profile.nombre) {
-      alert("Error: Los datos del doctor no están disponibles");
+    if (!doctorId || !profile?.nombre || profile.nombre === "Usuario") {
+      alert("Error: No tienes un perfil de doctor registrado. Contacta al administrador para activar tu cuenta de referidos.");
       return;
     }
 
@@ -128,7 +201,8 @@ export default function ReferralsList() {
 
   // Helper function to calculate available rewards with dynamic config
   const getAvailableRewardsWithConfig = (confirmedReferrals, approvedRewards = 0, pendingRewards = 0) => {
-    const totalEarned = Math.floor(confirmedReferrals / configuration.referralsPerReward);
+    const config = currentConfig || REFERRAL_REWARDS_CONFIG;
+    const totalEarned = Math.floor(confirmedReferrals / config.REFERRALS_PER_REWARD);
     return Math.max(0, totalEarned - approvedRewards - pendingRewards);
   };
 
@@ -141,8 +215,8 @@ export default function ReferralsList() {
   };
 
   const handleRequestReward = async () => {
-    if (!doctorId) {
-      alert("Error: Los datos del doctor no están disponibles");
+    if (!doctorId || profile?.nombre === "Usuario") {
+      alert("Error: No tienes un perfil de doctor registrado. Contacta al administrador para activar tu cuenta de referidos.");
       return;
     }
 
@@ -151,7 +225,7 @@ export default function ReferralsList() {
       
       await createRewardRequest(doctorId);
       
-      alert(`¡Solicitud de recompensa de ${currentConfig?.rewardDays || REFERRAL_REWARDS_CONFIG.REWARD_DAYS} días enviada! El superadmin la revisará pronto.`);
+      alert(`¡Solicitud de recompensa de ${(currentConfig?.REWARD_DAYS || REFERRAL_REWARDS_CONFIG.REWARD_DAYS)} días enviada! El superadmin la revisará pronto.`);
       
       // Reload stats to update pending rewards
       const statsData = await getReferralStats(doctorId);
@@ -213,6 +287,9 @@ export default function ReferralsList() {
             <div className="h-4 bg-gray-200 rounded w-5/6"></div>
             <div className="h-4 bg-gray-200 rounded w-3/4"></div>
           </div>
+        </div>
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-600">Cargando información del doctor...</p>
         </div>
       </div>
     );
@@ -276,13 +353,24 @@ export default function ReferralsList() {
                 </div>
               </div>
             ) : canRefer.canRefer ? (
-              <button
-                onClick={handleGenerateCode}
-                disabled={generatingCode}
-                className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {generatingCode ? "Generando..." : "Generar Código"}
-              </button>
+              doctorId && profile?.nombre && profile.nombre !== "Usuario" ? (
+                <button
+                  onClick={handleGenerateCode}
+                  disabled={generatingCode}
+                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {generatingCode ? "Generando..." : "Generar Código"}
+                </button>
+              ) : (
+                <div className="bg-red-500/20 border border-red-300 rounded-lg p-3">
+                  <p className="text-sm">
+                    {profile?.nombre === "Usuario"
+                      ? "No tienes un perfil de doctor registrado. Contacta al administrador para activar tu cuenta de referidos."
+                      : "Información del doctor no disponible."
+                    }
+                  </p>
+                </div>
+              )
             ) : (
               <div className="bg-red-500/20 border border-red-300 rounded-lg p-3">
                 <p className="text-sm">No puedes generar un código de referido en este momento.</p>
@@ -358,10 +446,10 @@ export default function ReferralsList() {
                   className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2 mx-auto"
                 >
                   <GiftIcon className="h-4 w-4" />
-                  <span>{requestingReward ? "Solicitando..." : `Solicitar ${configuration.rewardDays} Días Gratis`}</span>
+                  <span>{requestingReward ? "Solicitando..." : `Solicitar ${(currentConfig?.REWARD_DAYS || REFERRAL_REWARDS_CONFIG.REWARD_DAYS)} Días Gratis`}</span>
                 </button>
                 <p className="text-xs text-white/70 mt-2">
-                  ¡Tienes derecho a una recompensa de {configuration.rewardDays} días gratis! (Cada {configuration.referralsPerReward} referidos confirmados = {configuration.rewardDays} días gratis)
+                  ¡Tienes derecho a una recompensa de {(currentConfig?.REWARD_DAYS || REFERRAL_REWARDS_CONFIG.REWARD_DAYS)} días gratis! (Cada {(currentConfig?.REFERRALS_PER_REWARD || REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD)} referidos confirmados = {(currentConfig?.REWARD_DAYS || REFERRAL_REWARDS_CONFIG.REWARD_DAYS)} días gratis)
                 </p>
               </div>
             )}
