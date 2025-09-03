@@ -1,7 +1,7 @@
 # 🎛️ Configuración del Sistema de Recompensas
 
 ## 📍 Archivo de Configuración Principal
-
+a
 **Ubicación:** `/src/lib/referralRewardsConfig.js`
 
 Este archivo centraliza toda la configuración del sistema de recompensas, permitiendo cambios fáciles sin tocar el código principal.
