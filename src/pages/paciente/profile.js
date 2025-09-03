@@ -144,7 +144,10 @@ export default function PatientProfile() {
       setEditing(false);
       setMessage("Perfil actualizado correctamente");
 
-      setTimeout(() => setMessage(""), 3000);
+      // Reload the page after successful save to ensure fresh data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500); // Give user time to see the success message
     } catch (error) {
       console.error("Error updating profile:", error);
       setMessage("Error al actualizar el perfil");
