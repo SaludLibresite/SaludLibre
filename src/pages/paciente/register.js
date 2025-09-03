@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { validateArgentinePhone } from "../../lib/validations";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -139,6 +140,8 @@ export default function PatientRegister() {
     }
   };
 
+
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -162,6 +165,20 @@ export default function PatientRegister() {
       newErrors.confirmPassword = "Confirme su contraseña";
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Las contraseñas no coinciden";
+    }
+
+    // Validate phone if provided
+    if (formData.phone && formData.phone.trim()) {
+      if (!validateArgentinePhone(formData.phone.trim())) {
+        newErrors.phone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX";
+      }
+    }
+
+    // Validate emergency phone if provided
+    if (formData.emergencyPhone && formData.emergencyPhone.trim()) {
+      if (!validateArgentinePhone(formData.emergencyPhone.trim())) {
+        newErrors.emergencyPhone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX";
+      }
     }
 
     setErrors(newErrors);
@@ -573,24 +590,29 @@ export default function PatientRegister() {
 
               {/* Optional fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono
-                  </label>
-                  <div className="relative">
-                    <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                      placeholder="+54 11 1234-5678"
-                      disabled={loading}
-                    />
+                                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono
+                    </label>
+                    <div className="relative">
+                      <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          handleInputChange("phone", e.target.value)
+                        }
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                          errors.phone ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="+54 11 1234-5678"
+                        disabled={loading}
+                      />
+                    </div>
+                    {errors.phone && (
+                      <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                    )}
                   </div>
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

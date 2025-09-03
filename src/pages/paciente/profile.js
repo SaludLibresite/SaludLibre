@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { usePatientStore } from "../../store/patientStore";
 import PatientLayout from "../../components/paciente/PatientLayout";
 import FamilyManagement from "../../components/paciente/FamilyManagement";
+import { validateArgentinePhone } from "../../lib/validations";
 import {
   UserIcon,
   UserGroupIcon,
@@ -25,6 +26,7 @@ export default function PatientProfile() {
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
+  const [errors, setErrors] = useState({});
 
   const [profileData, setProfileData] = useState({
     name: "Juan Pérez",
@@ -56,9 +58,35 @@ export default function PatientProfile() {
     setEditData(profileData);
     setEditing(false);
     setMessage("");
+    setErrors({});
+  };
+
+  const validateProfileData = () => {
+    const newErrors = {};
+
+    // Validate phone if provided
+    if (editData.phone && editData.phone.trim()) {
+      if (!validateArgentinePhone(editData.phone.trim())) {
+        newErrors.phone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX";
+      }
+    }
+
+    // Validate emergency phone if provided
+    if (editData.emergencyPhone && editData.emergencyPhone.trim()) {
+      if (!validateArgentinePhone(editData.emergencyPhone.trim())) {
+        newErrors.emergencyPhone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async () => {
+    if (!validateProfileData()) {
+      return;
+    }
+
     try {
       setLoading(true);
       setMessage("");
@@ -78,6 +106,8 @@ export default function PatientProfile() {
       setLoading(false);
     }
   };
+
+
 
   const handleInputChange = (field, value) => {
     setEditData((prev) => ({
@@ -307,14 +337,22 @@ export default function PatientProfile() {
                       Teléfono
                     </label>
                     {editing ? (
-                      <input
-                        type="tel"
-                        value={editData.phone}
-                        onChange={(e) =>
-                          handleInputChange("phone", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                      />
+                      <>
+                        <input
+                          type="tel"
+                          value={editData.phone}
+                          onChange={(e) =>
+                            handleInputChange("phone", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                            errors.phone ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="+54 11 1234-5678"
+                        />
+                        {errors.phone && (
+                          <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                        )}
+                      </>
                     ) : (
                       <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
                         <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
@@ -526,14 +564,22 @@ export default function PatientProfile() {
                       Teléfono de Emergencia
                     </label>
                     {editing ? (
-                      <input
-                        type="tel"
-                        value={editData.emergencyPhone}
-                        onChange={(e) =>
-                          handleInputChange("emergencyPhone", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                      />
+                      <>
+                        <input
+                          type="tel"
+                          value={editData.emergencyPhone}
+                          onChange={(e) =>
+                            handleInputChange("emergencyPhone", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                            errors.emergencyPhone ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="+54 11 1234-5678"
+                        />
+                        {errors.emergencyPhone && (
+                          <p className="text-red-500 text-sm mt-1">{errors.emergencyPhone}</p>
+                        )}
+                      </>
                     ) : (
                       <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
                         <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
