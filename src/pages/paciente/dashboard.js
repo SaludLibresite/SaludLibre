@@ -15,6 +15,7 @@ import ProtectedPatientRoute from "../../components/paciente/ProtectedPatientRou
 import CompleteProfileModal from "../../components/paciente/CompleteProfileModal";
 import { getAppointmentsByPatientId } from "../../lib/appointmentsService";
 import { videoConsultationService } from "../../lib/videoConsultationService";
+import { removeDoctorTitle, getDoctorTitle } from "../../lib/dataUtils";
 import {
   UserCircleIcon,
   CalendarIcon,
@@ -195,7 +196,13 @@ export default function PatientDashboard() {
           let title = "Cita programada";
           let description = `${getAppointmentTypeText(
             appointment.type
-          )} con ${getDoctorTitle(appointment.doctorGender)} ${appointment.doctorName || "Nombre no disponible"}`;
+          )} con ${(() => {
+            if (appointment.doctorName) {
+              const cleanName = removeDoctorTitle(appointment.doctorName);
+              return `${getDoctorTitle(appointment.doctorGender)} ${cleanName}`;
+            }
+            return "Nombre no disponible";
+          })()}`;
           let icon = CalendarIcon;
 
           if (appointment.status === "completed") {
@@ -580,8 +587,13 @@ export default function PatientDashboard() {
                             {getAppointmentTypeText(appointment.type)}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {getDoctorTitle(appointment.doctorGender)}{" "}
-                            {appointment.doctorName || "Nombre no disponible"}
+                            {appointment.doctorName
+                              ? (() => {
+                                  const cleanName = removeDoctorTitle(appointment.doctorName);
+                                  return `${getDoctorTitle(appointment.doctorGender)} ${cleanName}`;
+                                })()
+                              : "Nombre no disponible"
+                            }
                           </div>
                           <div className="text-sm text-gray-500">
                             {(appointment.date?.toDate
@@ -642,7 +654,13 @@ export default function PatientDashboard() {
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">
-                              Consulta con {getDoctorTitle(room.doctorGender)} {room.doctorName || 'Doctor'}
+                              Consulta con {room.doctorName
+                                ? (() => {
+                                    const cleanName = removeDoctorTitle(room.doctorName);
+                                    return `${getDoctorTitle(room.doctorGender)} ${cleanName}`;
+                                  })()
+                                : 'Doctor'
+                              }
                             </div>
                             <div className="text-sm text-gray-600">
                               {room.consultationType === 'general' ? 'Consulta General' : 

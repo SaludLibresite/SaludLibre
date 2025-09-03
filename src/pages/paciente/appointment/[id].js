@@ -6,6 +6,7 @@ import { getPatientById } from "../../../lib/patientsService";
 import PatientLayout from "../../../components/paciente/PatientLayout";
 import ProtectedPatientRoute from "../../../components/paciente/ProtectedPatientRoute";
 import AppointmentDocumentsPatient from "../../../components/paciente/AppointmentDocumentsPatient";
+import { removeDoctorTitle, getDoctorTitle } from "../../../lib/dataUtils";
 import {
   CalendarIcon,
   ClockIcon,
@@ -202,7 +203,13 @@ export default function PatientAppointmentDetail() {
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">
-                      {getDoctorTitle(appointment.doctorGender)} {appointment.doctorName}
+                      {appointment.doctorName
+                        ? (() => {
+                            const cleanName = removeDoctorTitle(appointment.doctorName);
+                            return `${getDoctorTitle(appointment.doctorGender)} ${cleanName}`;
+                          })()
+                        : "Nombre no disponible"
+                      }
                     </h2>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span>{appointmentDate.toLocaleDateString("es-ES")}</span>
@@ -306,7 +313,13 @@ export default function PatientAppointmentDetail() {
                       <div className="flex items-center space-x-3">
                         <UserIcon className="h-5 w-5 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          {getDoctorTitle(appointment.doctorGender)} {appointment.doctorName}
+                          {appointment.doctorName
+                            ? (() => {
+                                const cleanName = removeDoctorTitle(appointment.doctorName);
+                                return `${getDoctorTitle(appointment.doctorGender)} ${cleanName}`;
+                              })()
+                            : "Nombre no disponible"
+                          }
                         </span>
                       </div>
                       {appointment.doctorSpecialty && (

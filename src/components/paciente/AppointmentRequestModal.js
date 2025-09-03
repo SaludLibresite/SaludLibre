@@ -251,6 +251,7 @@ export default function AppointmentRequestModal({
       const baseAppointmentData = {
         doctorId: formData.doctorId,
         doctorName: selectedDoctor?.nombre || "",
+        doctorGender: selectedDoctor?.genero || "",
         doctorSpecialty: selectedDoctor?.especialidad || "",
         date: new Date(formData.date),
         time: formData.time,
