@@ -110,32 +110,14 @@ export default function SuperAdminLayout({ children }) {
           isCollapsed ? 'h-20 px-2' : 'h-16 px-4'
         }`}>
           {!isCollapsed ? (
-            <div className="flex items-center space-x-3 flex-1">
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-orange-100 text-orange-700 transition-colors duration-200 group/collapse hover:scale-110"
-                title="Colapsar sidebar"
-              >
-                <ChevronLeftIcon className="h-5 w-5 transition-transform duration-200" />
-              </button>
-              <span className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent truncate cursor-pointer select-none"
-                    onClick={toggleSidebar}
-                    title="Colapsar sidebar">
+            <div className="flex items-center justify-center flex-1">
+              <span className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent truncate">
                 SuperAdmin Panel
               </span>
             </div>
           ) : (
-            <div className="flex flex-col items-start justify-start w-full space-y-1 py-2 px-2">
-              <button
-                onClick={toggleSidebar}
-                className="p-1.5 rounded-lg hover:bg-orange-100 text-orange-700 transition-all duration-200 group/expand hover:scale-110 hover:shadow-md"
-                title="Expandir sidebar"
-              >
-                <ChevronRightIcon className="h-4 w-4 transition-transform duration-200" />
-              </button>
-              <span className="text-sm font-bold text-orange-600 cursor-pointer select-none hover:scale-105 transition-transform duration-200 ml-1"
-                    onClick={toggleSidebar}
-                    title="Expandir sidebar">
+            <div className="flex items-center justify-center w-full py-4">
+              <span className="text-xl font-bold text-orange-600 flex items-center justify-center w-8 h-8 rounded-lg bg-orange-50/50">
                 S
               </span>
             </div>
@@ -288,22 +270,25 @@ export default function SuperAdminLayout({ children }) {
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
           <div className="flex h-16 items-center justify-between px-6">
-            {/* Sidebar toggle hint for desktop */}
-            <div className="hidden lg:flex items-center space-x-2">
+            {/* Sidebar toggle button for desktop */}
+            <div className="hidden lg:flex items-center space-x-3">
               <button
                 onClick={toggleSidebar}
-                className="p-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 hover:scale-105 hover:shadow-sm"
-                title="Alternar sidebar (Ctrl+B)"
+                className="flex items-center space-x-2 p-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 hover:scale-105 hover:shadow-sm border border-gray-200 hover:border-orange-300"
+                title={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
               >
                 {isCollapsed ? (
-                  <ChevronRightIcon className="h-5 w-5 transition-transform duration-200" />
+                  <>
+                    <ChevronRightIcon className="h-4 w-4 transition-transform duration-200" />
+                    <span className="text-sm font-medium">Expandir</span>
+                  </>
                 ) : (
-                  <ChevronLeftIcon className="h-5 w-5 transition-transform duration-200" />
+                  <>
+                    <ChevronLeftIcon className="h-4 w-4 transition-transform duration-200" />
+                    <span className="text-sm font-medium">Colapsar</span>
+                  </>
                 )}
               </button>
-              <span className="text-xs text-gray-500 hidden xl:inline transition-opacity duration-200">
-                {isCollapsed ? 'Expandir' : 'Colapsar'} sidebar
-              </span>
             </div>
 
             {/* Mobile menu button */}
