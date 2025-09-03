@@ -220,7 +220,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
         {/* Card Content */}
         <div className={`${doctorRank === "VIP" ? "p-6" : "p-5"}`}>
           {/* Header Section - Photo and Basic Info Horizontal Layout */}
-          <div className="flex gap-4 mb-4">
+          <div className="flex gap-4 mb-4 flex-col">
             {/* Doctor Image - Fixed size for consistency */}
             <div className="relative shrink-0 group-hover:transform group-hover:scale-105 transition-all duration-500 ease-out">
               {/* Glow effect for premium */}

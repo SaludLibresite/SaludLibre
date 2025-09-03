@@ -759,7 +759,7 @@ export default function DoctorDetailPage({
             <div className="space-y-6">
               {/* Appointment booking form */}
               <motion.div
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-6"
+                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
                 variants={slideIn}
               >
                 <div className="text-center mb-6">
