@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { usePatientStore } from "../../store/patientStore";
 import { getAllDoctors } from "../../lib/doctorsService";
-import { getAllSpecialties } from "../../lib/specialtiesService";
+import { getAllSpecialties, getActiveSpecialties } from "../../lib/specialtiesService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { formatDoctorName, removeDoctorTitle } from "../../lib/dataUtils";
 import {
@@ -33,6 +33,7 @@ export default function AppointmentRequestModal({
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState([]);
   const [specialties, setSpecialties] = useState([]);
+  const [activeSpecialties, setActiveSpecialties] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [doctorSearchTerm, setDoctorSearchTerm] = useState("");
@@ -52,6 +53,7 @@ export default function AppointmentRequestModal({
   useEffect(() => {
     if (isOpen) {
       loadDoctors();
+      loadActiveSpecialties();
       setStep(1);
       setSelectedSpecialty("");
       setDoctorSearchTerm("");
@@ -101,12 +103,37 @@ export default function AppointmentRequestModal({
     }
   };
 
-  // Get unique specialties from doctors
+  const loadActiveSpecialties = async () => {
+    try {
+      const activeSpecialtiesList = await getActiveSpecialties();
+      setActiveSpecialties(activeSpecialtiesList);
+    } catch (error) {
+      console.error("Error loading active specialties:", error);
+      // Fallback: get specialties from doctors if active specialties fail
+      if (doctors.length > 0) {
+        const specialtiesFromDoctors = [
+          ...new Set(doctors.map((doctor) => doctor.especialidad)),
+        ].sort();
+        setActiveSpecialties(specialtiesFromDoctors.map(title => ({ title })));
+      }
+    }
+  };
+
+  // Get active specialties that have available doctors
   const getSpecialties = () => {
-    const specialties = [
-      ...new Set(doctors.map((doctor) => doctor.especialidad)),
+    // Get all specialty names from active specialties
+    const activeSpecialtyNames = activeSpecialties.map(specialty => specialty.title);
+
+    // Get specialties that are both active AND have doctors available
+    const availableSpecialties = [
+      ...new Set(
+        doctors
+          .map((doctor) => doctor.especialidad)
+          .filter((specialty) => activeSpecialtyNames.includes(specialty))
+      ),
     ];
-    return specialties.sort();
+
+    return availableSpecialties.sort();
   };
 
   // Filter doctors by specialty and search term

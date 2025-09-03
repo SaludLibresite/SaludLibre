@@ -42,6 +42,35 @@ export async function getAllSpecialties() {
   }
 }
 
+// Get only active specialties
+export async function getActiveSpecialties() {
+  try {
+    const specialtiesRef = collection(db, SPECIALTIES_COLLECTION);
+    const q = query(
+      specialtiesRef,
+      orderBy("title", "asc")
+    );
+    const querySnapshot = await getDocs(q);
+
+    const activeSpecialties = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      // Consider active if isActive is not false (default to true)
+      if (data.isActive !== false) {
+        activeSpecialties.push({
+          id: doc.id,
+          ...data,
+        });
+      }
+    });
+
+    return activeSpecialties;
+  } catch (error) {
+    console.error("Error getting active specialties:", error);
+    throw error;
+  }
+}
+
 // Get specialty by ID
 export async function getSpecialtyById(id) {
   try {
