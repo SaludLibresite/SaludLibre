@@ -466,61 +466,89 @@ export default function PatientDashboard() {
                 <div className="space-y-3">
                   <button
                     onClick={() => router.push("/paciente/appointments")}
-                    className="w-full flex items-center p-3 text-left bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors duration-200"
+                    className="w-full flex items-center p-4 text-left bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 border border-amber-200 hover:border-amber-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] group"
                   >
-                    <CalendarIcon className="h-5 w-5 text-amber-600 mr-3" />
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="p-2 bg-amber-500 rounded-lg mr-4 shadow-sm group-hover:shadow-md transition-all duration-300">
+                      <CalendarIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 mb-1">
                         Agendar Cita
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
                         Programa una nueva consulta
                       </div>
+                    </div>
+                    <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </button>
 
                   <button
                     onClick={() => router.push("/paciente/profile")}
-                    className="w-full flex items-center p-3 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                    className="w-full flex items-center p-4 text-left bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] group"
                   >
-                    <UserCircleIcon className="h-5 w-5 text-blue-600 mr-3" />
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="p-2 bg-blue-500 rounded-lg mr-4 shadow-sm group-hover:shadow-md transition-all duration-300">
+                      <UserCircleIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 mb-1">
                         Ver Perfil
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
                         Actualiza tu información
                       </div>
+                    </div>
+                    <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </button>
 
                   <button
                     onClick={() => router.push("/paciente/medical-records")}
-                    className="w-full flex items-center p-3 text-left bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200"
+                    className="w-full flex items-center p-4 text-left bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border border-green-200 hover:border-green-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] group"
                   >
-                    <ClipboardDocumentListIcon className="h-5 w-5 text-green-600 mr-3" />
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="p-2 bg-green-500 rounded-lg mr-4 shadow-sm group-hover:shadow-md transition-all duration-300">
+                      <ClipboardDocumentListIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 mb-1">
                         Historial Médico
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
                         Ver registros y archivos
                       </div>
+                    </div>
+                    <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </button>
 
                   <button
                     onClick={() => router.push("/paciente/reviews")}
-                    className="w-full flex items-center p-3 text-left bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors duration-200"
+                    className="w-full flex items-center p-4 text-left bg-gradient-to-r from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 border border-purple-200 hover:border-purple-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] group"
                   >
-                    <StarIcon className="h-5 w-5 text-purple-600 mr-3" />
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="p-2 bg-purple-500 rounded-lg mr-4 shadow-sm group-hover:shadow-md transition-all duration-300">
+                      <StarIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 mb-1">
                         Dejar Reseña
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
                         Califica tu experiencia
                       </div>
+                    </div>
+                    <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </button>
                 </div>
@@ -619,7 +647,7 @@ export default function PatientDashboard() {
                     </p>
                     <button
                       onClick={() => router.push("/paciente/appointments")}
-                      className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+                      className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] font-semibold"
                     >
                       Agendar Primera Cita
                     </button>
