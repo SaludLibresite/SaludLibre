@@ -246,7 +246,7 @@ export default function SuperAdminLayout({ children }) {
       <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-          <div className="flex h-16 items-center justify-between px-6">
+          <div className="flex h-16 items-center justify-end px-6">
             {/* Mobile menu button */}
             <button
               onClick={() => setSidebarOpen(true)}
