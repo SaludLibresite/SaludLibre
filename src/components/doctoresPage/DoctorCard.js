@@ -130,7 +130,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
   }, [doctor.horario]);
 
   const handleWhatsAppClick = () => {
-    const doctorName = cleanDoctorName(doctor.nombre);
+    const doctorName = cleanDoctorName(doctor.nombre, doctor.genero);
     const message = `Hola ${doctorName}, quisiera agendar una consulta`;
     const whatsappUrl = `https://wa.me/${doctor.telefono.replace(
       /\D/g,
@@ -266,7 +266,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
                       : "text-base text-blue-700"
                   }`}
                 >
-                  {cleanDoctorName(doctor.nombre)}
+                  {cleanDoctorName(doctor.nombre, doctor.genero)}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span

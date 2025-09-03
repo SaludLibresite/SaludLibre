@@ -377,7 +377,7 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                       key={doctor.id}
                       position={{ lat: doctor.latitude, lng: doctor.longitude }}
                       icon={markerIcon}
-                      title={cleanDoctorName(doctor.nombre)}
+                      title={cleanDoctorName(doctor.nombre, doctor.genero)}
                       onClick={() => setSelectedDoctor(doctor)}
                     />
                   );
@@ -430,7 +430,7 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                         {/* Información principal */}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-gray-900 mb-1 text-sm leading-tight">
-                            {cleanDoctorName(selectedDoctor.nombre)}
+                            {cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}
                           </h3>
                           
                           <div className="space-y-1 mb-3">
@@ -502,7 +502,7 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                             </a>
                             {selectedDoctor.telefono && (
                               <a
-                                href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre)}, quisiera agendar una consulta`)}`}
+                                href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}, quisiera agendar una consulta`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-full hover:bg-green-600 transition-colors duration-200 shadow-sm font-medium"

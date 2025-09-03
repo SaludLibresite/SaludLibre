@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { MapPinIcon } from "@heroicons/react/24/outline";
+import { formatDoctorName } from "../../lib/dataUtils";
 
 // Global loader instance to avoid multiple initializations
 let globalLoader = null;
@@ -69,7 +70,7 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
             lng: doctor.longitude,
           },
           map: mapInstance,
-          title: `Consultorio del Dr. ${doctor.nombre}`,
+          title: `Consultorio del ${formatDoctorName(doctor.nombre, doctor.genero)}`,
           icon: {
             url:
               "data:image/svg+xml;charset=UTF-8," +
@@ -90,7 +91,7 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           content: `
             <div style="padding: 8px; max-width: 250px;">
               <h3 style="margin: 0 0 8px 0; color: #1F2937; font-size: 16px; font-weight: 600;">
-                Dr. ${doctor.nombre}
+                {formatDoctorName(doctor.nombre, doctor.genero)}
               </h3>
               <p style="margin: 0 0 4px 0; color: #3B82F6; font-size: 14px; font-weight: 500;">
                 ${doctor.especialidad}

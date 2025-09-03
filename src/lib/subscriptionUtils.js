@@ -3,30 +3,17 @@
  */
 
 /**
- * Limpia el nombre del doctor removiendo títulos duplicados
- * @param {string} nombre - Nombre completo del doctor
- * @returns {string} - Nombre limpio sin títulos duplicados
+ * Formats a doctor's name with proper title based on gender
+ * @param {string} nombre - Doctor's name
+ * @param {string} genero - Doctor's gender
+ * @returns {string} - Formatted name with proper title
  */
-export const cleanDoctorName = (nombre) => {
+export const cleanDoctorName = (nombre, genero) => {
   if (!nombre) return '';
-  
-  // Lista de títulos comunes que pueden aparecer al inicio del nombre
-  const titulos = ['Dr.', 'Dra.', 'Doctor', 'Doctora', 'DR.', 'DRA.', 'dr.', 'dra.'];
-  
-  let nombreLimpio = nombre.trim();
-  
-  // Verificar si el nombre ya comienza con algún título
-  const empiezaConTitulo = titulos.some(titulo => 
-    nombreLimpio.toLowerCase().startsWith(titulo.toLowerCase())
-  );
-  
-  if (empiezaConTitulo) {
-    // Si ya tiene título, devolver el nombre tal como está
-    return nombreLimpio;
-  } else {
-    // Si no tiene título, agregar "Dr." por defecto
-    return `Dr. ${nombreLimpio}`;
-  }
+
+  // Import the formatDoctorName function dynamically to avoid circular dependencies
+  const { formatDoctorName } = require('./dataUtils');
+  return formatDoctorName(nombre, genero);
 };
 
 /**

@@ -8,6 +8,7 @@ import AgendarCita from "../../components/doctoresPage/AgendarCita";
 import DoctorLocationMap from "../../components/doctoresPage/DoctorLocationMap";
 import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/Footer";
+import { formatDoctorName } from "../../lib/dataUtils";
 import DoctorCard from "../../components/doctoresPage/DoctorCard";
 import { getDoctorBySlug, getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
@@ -190,10 +191,10 @@ export default function DoctorDetailPage({
   // Render SEO first for better server-side rendering
   const seoComponent = (
     <SEO
-      title={`Dr. ${doctor?.nombre} - ${doctor?.especialidad} | Salud Libre`}
+      title={`${formatDoctorName(doctor?.nombre, doctor?.genero)} - ${doctor?.especialidad} | Salud Libre`}
       description={
         doctor?.descripcion || 
-        `Consulta con Dr. ${doctor?.nombre}, especialista en ${doctor?.especialidad}. ${doctor?.formattedAddress || doctor?.ubicacion}. Agenda tu cita médica.`
+        `Consulta con ${formatDoctorName(doctor?.nombre, doctor?.genero)}, especialista en ${doctor?.especialidad}. ${doctor?.formattedAddress || doctor?.ubicacion}. Agenda tu cita médica.`
       }
       image={
         doctor?.photoURL ||
@@ -724,7 +725,7 @@ export default function DoctorDetailPage({
                     /\D/g,
                     ""
                   )}?text=${encodeURIComponent(
-                    `Hola Dr. ${doctor.nombre}, quisiera agendar una consulta`
+                    `Hola ${formatDoctorName(doctor.nombre, doctor.genero)}, quisiera agendar una consulta`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

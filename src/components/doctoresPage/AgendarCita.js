@@ -7,6 +7,7 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { createPatient } from "../../lib/patientsService";
+import { formatDoctorName } from "../../lib/dataUtils";
 
 export default function AgendarCita({ isOpen, onClose, doctor, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -214,7 +215,7 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit }) {
                   </h2>
                   {doctor && (
                     <p className="text-sm text-gray-600 mt-1">
-                      Dr. {doctor.nombre} - {doctor.especialidad}
+                      {formatDoctorName(doctor.nombre, doctor.genero)} - {doctor.especialidad}
                     </p>
                   )}
                 </div>

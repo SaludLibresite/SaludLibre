@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getAllDoctors } from "../lib/doctorsService";
 import { getAllSpecialties } from "../lib/specialtiesService";
 import { getDoctorRank } from "../lib/subscriptionUtils";
+import { formatDoctorName } from "../lib/dataUtils";
 
 const SearchIcon = () => (
   <svg
@@ -60,7 +61,7 @@ const DoctorResult = ({ doctor }) => (
         }}
       />
       <div className="flex-1">
-        <h3 className="font-semibold text-gray-900">Dr. {doctor.nombre}</h3>
+        <h3 className="font-semibold text-gray-900">{formatDoctorName(doctor.nombre, doctor.genero)}</h3>
         <p className="text-sm text-gray-600">{doctor.especialidad}</p>
         <div className="flex gap-2 mt-2 flex-wrap">
           {doctor.consultaOnline && (

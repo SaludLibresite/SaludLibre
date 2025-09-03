@@ -75,8 +75,10 @@ export function getDoctorTitle(gender) {
 export function formatDoctorName(name, gender) {
   if (!name) return "Nombre no disponible";
 
+  // First remove any existing titles to prevent duplication
+  const cleanName = removeDoctorTitle(name);
   const title = getDoctorTitle(gender);
-  return `${title} ${name}`;
+  return `${title} ${cleanName}`;
 }
 
 /**
@@ -87,11 +89,17 @@ export function formatDoctorName(name, gender) {
 export function removeDoctorTitle(name) {
   if (!name) return "";
 
-  // Remove common title patterns
-  return name
-    .replace(/^Dr\.?\s+/i, "") // Remove "Dr." or "Dr "
-    .replace(/^Dra\.?\s+/i, "") // Remove "Dra." or "Dra "
+  // Remove common title patterns with more comprehensive regex
+  let cleanedName = name
+    .replace(/^(Dr\.?\s+|Dra\.?\s+|Dr\s+|Dra\s+)/i, "") // Remove "Dr.", "Dr ", "Dra.", "Dra ", etc.
     .trim();
+
+  // If the name still starts with a title after cleaning, try again (handles cases like "Dra. Dra. Name")
+  if (/^(Dr\.?\s+|Dra\.?\s+|Dr\s+|Dra\s+)/i.test(cleanedName)) {
+    cleanedName = cleanedName.replace(/^(Dr\.?\s+|Dra\.?\s+|Dr\s+|Dra\s+)/i, "").trim();
+  }
+
+  return cleanedName;
 }
 
 /**
