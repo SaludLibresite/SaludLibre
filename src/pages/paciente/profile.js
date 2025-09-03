@@ -22,7 +22,7 @@ import {
 
 export default function PatientProfile() {
   const { currentUser } = useAuth();
-  const { activePatient, primaryPatient, setPrimaryPatient, updateFamilyMember } = usePatientStore();
+  const { activePatient, primaryPatient } = usePatientStore();
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
@@ -127,16 +127,10 @@ export default function PatientProfile() {
     }
 
     if (!activePatient) {
-      console.error("No active patient found:", { currentUser, activePatient, primaryPatient });
+      console.error("No active patient found for saving");
       setMessage("No se pudo identificar al paciente activo");
       return;
     }
-
-    console.log("Attempting to save profile:", {
-      activePatientId: activePatient.id,
-      editData,
-      activePatient
-    });
 
     try {
       setLoading(true);
@@ -147,33 +141,13 @@ export default function PatientProfile() {
 
       // Update local state
       setProfileData(editData);
-
-      // Update patient store to reflect changes immediately
-      if (activePatient.isPrimary) {
-        // Update primary patient in store
-        const updatedPrimaryPatient = { ...activePatient, ...editData };
-        setPrimaryPatient(updatedPrimaryPatient);
-      } else {
-        // Update family member in store
-        updateFamilyMember(activePatient.id, editData);
-      }
-
       setEditing(false);
       setMessage("Perfil actualizado correctamente");
 
-      // Reload the page after successful save
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500); // Give user time to see the success message
+      setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Error updating profile:", error);
-      console.error("Error details:", {
-        message: error.message,
-        code: error.code,
-        activePatient,
-        editData
-      });
-      setMessage(`Error al actualizar el perfil: ${error.message || "Error desconocido"}`);
+      setMessage("Error al actualizar el perfil");
     } finally {
       setLoading(false);
     }

@@ -155,19 +155,6 @@ export default function PatientLayout({ children }) {
     loadPatientData();
   }, [currentUser, isHydrated, initializePatientData]);
 
-  // Update patientData when activePatient changes (for primary patient updates)
-  useEffect(() => {
-    if (activePatient && activePatient.isPrimary && patientData) {
-      // If the active patient is the primary patient and has been updated,
-      // sync the patientData state with the store
-      const updatedPatientData = {
-        ...patientData,
-        ...activePatient,
-      };
-      setPatientData(updatedPatientData);
-    }
-  }, [activePatient, patientData]);
-
   // Keyboard shortcut to toggle sidebar (Ctrl/Cmd + B)
   useEffect(() => {
     const handleKeyDown = (event) => {

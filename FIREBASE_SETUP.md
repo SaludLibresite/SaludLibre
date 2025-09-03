@@ -63,10 +63,15 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
-    // Pacientes - solo el doctor que los creó puede acceder
+    // Pacientes - el doctor y el paciente pueden acceder
     match /patients/{document} {
-      allow read, write: if request.auth != null &&
+      allow read: if request.auth != null &&
         (request.auth.uid == resource.data.doctorUserId ||
+         request.auth.uid == resource.data.userId ||
+         isDocumentOwner(request.auth.uid, resource.data.doctorId));
+      allow write: if request.auth != null &&
+        (request.auth.uid == resource.data.doctorUserId ||
+         request.auth.uid == resource.data.userId ||
          isDocumentOwner(request.auth.uid, resource.data.doctorId));
       allow create: if request.auth != null;
     }
