@@ -9,7 +9,7 @@ import {
 } from "firebase/auth";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
-import { validateArgentinePhone } from "../../lib/validations";
+import { validateArgentinePhone, validateEmail, validatePassword, validateName } from "../../lib/validations";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -24,6 +24,36 @@ import {
   UserPlusIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
+
+// Email sending function
+async function sendPatientWelcomeEmail({
+  patientName,
+  patientEmail,
+  doctorName = "nuestro equipo médico"
+}) {
+  try {
+    const response = await fetch("/api/patients/send-welcome-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        patientName,
+        patientEmail,
+        doctorName,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al enviar el email de bienvenida");
+    }
+
+    console.log(`Welcome email sent successfully to ${patientEmail}`);
+  } catch (error) {
+    console.error("Error sending welcome email:", error);
+    // Don't throw error as registration was successful
+  }
+}
 
 export default function PatientRegister() {
   const router = useRouter();
@@ -138,6 +168,34 @@ export default function PatientRegister() {
         [field]: "",
       }));
     }
+
+    // Real-time validation for critical fields
+    if (field === 'email' && value.trim()) {
+      if (!validateEmail(value.trim())) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "El formato del email no es válido",
+        }));
+      }
+    }
+
+    if (field === 'phone' && value.trim()) {
+      if (!validateArgentinePhone(value.trim())) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "Formato de teléfono argentino inválido",
+        }));
+      }
+    }
+
+    if (field === 'name' && value.trim()) {
+      if (!validateName(value.trim())) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "El nombre solo puede contener letras y espacios",
+        }));
+      }
+    }
   };
 
 
@@ -145,39 +203,116 @@ export default function PatientRegister() {
   const validateForm = () => {
     const newErrors = {};
 
+    // Name validation
     if (!formData.name.trim()) {
-      newErrors.name = "El nombre es requerido";
+      newErrors.name = "El nombre completo es requerido";
+    } else if (!validateName(formData.name.trim())) {
+      newErrors.name = "El nombre solo puede contener letras y espacios, mínimo 2 caracteres";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "El nombre debe tener al menos 2 caracteres";
+    } else if (formData.name.trim().length > 100) {
+      newErrors.name = "El nombre no puede tener más de 100 caracteres";
     }
 
+    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = "El email es requerido";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "El email no es válido";
+    } else if (!validateEmail(formData.email.trim())) {
+      newErrors.email = "El formato del email no es válido";
+    } else if (formData.email.length > 254) {
+      newErrors.email = "El email no puede tener más de 254 caracteres";
     }
 
-    if (!formData.password) {
-      newErrors.password = "La contraseña es requerida";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "La contraseña debe tener al menos 6 caracteres";
+    // Password validation
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = passwordValidation.message;
     }
 
+    // Confirm password validation
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Confirme su contraseña";
+      newErrors.confirmPassword = "Debe confirmar la contraseña";
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Las contraseñas no coinciden";
     }
 
-    // Validate phone if provided
-    if (formData.phone && formData.phone.trim()) {
-      if (!validateArgentinePhone(formData.phone.trim())) {
-        newErrors.phone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX";
+    // Phone validation (required for registration)
+    if (!formData.phone || !formData.phone.trim()) {
+      newErrors.phone = "El número de teléfono es requerido";
+    } else if (!validateArgentinePhone(formData.phone.trim())) {
+      newErrors.phone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX o 10 dígitos";
+    }
+
+    // Date of birth validation
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = "La fecha de nacimiento es requerida";
+    } else {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      if (birthDate > today) {
+        newErrors.dateOfBirth = "La fecha de nacimiento no puede ser futura";
+      } else if (age < 1) {
+        newErrors.dateOfBirth = "Debe tener al menos 1 año de edad";
+      } else if (age > 150) {
+        newErrors.dateOfBirth = "La edad no puede ser mayor a 150 años";
+      } else if (age === 1 && monthDiff < 0) {
+        newErrors.dateOfBirth = "Debe tener al menos 1 año de edad";
       }
     }
 
-    // Validate emergency phone if provided
+    // Gender validation
+    if (!formData.gender) {
+      newErrors.gender = "Debe seleccionar un género";
+    } else if (!["Masculino", "Femenino", "Otro"].includes(formData.gender)) {
+      newErrors.gender = "Seleccione un género válido";
+    }
+
+    // Emergency phone validation (optional but if provided, must be valid)
     if (formData.emergencyPhone && formData.emergencyPhone.trim()) {
       if (!validateArgentinePhone(formData.emergencyPhone.trim())) {
         newErrors.emergencyPhone = "Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX";
+      }
+    }
+
+    // Address validation (optional but if provided, must be reasonable length)
+    if (formData.address && formData.address.trim()) {
+      if (formData.address.trim().length < 5) {
+        newErrors.address = "La dirección debe tener al menos 5 caracteres";
+      } else if (formData.address.trim().length > 200) {
+        newErrors.address = "La dirección no puede tener más de 200 caracteres";
+      }
+    }
+
+    // Insurance number validation (optional but if provided, must be reasonable)
+    if (formData.insuranceNumber && formData.insuranceNumber.trim()) {
+      if (formData.insuranceNumber.trim().length < 3) {
+        newErrors.insuranceNumber = "El número de seguro debe tener al menos 3 caracteres";
+      } else if (formData.insuranceNumber.trim().length > 50) {
+        newErrors.insuranceNumber = "El número de seguro no puede tener más de 50 caracteres";
+      }
+    }
+
+    // Medical history validation (optional but if provided, must be reasonable)
+    if (formData.medicalHistory && formData.medicalHistory.trim()) {
+      if (formData.medicalHistory.trim().length > 1000) {
+        newErrors.medicalHistory = "El historial médico no puede tener más de 1000 caracteres";
+      }
+    }
+
+    // Allergies validation (optional but if provided, must be reasonable)
+    if (formData.allergies && formData.allergies.trim()) {
+      if (formData.allergies.trim().length > 500) {
+        newErrors.allergies = "Las alergias no pueden tener más de 500 caracteres";
+      }
+    }
+
+    // Current medications validation (optional but if provided, must be reasonable)
+    if (formData.currentMedications && formData.currentMedications.trim()) {
+      if (formData.currentMedications.trim().length > 500) {
+        newErrors.currentMedications = "Los medicamentos no pueden tener más de 500 caracteres";
       }
     }
 
@@ -190,12 +325,64 @@ export default function PatientRegister() {
       setGoogleLoading(true);
       setMessage("");
 
+      // Validate that required fields are filled for Google registration
+      if (!formData.phone || !formData.phone.trim()) {
+        setMessage("El número de teléfono es requerido para el registro con Google");
+        setGoogleLoading(false);
+        return;
+      }
+
+      if (!validateArgentinePhone(formData.phone.trim())) {
+        setMessage("Formato de teléfono argentino inválido. Use: +54 XX XXXX-XXXX o 10 dígitos");
+        setGoogleLoading(false);
+        return;
+      }
+
+      if (!formData.dateOfBirth) {
+        setMessage("La fecha de nacimiento es requerida para el registro con Google");
+        setGoogleLoading(false);
+        return;
+      }
+
+      // Validate date of birth
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+
+      if (birthDate > today) {
+        setMessage("La fecha de nacimiento no puede ser futura");
+        setGoogleLoading(false);
+        return;
+      } else if (age < 1) {
+        setMessage("Debe tener al menos 1 año de edad");
+        setGoogleLoading(false);
+        return;
+      } else if (age > 150) {
+        setMessage("La edad no puede ser mayor a 150 años");
+        setGoogleLoading(false);
+        return;
+      }
+
+      if (!formData.gender) {
+        setMessage("Debe seleccionar un género para el registro con Google");
+        setGoogleLoading(false);
+        return;
+      }
+
       const provider = new GoogleAuthProvider();
       provider.addScope("email");
       provider.addScope("profile");
 
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+
+      // Additional validation for Google account data
+      if (!user.email || !user.displayName) {
+        setMessage("La cuenta de Google debe tener email y nombre completos");
+        setGoogleLoading(false);
+        return;
+      }
 
       // Check if user already exists as a patient
       const patientsQuery = query(
@@ -206,6 +393,20 @@ export default function PatientRegister() {
 
       if (!existingPatient.empty) {
         setMessage("Esta cuenta de Google ya está registrada como paciente");
+        setGoogleLoading(false);
+        return;
+      }
+
+      // Check if email is already registered with another auth method
+      const emailQuery = query(
+        collection(db, "patients"),
+        where("email", "==", user.email)
+      );
+      const existingEmail = await getDocs(emailQuery);
+
+      if (!existingEmail.empty) {
+        setMessage("Este email ya está registrado. Use el método de login correspondiente");
+        setGoogleLoading(false);
         return;
       }
 
@@ -236,6 +437,13 @@ export default function PatientRegister() {
       };
 
       await addDoc(collection(db, "patients"), patientData);
+
+      // Send welcome email to the patient
+      await sendPatientWelcomeEmail({
+        patientName: user.displayName || user.email,
+        patientEmail: user.email,
+        doctorName: selectedDoctor?.nombre
+      });
 
       setMessage("¡Registro con Google exitoso! Redirigiendo al dashboard...");
 
@@ -278,6 +486,19 @@ export default function PatientRegister() {
       setLoading(true);
       setMessage("");
 
+      // Check if email is already registered
+      const emailQuery = query(
+        collection(db, "patients"),
+        where("email", "==", formData.email.trim())
+      );
+      const existingEmail = await getDocs(emailQuery);
+
+      if (!existingEmail.empty) {
+        setMessage("Este email ya está registrado en el sistema");
+        setLoading(false);
+        return;
+      }
+
       // Create Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -314,6 +535,13 @@ export default function PatientRegister() {
       };
 
       await addDoc(collection(db, "patients"), patientData);
+
+      // Send welcome email to the patient
+      await sendPatientWelcomeEmail({
+        patientName: formData.name,
+        patientEmail: formData.email,
+        doctorName: selectedDoctor?.nombre
+      });
 
       setMessage("¡Registro exitoso! Redirigiendo al dashboard...");
 
@@ -470,10 +698,10 @@ export default function PatientRegister() {
 
             {/* Manual Registration Form */}
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre Completo *
-                </label>
+                              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre Completo <span className="text-red-500">*</span>
+                  </label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -492,10 +720,10 @@ export default function PatientRegister() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
-                </label>
+                              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email <span className="text-red-500">*</span>
+                  </label>
                 <div className="relative">
                   <EnvelopeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -514,10 +742,10 @@ export default function PatientRegister() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contraseña *
-                </label>
+                              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contraseña <span className="text-red-500">*</span>
+                  </label>
                 <div className="relative">
                   <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -549,10 +777,10 @@ export default function PatientRegister() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirmar Contraseña *
-                </label>
+                              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirmar Contraseña <span className="text-red-500">*</span>
+                  </label>
                 <div className="relative">
                   <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -592,7 +820,7 @@ export default function PatientRegister() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Teléfono
+                      Teléfono <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -614,10 +842,10 @@ export default function PatientRegister() {
                     )}
                   </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Nacimiento
-                  </label>
+                                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha de Nacimiento <span className="text-red-500">*</span>
+                    </label>
                   <div className="relative">
                     <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
@@ -635,7 +863,7 @@ export default function PatientRegister() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Género
+                  Género <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.gender}
