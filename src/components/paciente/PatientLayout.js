@@ -23,11 +23,18 @@ import {
   ArrowRightOnRectangleIcon,
   HomeIcon,
   ChevronRightIcon as ChevronRightSmallIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 
 const menuItems = [
   {
-    name: "Inicio",
+    name: "Dashboard",
+    href: "/paciente/dashboard",
+    icon: ChartBarIcon,
+    description: "Vista general y estadísticas",
+  },
+  {
+    name: "Buscar Doctores",
     href: "/doctores",
     icon: HomeIcon,
     description: "Buscar doctores y especialistas",
@@ -82,6 +89,7 @@ export default function PatientLayout({ children }) {
       // Map route segments to readable names
       const routeMap = {
         paciente: "Pacientes",
+        dashboard: "Dashboard",
         appointments: "Citas",
         "medical-records": "Historial Médico",
         profile: "Perfil",
