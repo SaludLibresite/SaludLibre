@@ -229,6 +229,33 @@ export default function PatientAppointments() {
     }
   };
 
+  const getDoctorTitle = (gender) => {
+    if (!gender) return "Dr.";
+
+    // Normalize gender to lowercase for comparison
+    const normalizedGender = gender.toLowerCase().trim();
+
+    switch (normalizedGender) {
+      case "femenino":
+      case "female":
+      case "f":
+      case "mujer":
+      case "woman":
+      case "w":
+        return "Dra.";
+      case "masculino":
+      case "male":
+      case "m":
+      case "hombre":
+      case "man":
+        return "Dr.";
+      default:
+        // If gender is not clearly identified, try to infer from name patterns
+        // This is a fallback for cases where gender data might be missing
+        return "Dr.";
+    }
+  };
+
   if (loading) {
     return (
       <PatientLayout>
@@ -372,7 +399,7 @@ export default function PatientAppointments() {
                       <div className="flex-1">
                         <div className="flex items-center mb-2">
                           <h3 className="text-lg font-semibold text-gray-900 mr-3">
-                            Dr.{" "}
+                            {getDoctorTitle(appointment.doctorGender)}{" "}
                             {appointment.doctorName || "Nombre no disponible"}
                           </h3>
                           <span

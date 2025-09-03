@@ -195,7 +195,7 @@ export default function PatientDashboard() {
           let title = "Cita programada";
           let description = `${getAppointmentTypeText(
             appointment.type
-          )} con Dr. ${appointment.doctorName || "Nombre no disponible"}`;
+          )} con ${getDoctorTitle(appointment.doctorGender)} ${appointment.doctorName || "Nombre no disponible"}`;
           let icon = CalendarIcon;
 
           if (appointment.status === "completed") {
@@ -246,6 +246,33 @@ export default function PatientDashboard() {
         return "Urgencia";
       default:
         return "Consulta General";
+    }
+  };
+
+  const getDoctorTitle = (gender) => {
+    if (!gender) return "Dr.";
+
+    // Normalize gender to lowercase for comparison
+    const normalizedGender = gender.toLowerCase().trim();
+
+    switch (normalizedGender) {
+      case "femenino":
+      case "female":
+      case "f":
+      case "mujer":
+      case "woman":
+      case "w":
+        return "Dra.";
+      case "masculino":
+      case "male":
+      case "m":
+      case "hombre":
+      case "man":
+        return "Dr.";
+      default:
+        // If gender is not clearly identified, try to infer from name patterns
+        // This is a fallback for cases where gender data might be missing
+        return "Dr.";
     }
   };
 
@@ -553,7 +580,7 @@ export default function PatientDashboard() {
                             {getAppointmentTypeText(appointment.type)}
                           </div>
                           <div className="text-sm text-gray-600">
-                            Dr.{" "}
+                            {getDoctorTitle(appointment.doctorGender)}{" "}
                             {appointment.doctorName || "Nombre no disponible"}
                           </div>
                           <div className="text-sm text-gray-500">
@@ -615,7 +642,7 @@ export default function PatientDashboard() {
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">
-                              Consulta con Dr. {room.doctorName || 'Doctor'}
+                              Consulta con {getDoctorTitle(room.doctorGender)} {room.doctorName || 'Doctor'}
                             </div>
                             <div className="text-sm text-gray-600">
                               {room.consultationType === 'general' ? 'Consulta General' : 

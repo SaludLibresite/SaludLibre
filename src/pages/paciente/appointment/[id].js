@@ -97,6 +97,33 @@ export default function PatientAppointmentDetail() {
     }
   };
 
+  const getDoctorTitle = (gender) => {
+    if (!gender) return "Dr.";
+
+    // Normalize gender to lowercase for comparison
+    const normalizedGender = gender.toLowerCase().trim();
+
+    switch (normalizedGender) {
+      case "femenino":
+      case "female":
+      case "f":
+      case "mujer":
+      case "woman":
+      case "w":
+        return "Dra.";
+      case "masculino":
+      case "male":
+      case "m":
+      case "hombre":
+      case "man":
+        return "Dr.";
+      default:
+        // If gender is not clearly identified, try to infer from name patterns
+        // This is a fallback for cases where gender data might be missing
+        return "Dr.";
+    }
+  };
+
   const tabs = ["Información", "Documentos"];
 
   if (loading) {
@@ -175,7 +202,7 @@ export default function PatientAppointmentDetail() {
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">
-                      Dr. {appointment.doctorName}
+                      {getDoctorTitle(appointment.doctorGender)} {appointment.doctorName}
                     </h2>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span>{appointmentDate.toLocaleDateString("es-ES")}</span>
@@ -279,7 +306,7 @@ export default function PatientAppointmentDetail() {
                       <div className="flex items-center space-x-3">
                         <UserIcon className="h-5 w-5 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          Dr. {appointment.doctorName}
+                          {getDoctorTitle(appointment.doctorGender)} {appointment.doctorName}
                         </span>
                       </div>
                       {appointment.doctorSpecialty && (
