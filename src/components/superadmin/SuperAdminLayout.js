@@ -29,6 +29,19 @@ export default function SuperAdminLayout({ children }) {
     }
   }, [currentUser, authLoading, router]);
 
+  // Keyboard shortcut to toggle sidebar (Ctrl/Cmd + B)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
+
   const navigation = [
     {
       name: 'Dashboard',
@@ -87,66 +100,91 @@ export default function SuperAdminLayout({ children }) {
 
       {/* Desktop Sidebar - Hidden on mobile */}
       <div
-        className={`hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 ${sidebarWidth} bg-gradient-to-b from-orange-50 to-amber-50 shadow-xl border-r border-orange-100 transition-all duration-300 ease-in-out`}
+        className={`hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 ${sidebarWidth} ${
+          isCollapsed
+            ? 'bg-gradient-to-b from-orange-50/90 to-amber-50/90 shadow-xl border-r-2 border-orange-200'
+            : 'bg-gradient-to-b from-orange-50 to-amber-50 shadow-xl border-r border-orange-100'
+        } transition-all duration-300 ease-in-out`}
       >
-        <div className="flex h-16 items-center justify-center border-b border-orange-200 bg-white/50 backdrop-blur-sm">
+        <div className={`flex items-center justify-between border-b border-orange-200 bg-white/50 backdrop-blur-sm group/header hover:bg-white/70 transition-all duration-200 ${
+          isCollapsed ? 'h-20 px-2' : 'h-16 px-4'
+        }`}>
           {!isCollapsed ? (
-            <div className="flex items-center space-x-3">
-              <span className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            <div className="flex items-center space-x-3 flex-1">
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-lg hover:bg-orange-100 text-orange-700 transition-colors duration-200 group/collapse hover:scale-110"
+                title="Colapsar sidebar"
+              >
+                <ChevronLeftIcon className="h-5 w-5 transition-transform duration-200" />
+              </button>
+              <span className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent truncate cursor-pointer select-none"
+                    onClick={toggleSidebar}
+                    title="Colapsar sidebar">
                 SuperAdmin Panel
               </span>
             </div>
           ) : (
-            <span className="text-2xl font-bold text-orange-600">S</span>
+            <div className="flex flex-col items-start justify-start w-full space-y-1 py-2 px-2">
+              <button
+                onClick={toggleSidebar}
+                className="p-1.5 rounded-lg hover:bg-orange-100 text-orange-700 transition-all duration-200 group/expand hover:scale-110 hover:shadow-md"
+                title="Expandir sidebar"
+              >
+                <ChevronRightIcon className="h-4 w-4 transition-transform duration-200" />
+              </button>
+              <span className="text-sm font-bold text-orange-600 cursor-pointer select-none hover:scale-105 transition-transform duration-200 ml-1"
+                    onClick={toggleSidebar}
+                    title="Expandir sidebar">
+                S
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Collapse button */}
-        <div className="flex justify-center py-2 border-b border-orange-100">
-          <button
-            onClick={toggleSidebar}
-            className="p-2 rounded-lg hover:bg-orange-100 text-orange-700 transition-colors duration-200"
-            title={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-          >
-            {isCollapsed ? (
-              <ChevronRightIcon className="h-5 w-5" />
-            ) : (
-              <ChevronLeftIcon className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-
-        <nav className="mt-4 px-2 space-y-1">
-          {navigation.map((item) => {
+        <nav className="mt-4 px-2 space-y-2">
+          {navigation.map((item, index) => {
             const isActive = router.pathname === item.href;
             return (
-              <div key={item.name} className="relative">
+              <div key={item.name} className="relative" style={{ animationDelay: `${index * 50}ms` }}>
                 <Link
                   href={item.href}
-                  className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${
-                    isActive
-                      ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg transform scale-105"
-                      : "text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+                  className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-300 ease-in-out group ${
+                    isCollapsed
+                      ? `w-10 h-10 ${
+                          isActive
+                            ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg scale-110"
+                            : "text-orange-700 hover:bg-orange-100 hover:text-orange-800 hover:shadow-md hover:scale-105"
+                        }`
+                      : `px-3 ${
+                          isActive
+                            ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg transform scale-105"
+                            : "text-orange-700 hover:bg-orange-100 hover:text-orange-800 hover:shadow-md"
+                        }`
                   }`}
                   title={isCollapsed ? item.name : ""}
                 >
                   <item.icon
-                    className={`h-5 w-5 ${
-                      isCollapsed ? "mx-auto" : "mr-3"
-                    } flex-shrink-0`}
+                    className={`h-5 w-5 transition-all duration-300 flex-shrink-0 ${
+                      isCollapsed ? "" : "mr-3"
+                    } group-hover:scale-110`}
                   />
                   {!isCollapsed && (
-                    <span className="truncate">{item.name}</span>
+                    <span className="truncate transition-opacity duration-300">{item.name}</span>
                   )}
                   {isActive && !isCollapsed && (
-                    <div className="absolute right-3 w-2 h-2 bg-white rounded-full"></div>
+                    <div className="absolute right-3 w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
+                  {isActive && isCollapsed && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse shadow-sm"></div>
                   )}
                 </Link>
 
                 {/* Tooltip for collapsed sidebar */}
                 {isCollapsed && (
-                  <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                  <div className="absolute left-full ml-3 top-1/2 transform -translate-y-1/2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg border border-gray-700/50">
                     {item.name}
+                    <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900/95"></div>
                   </div>
                 )}
               </div>
@@ -158,22 +196,25 @@ export default function SuperAdminLayout({ children }) {
         <div className="absolute bottom-4 left-0 right-0 px-2">
           <button
             onClick={() => router.push('/')}
-            className={`flex items-center w-full px-3 py-3 text-sm font-medium text-orange-600 rounded-xl hover:bg-orange-50 transition-colors duration-200 group ${
-              isCollapsed ? "justify-center" : ""
+            className={`flex items-center text-sm font-medium text-orange-600 rounded-lg hover:bg-orange-50 hover:text-orange-700 transition-all duration-300 ease-in-out group ${
+              isCollapsed
+                ? "w-10 h-10 hover:scale-105 hover:shadow-md"
+                : "w-full px-3 py-3 hover:scale-[1.02] hover:shadow-md"
             }`}
             title={isCollapsed ? "Volver al Sitio" : ""}
           >
             <ArrowLeftOnRectangleIcon
-              className={`h-5 w-5 ${
-                isCollapsed ? "mx-auto" : "mr-3"
-              } flex-shrink-0`}
+              className={`h-5 w-5 transition-all duration-300 flex-shrink-0 group-hover:scale-110 ${
+                isCollapsed ? "" : "mr-3"
+              }`}
             />
-            {!isCollapsed && <span>Volver al Sitio</span>}
+            {!isCollapsed && <span className="transition-opacity duration-300">Volver al Sitio</span>}
 
             {/* Tooltip for collapsed sidebar */}
             {isCollapsed && (
-              <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+              <div className="absolute left-full ml-3 top-1/2 transform -translate-y-1/2 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg border border-gray-700/50">
                 Volver al Sitio
+                <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900/95"></div>
               </div>
             )}
           </button>
@@ -246,7 +287,25 @@ export default function SuperAdminLayout({ children }) {
       <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-          <div className="flex h-16 items-center justify-end px-6">
+          <div className="flex h-16 items-center justify-between px-6">
+            {/* Sidebar toggle hint for desktop */}
+            <div className="hidden lg:flex items-center space-x-2">
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 hover:scale-105 hover:shadow-sm"
+                title="Alternar sidebar (Ctrl+B)"
+              >
+                {isCollapsed ? (
+                  <ChevronRightIcon className="h-5 w-5 transition-transform duration-200" />
+                ) : (
+                  <ChevronLeftIcon className="h-5 w-5 transition-transform duration-200" />
+                )}
+              </button>
+              <span className="text-xs text-gray-500 hidden xl:inline transition-opacity duration-200">
+                {isCollapsed ? 'Expandir' : 'Colapsar'} sidebar
+              </span>
+            </div>
+
             {/* Mobile menu button */}
             <button
               onClick={() => setSidebarOpen(true)}
