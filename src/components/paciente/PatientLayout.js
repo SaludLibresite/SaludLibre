@@ -155,6 +155,19 @@ export default function PatientLayout({ children }) {
     loadPatientData();
   }, [currentUser, isHydrated, initializePatientData]);
 
+  // Keyboard shortcut to toggle sidebar (Ctrl/Cmd + B)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        event.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
+
   const handleLogout = async () => {
     try {
       clearPatientData(); // Clear patient store
@@ -167,6 +180,61 @@ export default function PatientLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Top header - Positioned after sidebar */}
+      <header className={`fixed top-0 z-30 bg-white shadow-sm border-b border-gray-200 transition-all duration-300 ${
+        isCollapsed ? 'lg:left-16 lg:right-0' : 'lg:left-64 lg:right-0'
+      }`}>
+        <div className="flex h-16 items-center px-4 sm:px-6">
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 lg:hidden mr-2"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <Bars3Icon className="h-5 w-5" />
+          </button>
+
+          {/* Sidebar toggle for desktop */}
+          <button
+            onClick={toggleSidebar}
+            className="hidden lg:flex p-2 text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 hover:scale-105 hover:shadow-sm mr-4"
+            title={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+          >
+            {isCollapsed ? (
+              <ChevronRightIcon className="h-5 w-5" />
+            ) : (
+              <ChevronLeftIcon className="h-5 w-5" />
+            )}
+          </button>
+
+          {/* Header content */}
+          <div className="flex flex-1 items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-xl font-bold text-gray-900">
+                Dashboard
+              </h1>
+              {/* Patient Selector */}
+              <PatientSelector />
+            </div>
+
+            {/* Active Patient Context Info */}
+            {activePatient && !activePatient.isPrimary && (
+              <div className="hidden md:flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <UserIcon className="h-4 w-4 text-blue-600 mr-2" />
+                <span className="text-sm font-medium text-blue-700">
+                  Viendo como: {getActivePatientDisplayName()}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Breadcrumbs */}
+        <div className="px-4 sm:px-6 py-2 border-t border-gray-100">
+          <Breadcrumbs breadcrumbs={generateBreadcrumbs()} />
+        </div>
+      </header>
+
       {/* Mobile menu overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -224,7 +292,9 @@ export default function PatientLayout({ children }) {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex w-64 flex-col">
+        <div className={`flex flex-col transition-all duration-300 ${
+          isCollapsed ? 'w-16' : 'w-64'
+        }`}>
           <SidebarContent
             isCollapsed={isCollapsed}
             toggleSidebar={toggleSidebar}
@@ -236,49 +306,15 @@ export default function PatientLayout({ children }) {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top navigation */}
-        <header className="w-full">
-          <div className="relative z-10 flex h-16 flex-shrink-0 border-b border-gray-200 bg-white shadow-sm">
-            <button
-              type="button"
-              className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500 lg:hidden"
-              onClick={() => setIsMobileMenuOpen(true)}
-            >
-              <Bars3Icon className="h-6 w-6" />
-            </button>
-            <div className="flex flex-1 justify-between px-4 sm:px-6 py-1">
-              <div className="flex flex-1 flex-col">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <h1 className="text-lg font-semibold text-gray-900">
-                      Pacientes
-                    </h1>
-                    {/* Patient Selector */}
-                    <PatientSelector />
-                  </div>
-                </div>
-                {/* Breadcrumbs */}
-                <Breadcrumbs breadcrumbs={generateBreadcrumbs()} />
-              </div>
-
-              {/* Active Patient Context Info */}
-              {activePatient && !activePatient.isPrimary && (
-                <div className="hidden md:flex items-center px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
-                  <UserIcon className="h-4 w-4 text-blue-600 mr-2" />
-                  <span className="text-sm text-blue-700">
-                    Viendo como: {getActivePatientDisplayName()}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto focus:outline-none">
-          {children}
-        </main>
+      <div className={`flex flex-1 flex-col transition-all duration-300 pt-20 ${
+        isCollapsed ? 'lg:ml-16' : ''
+      }`}>
+        {/* Content container with proper padding */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <main className="flex-1 p-6 overflow-y-auto focus:outline-none">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );
@@ -319,7 +355,7 @@ function SidebarContent({
   return (
     <div
       className={`flex flex-col min-h-screen h-full bg-gradient-to-b from-amber-50 to-yellow-50 border-r border-amber-100 transition-all duration-300 ${
-        isCollapsed ? "w-16" : "lg:w-64"
+        isCollapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Logo and toggle */}
@@ -329,8 +365,15 @@ function SidebarContent({
         animate={isMobile ? { y: 0, opacity: 1 } : {}}
         transition={{ delay: 0.1, duration: 0.3 }}
       >
-        <div className="flex items-center space-x-3">
-          <img src="/logo.png" alt="MédicsAR" className="h-12 w-44" />
+        <div className="flex items-center">
+          {!isCollapsed && (
+            <img src="/logo.png" alt="MédicsAR" className="h-8 w-auto" />
+          )}
+          {isCollapsed && (
+            <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">M</span>
+            </div>
+          )}
         </div>
         <button
           onClick={toggleSidebar}
