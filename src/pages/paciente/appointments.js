@@ -14,6 +14,7 @@ import { db } from "../../lib/firebase";
 import PatientLayout from "../../components/paciente/PatientLayout";
 import ProtectedPatientRoute from "../../components/paciente/ProtectedPatientRoute";
 import AppointmentRequestModal from "../../components/paciente/AppointmentRequestModal";
+import { getDoctorTitle, removeDoctorTitle } from "../../lib/dataUtils";
 import {
   getAppointmentsByPatientId,
   getAppointmentsByPrimaryPatientId,
@@ -229,32 +230,7 @@ export default function PatientAppointments() {
     }
   };
 
-  const getDoctorTitle = (gender) => {
-    if (!gender) return "Dr.";
 
-    // Normalize gender to lowercase for comparison
-    const normalizedGender = gender.toLowerCase().trim();
-
-    switch (normalizedGender) {
-      case "femenino":
-      case "female":
-      case "f":
-      case "mujer":
-      case "woman":
-      case "w":
-        return "Dra.";
-      case "masculino":
-      case "male":
-      case "m":
-      case "hombre":
-      case "man":
-        return "Dr.";
-      default:
-        // If gender is not clearly identified, try to infer from name patterns
-        // This is a fallback for cases where gender data might be missing
-        return "Dr.";
-    }
-  };
 
   if (loading) {
     return (
@@ -399,8 +375,14 @@ export default function PatientAppointments() {
                       <div className="flex-1">
                         <div className="flex items-center mb-2">
                           <h3 className="text-lg font-semibold text-gray-900 mr-3">
-                            {getDoctorTitle(appointment.doctorGender)}{" "}
-                            {appointment.doctorName || "Nombre no disponible"}
+                            {appointment.doctorName
+                              ? (() => {
+                                  // Remove any existing title from the name, then add the correct one
+                                  const cleanName = removeDoctorTitle(appointment.doctorName);
+                                  return `${getDoctorTitle(appointment.doctorGender)} ${cleanName}`;
+                                })()
+                              : "Nombre no disponible"
+                            }
                           </h3>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(

@@ -4,6 +4,7 @@ import { usePatientStore } from "../../store/patientStore";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getAllSpecialties } from "../../lib/specialtiesService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
+import { formatDoctorName, removeDoctorTitle } from "../../lib/dataUtils";
 import {
   requestAppointment,
   requestAppointmentForFamilyMember,
@@ -182,7 +183,7 @@ export default function AppointmentRequestModal({
   };
 
   const handleDoctorSelect = (doctor) => {
-    setDoctorSearchTerm(`Dr. ${doctor.nombre} - ${doctor.especialidad}`);
+    setDoctorSearchTerm(`${formatDoctorName(doctor.nombre, doctor.genero)} - ${doctor.especialidad}`);
     handleInputChange("doctorId", doctor.id);
     setShowDoctorDropdown(false);
   };
@@ -484,7 +485,7 @@ export default function AppointmentRequestModal({
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="font-medium text-gray-900">
-                                    Dr. {doctor.nombre}
+                                    {formatDoctorName(doctor.nombre, doctor.genero)}
                                   </p>
                                   <p className="text-sm text-gray-600">
                                     {doctor.especialidad} • {doctor.ubicacion}
@@ -552,7 +553,7 @@ export default function AppointmentRequestModal({
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">
-                        Dr. {selectedDoctor.nombre}
+                        {formatDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}
                       </h4>
                       <p className="text-gray-600 text-sm">
                         {selectedDoctor.especialidad}
@@ -701,7 +702,7 @@ export default function AppointmentRequestModal({
                 </h4>
                 <div className="space-y-1 text-sm text-gray-600">
                   <p>
-                    <strong>Doctor:</strong> Dr. {selectedDoctor?.nombre}
+                    <strong>Doctor:</strong> {selectedDoctor ? formatDoctorName(selectedDoctor.nombre, selectedDoctor.genero) : "No seleccionado"}
                   </p>
                   <p>
                     <strong>Especialidad:</strong>{" "}
