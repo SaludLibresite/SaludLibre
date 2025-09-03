@@ -49,7 +49,7 @@ export default function StatsSection() {
   }, [inView, setPatientsVisible, setSatisfactionVisible, setSpecialtiesVisible]);
 
   return (
-    <div ref={ref} className="py-24 sm:py-32 bg-gradient-to-br from-[#4dbad9]/10 via-white to-[#e8ad0f]/10">
+    <div ref={ref} className="py-24 sm:py-32 bg-gradient-to-br from-[#4dbad9]/5 via-white via-white to-[#e8ad0f]/5">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div
           className="mx-auto max-w-2xl lg:mx-0 text-center lg:text-left"
@@ -83,15 +83,22 @@ export default function StatsSection() {
         <div className="mx-auto mt-16 flex max-w-2xl flex-col gap-8 lg:mx-0 lg:mt-20 lg:max-w-none lg:flex-row lg:items-end">
           {/* Patients Card */}
           <motion.div
-            className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-white p-8 sm:w-3/4 sm:max-w-md sm:flex-row-reverse sm:items-end lg:w-72 lg:max-w-none lg:flex-none lg:flex-col lg:items-start hover:shadow-xl transition-all duration-300 border border-[#4dbad9]/30 hover:border-[#4dbad9]/60"
+            className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-white p-8 sm:w-3/4 sm:max-w-md sm:flex-row-reverse sm:items-end lg:w-72 lg:max-w-none lg:flex-none lg:flex-col lg:items-start hover:shadow-xl transition-all duration-300 border border-[#4dbad9]/30 hover:border-[#4dbad9]/60 relative overflow-hidden"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1 }}
             whileHover={{ scale: 1.02, y: -5 }}
           >
+            {/* Subtle border glow effect */}
             <motion.div
-              className="flex items-baseline gap-1"
+              className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#4dbad9]/10 via-transparent to-[#4dbad9]/10"
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            />
+            <motion.div
+              className="flex items-baseline gap-1 relative z-10"
               initial={{ scale: 0.5 }}
               whileInView={{ scale: 1 }}
               viewport={{ once: true }}
@@ -106,7 +113,7 @@ export default function StatsSection() {
                 transition={{ duration: 2, repeat: Infinity }}
               />
             </motion.div>
-            <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
+            <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none relative z-10">
               <p className="text-lg font-semibold tracking-tight text-gray-900 group-hover:text-[#4dbad9] transition-colors">
                 Pacientes atendidos
               </p>
@@ -119,18 +126,25 @@ export default function StatsSection() {
 
           {/* Satisfaction Card */}
           <motion.div
-            className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gradient-to-br from-[#011d2f] via-[#4dbad9]/80 to-[#011d2f] p-8 sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-sm lg:flex-auto lg:flex-col lg:items-start lg:gap-y-44 hover:shadow-2xl transition-all duration-300 border border-[#4dbad9] relative overflow-hidden"
+            className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gradient-to-br from-[#011d2f]/95 via-[#011d2f]/90 to-[#4dbad9]/85 p-8 sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-sm lg:flex-auto lg:flex-col lg:items-start lg:gap-y-44 hover:shadow-2xl transition-all duration-300 border border-[#4dbad9]/60 relative overflow-hidden"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.3 }}
             whileHover={{ scale: 1.02, y: -5 }}
           >
+            {/* Subtle shimmer effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-2xl"
+              initial={{ x: "-100%" }}
+              whileHover={{ x: "100%" }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            />
             {/* Overlay for better text readability */}
             <motion.div
-              className="absolute inset-0 bg-black/20 rounded-2xl"
+              className="absolute inset-0 bg-gradient-to-br from-transparent via-black/10 to-black/20 rounded-2xl"
               initial={{ opacity: 0 }}
-              whileHover={{ opacity: 0.1 }}
+              whileHover={{ opacity: 0.8 }}
               transition={{ duration: 0.3 }}
             />
             <motion.div
@@ -162,18 +176,25 @@ export default function StatsSection() {
 
           {/* Specialties Card */}
           <motion.div
-            className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gradient-to-br from-[#e8ad0f]/80 via-[#011d2f]/90 to-[#4dbad9]/80 p-8 sm:w-11/12 sm:max-w-xl sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-none lg:flex-auto lg:flex-col lg:items-start lg:gap-y-28 hover:shadow-2xl transition-all duration-300 border border-[#e8ad0f] relative overflow-hidden"
+            className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gradient-to-br from-yellow-200/90 via-[#e8ad0f]/95 to-yellow-300/80 p-8 sm:w-11/12 sm:max-w-xl sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-none lg:flex-auto lg:flex-col lg:items-start lg:gap-y-28 hover:shadow-2xl transition-all duration-300 border border-[#e8ad0f]/70 relative overflow-hidden"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.5 }}
             whileHover={{ scale: 1.02, y: -5 }}
           >
+            {/* Subtle shimmer effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-100/30 to-transparent rounded-2xl"
+              initial={{ x: "-100%" }}
+              whileHover={{ x: "100%" }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            />
             {/* Overlay for better text readability */}
             <motion.div
-              className="absolute inset-0 bg-black/15 rounded-2xl"
+              className="absolute inset-0 bg-gradient-to-br from-transparent via-amber-900/10 to-amber-900/20 rounded-2xl"
               initial={{ opacity: 0 }}
-              whileHover={{ opacity: 0.05 }}
+              whileHover={{ opacity: 0.6 }}
               transition={{ duration: 0.3 }}
             />
             <motion.div
@@ -183,20 +204,20 @@ export default function StatsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.9 }}
             >
-              <motion.p className="flex-none text-4xl font-bold tracking-tight text-[#4dbad9]">
+              <motion.p className="flex-none text-4xl font-bold tracking-tight text-gray-800">
                 {specialtiesCount}+
               </motion.p>
               <motion.div
-                className="w-2 h-2 bg-[#e8ad0f] rounded-full"
+                className="w-2 h-2 bg-gray-700 rounded-full"
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity, delay: 1 }}
               />
             </motion.div>
             <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none relative z-10">
-              <p className="text-lg font-semibold tracking-tight text-white drop-shadow-md">
+              <p className="text-lg font-semibold tracking-tight text-gray-800">
                 Especialidades médicas
               </p>
-              <p className="mt-2 text-base/7 text-white/90 drop-shadow-sm">
+              <p className="mt-2 text-base/7 text-gray-700">
                 Contamos con más de 50 especialidades médicas para cubrir todas
                 tus necesidades de salud y bienestar.
               </p>
