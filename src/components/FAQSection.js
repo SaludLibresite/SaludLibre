@@ -10,7 +10,7 @@ import Link from "next/link";
 // SVG Icon Components
 const HospitalIcon = () => (
   <svg
-    className="w-6 h-6 text-blue-600"
+    className="w-6 h-6 text-cyan-600"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -26,7 +26,7 @@ const HospitalIcon = () => (
 
 const CalendarIcon = () => (
   <svg
-    className="w-6 h-6 text-blue-600"
+    className="w-6 h-6 text-cyan-600"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -42,7 +42,7 @@ const CalendarIcon = () => (
 
 const CreditCardIcon = () => (
   <svg
-    className="w-6 h-6 text-blue-600"
+    className="w-6 h-6 text-cyan-600"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -58,7 +58,7 @@ const CreditCardIcon = () => (
 
 const LockIcon = () => (
   <svg
-    className="w-6 h-6 text-blue-600"
+    className="w-6 h-6 text-cyan-600"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -74,7 +74,7 @@ const LockIcon = () => (
 
 const ClipboardIcon = () => (
   <svg
-    className="w-6 h-6 text-blue-600"
+    className="w-6 h-6 text-cyan-600"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -184,7 +184,7 @@ const sampleFaqs = [
 
 export default function FAQSection() {
   return (
-    <div className="relative bg-gradient-to-br from-white via-blue-50/30 to-white rounded-2xl py-12">
+    <div className="relative bg-gradient-to-br from-white via-cyan-50/30 to-white rounded-2xl py-12">
       {/* Animated background elements */}
       <motion.div
         className="absolute inset-0 overflow-hidden"
@@ -193,7 +193,7 @@ export default function FAQSection() {
         transition={{ duration: 1 }}
       >
         <motion.div
-          className="absolute -top-24 -right-24 w-96 h-96 bg-blue-100 rounded-full opacity-20 blur-3xl"
+          className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100 rounded-full opacity-20 blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.2, 0.3, 0.2],
@@ -217,7 +217,7 @@ export default function FAQSection() {
             transition={{ duration: 0.6 }}
           >
             <motion.h2
-              className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-6 tracking-tight"
+              className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-800 mb-6 tracking-tight"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
             >
@@ -268,7 +268,7 @@ export default function FAQSection() {
                               <div className="flex-shrink-0">
                                 <IconComponent />
                               </div>
-                              <span className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                              <span className="text-lg font-semibold text-gray-900 group-hover:text-cyan-600 transition-colors">
                                 {faq.question}
                               </span>
                             </motion.div>
@@ -279,11 +279,11 @@ export default function FAQSection() {
                             >
                               <PlusSmallIcon
                                 aria-hidden="true"
-                                className="size-6 text-blue-600 group-data-[open]:hidden"
+                                className="size-6 text-cyan-600 group-data-[open]:hidden"
                               />
                               <MinusSmallIcon
                                 aria-hidden="true"
-                                className="size-6 text-blue-600 group-[&:not([data-open])]:hidden"
+                                className="size-6 text-cyan-600 group-[&:not([data-open])]:hidden"
                               />
                             </motion.span>
                           </DisclosureButton>
@@ -331,10 +331,10 @@ export default function FAQSection() {
           >
             <Link href="/preguntas-frecuentes">
               <motion.button
-                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 whileHover={{
                   scale: 1.05,
-                  boxShadow: "0 20px 25px -5px rgba(59, 130, 246, 0.3)",
+                  boxShadow: "0 20px 25px -5px rgba(6, 182, 212, 0.3)",
                 }}
                 whileTap={{ scale: 0.95 }}
               >

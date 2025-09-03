@@ -30,13 +30,13 @@ const PointCard = ({ point, index }) => {
       whileHover={{ x: 10 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
         {point.icon}
       </div>
       <dt className="text-lg font-semibold text-gray-900 mb-1">{point.name}</dt>
       <dd className="text-gray-600 leading-relaxed">{point.description}</dd>
       <motion.div
-        className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-100 -z-10"
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-cyan-100 -z-10"
         initial={{ scale: 0.8, opacity: 0 }}
         whileHover={{ scale: 1.5, opacity: 0.5 }}
         transition={{ duration: 0.3 }}
@@ -55,11 +55,11 @@ export default function InfoSection({
   lastDescription,
 }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-white via-blue-50/50 to-white py-24 sm:py-32">
+    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-white via-cyan-50/50 to-white py-24 sm:py-32">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute -top-24 -right-24 w-96 h-96 bg-blue-100 rounded-full opacity-20 blur-3xl"
+          className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100 rounded-full opacity-20 blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.2, 0.3, 0.2],
@@ -71,7 +71,7 @@ export default function InfoSection({
           }}
         />
         <motion.div
-          className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-200 rounded-full opacity-20 blur-3xl"
+          className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-200 rounded-full opacity-20 blur-3xl"
           animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.3, 0.2, 0.3],
@@ -93,7 +93,7 @@ export default function InfoSection({
           transition={{ duration: 0.6 }}
         >
           <motion.h2
-            className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-4"
+            className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-800 mb-4"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
@@ -120,7 +120,7 @@ export default function InfoSection({
           >
             <div className="lg:max-w-lg m-4">
               <motion.h2
-                className="font-semibold text-3xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-8"
+                className="font-semibold text-3xl bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent mb-8"
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
@@ -160,7 +160,7 @@ export default function InfoSection({
                 className="w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem] transform hover:shadow-2xl transition-all duration-300"
               />
               <motion.div
-                className="absolute inset-0 rounded-xl bg-gradient-to-t from-blue-900/20 to-transparent"
+                className="absolute inset-0 rounded-xl bg-gradient-to-t from-cyan-900/20 to-transparent"
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
@@ -177,7 +177,7 @@ export default function InfoSection({
           transition={{ duration: 0.6 }}
         >
           <motion.h2
-            className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"
+            className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >

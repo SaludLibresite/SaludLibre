@@ -101,7 +101,7 @@ export default function GallerySection({ items }) {
         transition={{ duration: 1 }}
       >
         <motion.div
-          className="absolute -top-24 -right-24 w-96 h-96 bg-blue-100 rounded-full opacity-20 blur-3xl"
+          className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100 rounded-full opacity-20 blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.2, 0.3, 0.2],
@@ -123,7 +123,7 @@ export default function GallerySection({ items }) {
           className="text-center mb-12 px-6 lg:px-8"
         >
           <motion.h2
-            className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 sm:text-5xl"
+            className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-800 sm:text-5xl"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
@@ -325,7 +325,7 @@ export default function GallerySection({ items }) {
                 viewBox="0 0 24 24"
                 strokeWidth={2.5}
                 stroke="currentColor"
-                className="w-5 h-5 text-blue-800"
+                className="w-5 h-5 text-cyan-800"
               >
                 <path
                   strokeLinecap="round"
@@ -348,7 +348,7 @@ export default function GallerySection({ items }) {
                 viewBox="0 0 24 24"
                 strokeWidth={2.5}
                 stroke="currentColor"
-                className="w-5 h-5 text-blue-800"
+                className="w-5 h-5 text-cyan-800"
               >
                 <path
                   strokeLinecap="round"
@@ -368,8 +368,8 @@ export default function GallerySection({ items }) {
               onClick={() => scrollTo(index)}
               className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                 index === selectedIndex
-                  ? "bg-blue-600 w-6"
-                  : "bg-blue-200 hover:bg-blue-300"
+                  ? "bg-cyan-600 w-6"
+                  : "bg-cyan-200 hover:bg-cyan-300"
               }`}
             />
           ))}

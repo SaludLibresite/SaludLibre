@@ -66,7 +66,7 @@ export default function NavBar() {
   const linkVariants = {
     hover: {
       scale: 1.05,
-      backgroundColor: "rgba(59, 130, 246, 0.1)",
+      backgroundColor: "rgba(77, 186, 217, 0.1)",
       transition: {
         type: "spring",
         stiffness: 400,
@@ -117,7 +117,7 @@ export default function NavBar() {
               >
                 {link.label}
                 <motion.span
-                  className="absolute bottom-0 left-0 w-full h-0.5  bg-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
+                  className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#4dbad9] to-[#e8ad0f] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
                   initial={{ scaleX: 0 }}
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3 }}
@@ -215,7 +215,7 @@ export default function NavBar() {
                       <motion.a
                         key={i}
                         href={link.href}
-                        className="text-slate-700 hover:text-blue-600 font-medium text-lg px-4 py-3 rounded-xl hover:bg-blue-50 transition-colors"
+                        className="text-slate-700 hover:text-cyan-600 font-medium text-lg px-4 py-3 rounded-xl hover:bg-cyan-50 transition-colors"
                         onClick={() => setOpen(false)}
                         whileHover={{ x: 10 }}
                         whileTap={{ scale: 0.95 }}
