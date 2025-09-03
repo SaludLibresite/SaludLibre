@@ -203,7 +203,7 @@ export default function Home() {
                 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6"
                 variants={fadeInUp}
               >
-                Nuestros Servicios Médicos
+                Servicios Médicos Disponibles
               </motion.h2>
               <motion.p
                 className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
@@ -267,10 +267,10 @@ export default function Home() {
           className="mb-20 max-w-7xl mx-auto px-6"
         >
           <InfoSection
-            firstTitle="Nuestro impacto en la salud"
-            firstDescription="Conoce algunos de los logros y cifras que nos distinguen como hospital líder en la región."
+            firstTitle="El impacto en la salud"
+            firstDescription="Conoce algunos de los logros y cifras que distinguen a los profesionales médicos en la región."
             image="/img/doctor-4.jpg"
-            title="Siempre estamos buscando mejorar la salud de nuestra comunidad"
+            title="Buscamos mejorar la salud de la comunidad"
             points={[
               {
                 name: "Atención médica de calidad",
@@ -297,8 +297,8 @@ export default function Home() {
                 icon: "💡",
               },
             ]}
-            lastTitle="Nuestro compromiso con la salud"
-            lastDescription="Nos esforzamos por ofrecer un servicio médico de alta calidad y un ambiente cómodo para nuestros pacientes, combinando la mejor tecnología con un trato humano excepcional."
+            lastTitle="Compromiso con la salud"
+            lastDescription="Se esfuerza por ofrecer servicios médicos de alta calidad y ambientes cómodos para los pacientes, combinando la mejor tecnología con un trato humano excepcional."
           />
         </motion.div>
 
@@ -413,8 +413,8 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
             >
-              Agenda una cita con nuestros especialistas y comienza tu camino
-              hacia una mejor salud. Tu bienestar es nuestra prioridad.
+              Agenda una cita con especialistas y comienza tu camino
+              hacia una mejor salud. Tu bienestar es la prioridad.
             </motion.p>
             <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"

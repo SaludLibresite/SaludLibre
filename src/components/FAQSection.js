@@ -177,7 +177,7 @@ const sampleFaqs = [
   {
     question: "¿Funcionan las citas con obra social?",
     answer:
-      "Muchos de nuestros profesionales aceptan diferentes obras sociales. Puede filtrar médicos por obra social en nuestra búsqueda y confirmar la cobertura al agendar la cita.",
+      "Muchos profesionales aceptan diferentes obras sociales. Puede filtrar médicos por obra social en la búsqueda y confirmar la cobertura al agendar la cita.",
     icon: ClipboardIcon,
   },
 ];
@@ -230,7 +230,7 @@ export default function FAQSection() {
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
             >
-              Resolvemos tus dudas más comunes sobre nuestros servicios y
+              Resolvemos tus dudas más comunes sobre los servicios y
               atención.
             </motion.p>
           </motion.div>

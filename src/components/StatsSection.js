@@ -74,7 +74,7 @@ export default function StatsSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            Nuestro enfoque se centra en brindar la mejor atención médica
+            El enfoque se centra en brindar la mejor atención médica
             posible, con profesionales altamente capacitados y tecnología de
             vanguardia para cuidar tu salud y la de tu familia.
           </motion.p>
@@ -168,8 +168,8 @@ export default function StatsSection() {
                 Satisfacción del paciente
               </p>
               <p className="mt-2 text-base/7 text-gray-300 drop-shadow-sm">
-                Nuestros pacientes reportan altos niveles de satisfacción con
-                nuestros servicios médicos especializados.
+                Los pacientes reportan altos niveles de satisfacción con
+                los servicios médicos especializados disponibles.
               </p>
             </div>
           </motion.div>

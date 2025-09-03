@@ -136,7 +136,7 @@ export default function GallerySection({ items }) {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            Descubre las áreas de especialización médica en las que nuestros
+            Descubre las áreas de especialización médica disponibles
             profesionales pueden ayudarte a mejorar tu salud y bienestar.
           </motion.p>
         </motion.div>
@@ -272,7 +272,7 @@ export default function GallerySection({ items }) {
                       ¿Buscas otro especialista?
                     </h3>
                     <p className="text-gray-600 text-base leading-relaxed mb-8">
-                      Explora todos nuestros médicos especialistas y encuentra
+                      Explora todos los médicos especialistas disponibles y encuentra
                       exactamente lo que necesitas para tu salud
                     </p>
                     <motion.a
