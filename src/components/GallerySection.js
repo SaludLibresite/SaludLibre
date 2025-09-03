@@ -139,6 +139,35 @@ export default function GallerySection({ items }) {
             Descubre las áreas de especialización médica disponibles
             profesionales pueden ayudarte a mejorar tu salud y bienestar.
           </motion.p>
+          <motion.div
+            className="mt-6"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+          >
+            <motion.a
+              href="/especialidades"
+              className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-700 text-white font-medium hover:from-cyan-700 hover:to-cyan-800 transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Ver todas las especialidades
+              <svg
+                className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </motion.a>
+          </motion.div>
         </motion.div>
 
         {/* Embla carousel container with gradient overlays */}

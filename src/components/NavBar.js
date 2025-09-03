@@ -9,6 +9,7 @@ export default function NavBar() {
   const links = [
     { href: "/", label: "Inicio" },
     { href: "/doctores", label: "Doctores" },
+    { href: "/especialidades", label: "Especialidades" },
     { href: "/beneficios", label: "Beneficios" },
     { href: "/preguntas-frecuentes", label: "Preguntas Frecuentes" },
   ];
