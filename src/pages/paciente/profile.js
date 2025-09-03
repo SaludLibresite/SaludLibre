@@ -4,6 +4,7 @@ import { usePatientStore } from "../../store/patientStore";
 import PatientLayout from "../../components/paciente/PatientLayout";
 import FamilyManagement from "../../components/paciente/FamilyManagement";
 import { validateArgentinePhone } from "../../lib/validations";
+import { updatePatient } from "../../lib/patientsService";
 import {
   UserIcon,
   UserGroupIcon,
@@ -28,26 +29,64 @@ export default function PatientProfile() {
   const [activeTab, setActiveTab] = useState("profile");
   const [errors, setErrors] = useState({});
 
-  const [profileData, setProfileData] = useState({
-    name: "Juan Pérez",
-    email: "juan.perez@email.com",
-    phone: "+54 11 1234-5678",
-    dateOfBirth: "1985-03-15",
-    gender: "Masculino",
-    address: "Av. Corrientes 1234, CABA",
-    emergencyContact: "María Pérez",
-    emergencyPhone: "+54 11 9876-5432",
-    insuranceProvider: "OSDE",
-    insuranceNumber: "123456789",
-    allergies: "Penicilina, Polen",
-    currentMedications: "Losartán 50mg",
-    medicalHistory: "Hipertensión controlada",
-    bloodType: "O+",
-    weight: "75",
-    height: "175",
+  // Default empty profile data
+  const getEmptyProfileData = () => ({
+    name: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "",
+    address: "",
+    emergencyContact: "",
+    emergencyPhone: "",
+    insuranceProvider: "",
+    insuranceNumber: "",
+    allergies: "",
+    currentMedications: "",
+    medicalHistory: "",
+    bloodType: "",
+    weight: "",
+    height: "",
   });
 
+  const [profileData, setProfileData] = useState(getEmptyProfileData());
+
   const [editData, setEditData] = useState(profileData);
+
+  // Load profile data from activePatient
+  useEffect(() => {
+    if (activePatient) {
+      const patientData = {
+        name: activePatient.name || "",
+        email: activePatient.email || "",
+        phone: activePatient.phone || "",
+        dateOfBirth: activePatient.dateOfBirth || "",
+        gender: activePatient.gender || "",
+        address: activePatient.address || "",
+        emergencyContact: activePatient.emergencyContact || "",
+        emergencyPhone: activePatient.emergencyPhone || "",
+        insuranceProvider: activePatient.insuranceProvider || "",
+        insuranceNumber: activePatient.insuranceNumber || "",
+        allergies: activePatient.allergies || "",
+        currentMedications: activePatient.currentMedications || "",
+        medicalHistory: activePatient.medicalHistory || "",
+        bloodType: activePatient.bloodType || "",
+        weight: activePatient.weight || "",
+        height: activePatient.height || "",
+      };
+
+      setProfileData(patientData);
+      if (!editing) {
+        setEditData(patientData);
+      }
+    } else {
+      const emptyData = getEmptyProfileData();
+      setProfileData(emptyData);
+      if (!editing) {
+        setEditData(emptyData);
+      }
+    }
+  }, [activePatient, editing]);
 
   const handleEdit = () => {
     setEditData(profileData);
@@ -87,13 +126,19 @@ export default function PatientProfile() {
       return;
     }
 
+    if (!activePatient) {
+      setMessage("No se pudo identificar al paciente activo");
+      return;
+    }
+
     try {
       setLoading(true);
       setMessage("");
 
-      // Here you would save to Firestore
-      // await updatePatientProfile(currentUser.uid, editData);
+      // Save to Firestore using the patientsService
+      await updatePatient(activePatient.id, editData);
 
+      // Update local state
       setProfileData(editData);
       setEditing(false);
       setMessage("Perfil actualizado correctamente");
