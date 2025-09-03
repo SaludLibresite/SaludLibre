@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../context/AuthContext";
 import { usePatientStoreHydrated } from "../../store/patientStore";
@@ -142,23 +142,46 @@ export default function PatientAppointments() {
     }
   };
 
-  const filteredAppointments = appointments.filter((appointment) => {
+  // Calculate counters using useMemo for performance and reactivity
+  const appointmentCounters = useMemo(() => {
     const now = new Date();
-    const appointmentDate = appointment.date?.toDate
-      ? appointment.date.toDate()
-      : new Date(appointment.date);
-
-    switch (filter) {
-      case "upcoming":
+    return {
+      all: appointments.length,
+      upcoming: appointments.filter((appointment) => {
+        const appointmentDate = appointment.date?.toDate
+          ? appointment.date.toDate()
+          : new Date(appointment.date);
         return appointmentDate >= now && appointment.status === "scheduled";
-      case "past":
+      }).length,
+      past: appointments.filter((appointment) => {
+        const appointmentDate = appointment.date?.toDate
+          ? appointment.date.toDate()
+          : new Date(appointment.date);
         return appointmentDate < now || appointment.status === "completed";
-      case "cancelled":
-        return appointment.status === "cancelled";
-      default:
-        return true;
-    }
-  });
+      }).length,
+      cancelled: appointments.filter((appointment) => appointment.status === "cancelled").length,
+    };
+  }, [appointments]);
+
+  const filteredAppointments = useMemo(() => {
+    const now = new Date();
+    return appointments.filter((appointment) => {
+      const appointmentDate = appointment.date?.toDate
+        ? appointment.date.toDate()
+        : new Date(appointment.date);
+
+      switch (filter) {
+        case "upcoming":
+          return appointmentDate >= now && appointment.status === "scheduled";
+        case "past":
+          return appointmentDate < now || appointment.status === "completed";
+        case "cancelled":
+          return appointment.status === "cancelled";
+        default:
+          return true;
+      }
+    });
+  }, [appointments, filter]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -300,7 +323,7 @@ export default function PatientAppointments() {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                Todas ({appointments.length})
+                Todas ({appointmentCounters.all})
               </button>
               <button
                 onClick={() => setFilter("upcoming")}
@@ -310,14 +333,7 @@ export default function PatientAppointments() {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                Próximas (
-                {
-                  appointments.filter(
-                    (a) =>
-                      new Date(a.date) >= new Date() && a.status === "scheduled"
-                  ).length
-                }
-                )
+                Próximas ({appointmentCounters.upcoming})
               </button>
               <button
                 onClick={() => setFilter("past")}
@@ -327,14 +343,7 @@ export default function PatientAppointments() {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                Pasadas (
-                {
-                  appointments.filter(
-                    (a) =>
-                      new Date(a.date) < new Date() || a.status === "completed"
-                  ).length
-                }
-                )
+                Pasadas ({appointmentCounters.past})
               </button>
               <button
                 onClick={() => setFilter("cancelled")}
@@ -344,8 +353,7 @@ export default function PatientAppointments() {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                Canceladas (
-                {appointments.filter((a) => a.status === "cancelled").length})
+                Canceladas ({appointmentCounters.cancelled})
               </button>
             </div>
           </div>
