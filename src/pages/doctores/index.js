@@ -289,7 +289,7 @@ export default function DoctoresPage() {
   // Show initial loading screen
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-cyan-100">
         <NavBar />
         <div className="container mx-auto px-6 py-24">
           <LoaderComponent />
@@ -303,40 +303,79 @@ export default function DoctoresPage() {
       <NavBar />
 
       <main className="pb-24">
-        {/* Hero Section */}
-        <div className="relative">
+        {/* Enhanced Hero Section */}
+        <div className="relative overflow-hidden">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 via-white to-blue-50/30"></div>
+
+          {/* Animated background elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100/30 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-100/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          </div>
+
           {/* Content */}
-          <div className="mx-auto max-w-7xl px-6 pt-8 pb-4 lg:px-8">
+          <div className="relative mx-auto max-w-7xl px-6 pt-12 pb-8 lg:px-8">
             <div className="mx-auto max-w-4xl text-center">
-              {/* Main heading */}
-              <h1 className="mb-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              {/* Main heading with gradient */}
+              <h1 className="mb-8 text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-cyan-700 to-blue-600 sm:text-5xl lg:text-6xl">
                 {showingNearby
-                  ? "Doctores cerca de tu ubicación"
+                  ? "Doctores cerca de ti"
                   : "Encuentra tu especialista médico"}
               </h1>
 
+              {/* Subtitle with better styling */}
+              <p className="mb-8 text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                {showingNearby
+                  ? "Profesionales de la salud cerca de tu ubicación actual"
+                  : "Conecta con los mejores especialistas médicos disponibles en la plataforma"}
+              </p>
+
               {showingNearby && nearbyDoctors ? (
-                <div className="mb-4">
-                  <p className="text-lg text-slate-600 mb-2">
-                    {nearbyDoctors.length} doctores encontrados en un radio de
-                    25km
-                  </p>
+                <div className="mb-6 space-y-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-100/80 text-cyan-800 rounded-full text-sm font-medium">
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
+                    {nearbyDoctors.length} doctores encontrados en un radio de 25km
+                  </div>
                   <div className="flex justify-center">
                     <NearbyDoctorsButton onReset={handleResetToAllDoctors} />
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <p className="text-lg text-slate-600">
-                    {doctoresData.length > 0
-                      ? `${doctoresData.length} profesionales de la salud disponibles`
-                      : "Cargando profesionales..."}
-                  </p>
-                  <div className="flex justify-center">
-                    <NearbyDoctorsButton
-                      onNearbyDoctorsFound={handleNearbyDoctorsFound}
-                    />
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div className="flex items-center gap-2 text-lg text-slate-600">
+                      <span className="text-2xl">👨‍⚕️</span>
+                      <span className="font-medium">
+                        {doctoresData.length > 0
+                          ? `${doctoresData.length} profesionales disponibles`
+                          : "Cargando profesionales..."}
+                      </span>
+                    </div>
+                    {doctoresData.length > 0 && (
+                      <div className="h-6 w-px bg-slate-300 hidden sm:block"></div>
+                    )}
+                    <div className="flex justify-center">
+                      <NearbyDoctorsButton
+                        onNearbyDoctorsFound={handleNearbyDoctorsFound}
+                      />
+                    </div>
                   </div>
+
+                  {/* Stats badges */}
+                  {doctoresData.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-3 mt-6">
+                      <div className="px-3 py-1 bg-gradient-to-r from-cyan-100 to-cyan-200 text-cyan-800 rounded-full text-sm font-medium border border-cyan-200/50">
+                        Especialidades médicas
+                      </div>
+                      <div className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 rounded-full text-sm font-medium border border-blue-200/50">
+                        Consulta online
+                      </div>
+                      <div className="px-3 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 rounded-full text-sm font-medium border border-purple-200/50">
+                        Ubicaciones múltiples
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -351,50 +390,110 @@ export default function DoctoresPage() {
         />
 
         {/* Results Section */}
-        <div className="space-y-16 container mx-auto">
+        <div className="space-y-20 container mx-auto px-6 lg:px-8">
           {isLoading ? (
             <LoaderComponent />
           ) : sortedFilteredDoctors.length > 0 ? (
-            <>
+            <div className="space-y-16">
               {vipDoctors.length > 0 && (
-                <RankSection doctors={vipDoctors} index={0} />
+                <div
+                  className="animate-fadeIn"
+                  style={{ animationDelay: '0.1s', animationFillMode: 'both' }}
+                >
+                  <RankSection doctors={vipDoctors} index={0} />
+                </div>
               )}
               {intermedioDoctors.length > 0 && (
-                <RankSection doctors={intermedioDoctors} index={1} />
+                <div
+                  className="animate-fadeIn"
+                  style={{ animationDelay: '0.3s', animationFillMode: 'both' }}
+                >
+                  <RankSection doctors={intermedioDoctors} index={1} />
+                </div>
               )}
               {normalDoctors.length > 0 && (
-                <RankSection doctors={normalDoctors} index={2} />
+                <div
+                  className="animate-fadeIn"
+                  style={{ animationDelay: '0.5s', animationFillMode: 'both' }}
+                >
+                  <RankSection doctors={normalDoctors} index={2} />
+                </div>
               )}
 
               {totalPages > 1 && (
-                <PaginationControls
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
+                <div
+                  className="animate-fadeIn pt-8"
+                  style={{ animationDelay: '0.7s', animationFillMode: 'both' }}
+                >
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
               )}
-            </>
+            </div>
           ) : (
-            <div className="text-center py-20 px-4">
-              <div className="text-7xl mb-8 opacity-50">🩺</div>
-              <h3 className="text-3xl font-semibold text-slate-800 mb-3">
+            <div className="text-center py-24 px-4">
+              <div className="relative mb-8">
+                <div className="text-8xl mb-4 opacity-20">🩺</div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-24 h-24 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center">
+                    <div className="text-4xl opacity-60">🔍</div>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="text-3xl font-bold text-slate-800 mb-4">
                 {doctoresData.length === 0
                   ? "No hay doctores registrados aún"
                   : "No se encontraron doctores"}
               </h3>
-              <p className="text-slate-600 text-lg max-w-2xl mx-auto leading-relaxed">
+
+              <p className="text-slate-600 text-lg max-w-2xl mx-auto leading-relaxed mb-8">
                 {doctoresData.length === 0
-                  ? "Sé el primero en registrarte como profesional de la salud."
-                  : "Intenta ajustar los filtros de búsqueda para encontrar el especialista que necesitas."}
+                  ? "Sé el primero en registrarte como profesional de la salud y forma parte de nuestra comunidad médica."
+                  : "Intenta ajustar los filtros de búsqueda o amplía tu área de búsqueda para encontrar el especialista que necesitas."}
               </p>
-              {doctoresData.length === 0 && (
-                <Link
-                  href="/auth/register"
-                  className="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Registrarse como Doctor
-                </Link>
-              )}
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                {doctoresData.length === 0 ? (
+                  <Link
+                    href="/auth/register"
+                    className="inline-flex items-center gap-3 px-8 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <span>👨‍⚕️</span>
+                    Registrarse como Doctor
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setSearch("");
+                        setCategoria("");
+                        setSelectedGenero("");
+                        setSelectedConsultaOnline("");
+                        setSelectedAgeGroup("");
+                        setSelectedRango("");
+                        setSelectedUbicacion("");
+                        setSelectedPrepaga("");
+                        setCurrentPage(1);
+                      }}
+                      className="inline-flex items-center gap-3 px-6 py-3 border border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 rounded-xl font-medium transition-all duration-300"
+                    >
+                      <span>🔄</span>
+                      Limpiar filtros
+                    </button>
+                    <Link
+                      href="/auth/register"
+                      className="inline-flex items-center gap-3 px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <span>👨‍⚕️</span>
+                      Unirse como Doctor
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
