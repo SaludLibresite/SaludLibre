@@ -452,14 +452,32 @@ function SidebarContent({
             animate={isMobile ? { scale: 1, opacity: 1 } : {}}
             transition={{ delay: isMobile ? 0.5 : 0, duration: 0.2 }}
           >
-            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {patientData.name
-                  ?.split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase() || "P"}
-              </span>
+            <div className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center">
+              {patientData.photoURL ? (
+                <img
+                  src={patientData.photoURL}
+                  alt="Foto de perfil"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `<span class="text-sm font-medium text-white">${
+                      patientData.name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase() || "P"
+                    }</span>`;
+                  }}
+                />
+              ) : (
+                <span className="text-sm font-medium text-white">
+                  {patientData.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "P"}
+                </span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
@@ -492,14 +510,32 @@ function SidebarContent({
       {isCollapsed && patientData && (
         <div className="border-t border-amber-200 p-2">
           <div className="flex flex-col items-center space-y-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center">
-              <span className="text-xs font-medium text-white">
-                {patientData.name
-                  ?.split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase() || "P"}
-              </span>
+            <div className="h-8 w-8 rounded-full overflow-hidden bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center">
+              {patientData.photoURL ? (
+                <img
+                  src={patientData.photoURL}
+                  alt="Foto de perfil"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `<span class="text-xs font-medium text-white">${
+                      patientData.name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase() || "P"
+                    }</span>`;
+                  }}
+                />
+              ) : (
+                <span className="text-xs font-medium text-white">
+                  {patientData.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "P"}
+                </span>
+              )}
             </div>
             <button
               onClick={handleLogout}

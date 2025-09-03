@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { usePatientStore } from "../../store/patientStore";
 import PatientLayout from "../../components/paciente/PatientLayout";
 import FamilyManagement from "../../components/paciente/FamilyManagement";
 import { validateArgentinePhone } from "../../lib/validations";
 import { updatePatient } from "../../lib/patientsService";
+import { storage } from "../../lib/firebase";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import {
   UserIcon,
   UserGroupIcon,
@@ -28,6 +30,9 @@ export default function PatientProfile() {
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   const [errors, setErrors] = useState({});
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Default empty profile data
   const getEmptyProfileData = () => ({
@@ -47,6 +52,7 @@ export default function PatientProfile() {
     bloodType: "",
     weight: "",
     height: "",
+    photoURL: "",
   });
 
   const [profileData, setProfileData] = useState(getEmptyProfileData());
@@ -73,6 +79,7 @@ export default function PatientProfile() {
         bloodType: activePatient.bloodType || "",
         weight: activePatient.weight || "",
         height: activePatient.height || "",
+        photoURL: activePatient.photoURL || "",
       };
 
       setProfileData(patientData);
@@ -163,6 +170,68 @@ export default function PatientProfile() {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Handle photo upload
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage('Por favor selecciona un archivo de imagen válido');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('La imagen debe ser menor a 5MB');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      setMessage('');
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => setPhotoPreview(e.target.result);
+      reader.readAsDataURL(file);
+
+      // Upload to Firebase Storage
+      const fileName = `patient_photos/${activePatient.id}_${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, fileName);
+
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update patient profile with new photo URL
+      await updatePatient(activePatient.id, { photoURL: downloadURL });
+
+      // Update local state
+      setProfileData(prev => ({ ...prev, photoURL: downloadURL }));
+      if (!editing) {
+        setEditData(prev => ({ ...prev, photoURL: downloadURL }));
+      }
+
+      setMessage('Foto de perfil actualizada correctamente');
+
+      // Clear preview after a moment
+      setTimeout(() => setPhotoPreview(null), 2000);
+
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      setMessage('Error al subir la foto de perfil');
+      setPhotoPreview(null);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePhotoClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const calculateAge = (dateOfBirth) => {
@@ -281,8 +350,22 @@ export default function PatientProfile() {
               <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
                 <div className="text-center">
                   <div className="relative inline-block">
-                    <div className="h-24 w-24 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl font-bold text-white">
+                    {/* Profile Photo */}
+                    <div className="h-24 w-24 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                      {profileData.photoURL || photoPreview ? (
+                        <img
+                          src={photoPreview || profileData.photoURL}
+                          alt="Foto de perfil"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        className={`text-2xl font-bold text-white ${profileData.photoURL || photoPreview ? 'hidden' : 'block'}`}
+                      >
                         {profileData.name
                           .split(" ")
                           .map((n) => n[0])
@@ -290,9 +373,30 @@ export default function PatientProfile() {
                           .toUpperCase()}
                       </span>
                     </div>
-                    <button className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                      <CameraIcon className="h-4 w-4 text-gray-600" />
+
+                    {/* Camera Button */}
+                    <button
+                      onClick={handlePhotoClick}
+                      disabled={uploadingPhoto}
+                      className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Cambiar foto de perfil"
+                    >
+                      {uploadingPhoto ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-600 border-t-transparent"></div>
+                      ) : (
+                        <CameraIcon className="h-4 w-4 text-gray-600" />
+                      )}
                     </button>
+
+                    {/* Hidden File Input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                    />
                   </div>
 
                   <h3 className="text-xl font-semibold text-gray-900 mb-1">
