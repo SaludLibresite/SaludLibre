@@ -344,7 +344,7 @@ export default function Home() {
 
           {/* Enhanced background effects */}
           <motion.div
-            className="absolute inset-0 bg-[url('/img/pattern.png')] opacity-10 mix-blend-overlay"
+            className="absolute inset-0 bg-[url('/img/pattern.svg')] opacity-10 mix-blend-overlay"
             animate={{
               backgroundPosition: ["0% 0%", "100% 100%"],
             }}

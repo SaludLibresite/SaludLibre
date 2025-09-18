@@ -3,13 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   // Configuración para resolver problemas con Turbopack y dependencias
   transpilePackages: ['@react-google-maps/api'],
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
@@ -57,8 +55,6 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
-    // Configuraciones adicionales para mejorar la carga
-    domains: ["firebasestorage.googleapis.com", "storage.googleapis.com"],
     // Permitir optimización de imágenes externas
     unoptimized: false,
     // Tiempo de vida del cache para imágenes optimizadas

@@ -1,13 +1,63 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
 
+// Utility function to safely create bounds for Google Maps
+const createSafeBounds = (coordinates) => {
+  // If we have a LatLngBounds object with toJSON method, extract coordinates
+  if (coordinates && typeof coordinates.toJSON === 'function') {
+    const boundsJSON = coordinates.toJSON();
+    return {
+      south: boundsJSON.south,
+      west: boundsJSON.west,
+      north: boundsJSON.north,
+      east: boundsJSON.east
+    };
+  }
+  
+  // If we already have a bounds literal object
+  if (coordinates && 
+      typeof coordinates.south === 'number' && 
+      typeof coordinates.west === 'number' && 
+      typeof coordinates.north === 'number' && 
+      typeof coordinates.east === 'number') {
+    return {
+      south: coordinates.south,
+      west: coordinates.west,
+      north: coordinates.north,
+      east: coordinates.east
+    };
+  }
+  
+  // Default bounds (centered on Argentina)
+  return {
+    south: -41.0,
+    west: -71.0,
+    north: -21.0,
+    east: -53.0
+  };
+};
+
 // Dynamic import para evitar problemas con Turbopack
 const GoogleMapComponent = React.lazy(() =>
   import('@react-google-maps/api').then(module => ({
     default: ({ children, ...props }) => {
       const { GoogleMap, LoadScript, Marker, InfoWindow } = module;
+      
+      // Si Google Maps ya está cargado, no usar LoadScript
+      if (window.google && window.google.maps) {
+        return (
+          <GoogleMap {...props}>
+            {children}
+          </GoogleMap>
+        );
+      }
+      
       return (
-        <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
+        <LoadScript 
+          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
+          loadingElement={<div>Cargando mapa...</div>}
+          preventGoogleFontsLoading={true}
+        >
           <GoogleMap {...props}>
             {children}
           </GoogleMap>
@@ -53,6 +103,14 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
   const [searchResults, setSearchResults] = useState([]);
   const [hasInitializedBounds, setHasInitializedBounds] = useState(false);
   const mapRef = useRef(null);
+  
+  // Reset state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setMap(null);
+      setHasInitializedBounds(false);
+    }
+  }, [isOpen]);
 
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
@@ -77,10 +135,17 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
     }
   }, [isOpen]);
 
-  // Filter doctors that have location data
+  // Filter doctors that have location data and clean any extra properties
   const doctorsWithLocation = doctors.filter(doctor => 
     doctor.latitude && doctor.longitude && !isNaN(doctor.latitude) && !isNaN(doctor.longitude)
-  );
+  ).map(doctor => {
+    // Create a clean doctor object with only necessary properties
+    return {
+      ...doctor,
+      latitude: parseFloat(doctor.latitude),
+      longitude: parseFloat(doctor.longitude)
+    };
+  });
 
   // Debug logs
   console.log('DoctorsMapPanel - Total doctors:', doctors.length);
@@ -90,25 +155,189 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
 
     useEffect(() => {
     if (isOpen && window.google && window.google.maps && doctorsWithLocation.length > 0 && map && !hasInitializedBounds) {
-      const bounds = new window.google.maps.LatLngBounds();
-      
-      doctorsWithLocation.forEach(doctor => {
-        bounds.extend({ lat: doctor.latitude, lng: doctor.longitude });
-      });
-      
-      if (userLocation) {
-        bounds.extend(userLocation);
+      try {
+        console.log('Starting bounds calculation...');
+        
+        // Create bounds with explicit Google Maps constructor
+        const bounds = new window.google.maps.LatLngBounds();
+        let validCoordinatesCount = 0;
+        
+        // Add doctor locations with validation
+        doctorsWithLocation.forEach((doctor, index) => {
+          console.log(`Doctor ${index}:`, doctor);
+          
+          // Ensure we only use numeric values
+          const lat = Number(doctor.latitude);
+          const lng = Number(doctor.longitude);
+          
+          console.log(`Doctor ${index} coordinates:`, { lat, lng });
+          
+          // Validate coordinates are valid numbers and within valid ranges
+          if (Number.isFinite(lat) && Number.isFinite(lng) && 
+              lat >= -90 && lat <= 90 && 
+              lng >= -180 && lng <= 180) {
+            
+            try {
+              // Create LatLng object explicitly
+              const latLng = new window.google.maps.LatLng(lat, lng);
+              console.log(`Adding doctor ${index} LatLng:`, latLng);
+              
+              bounds.extend(latLng);
+              validCoordinatesCount++;
+            } catch (latLngError) {
+              console.error(`Error creating LatLng for doctor ${index}:`, latLngError);
+            }
+          } else {
+            console.warn(`Invalid doctor ${index} coordinates:`, { lat, lng, doctor });
+          }
+        });
+        
+        if (userLocation) {
+          console.log('UserLocation:', userLocation);
+          
+          // Convert userLocation from {latitude, longitude} to {lat, lng} format
+          const lat = Number(userLocation.latitude || userLocation.lat);
+          const lng = Number(userLocation.longitude || userLocation.lng);
+          
+          console.log('User coordinates:', { lat, lng });
+          
+          // Validate user location coordinates
+          if (Number.isFinite(lat) && Number.isFinite(lng) && 
+              lat >= -90 && lat <= 90 && 
+              lng >= -180 && lng <= 180) {
+            
+            try {
+              // Create LatLng object explicitly
+              const latLng = new window.google.maps.LatLng(lat, lng);
+              console.log('Adding user LatLng:', latLng);
+              
+              bounds.extend(latLng);
+              validCoordinatesCount++;
+            } catch (latLngError) {
+              console.error('Error creating LatLng for user location:', latLngError);
+            }
+          } else {
+            console.warn('Invalid user coordinates:', { lat, lng, userLocation });
+          }
+        }
+        
+        console.log('Total valid coordinates:', validCoordinatesCount);
+        console.log('Bounds object before fitBounds:', bounds);
+        console.log('Bounds object properties:', Object.getOwnPropertyNames(bounds));
+        console.log('Bounds object keys:', Object.keys(bounds));
+        
+        // Check if bounds has any unexpected properties
+        for (const prop in bounds) {
+          console.log(`Bounds property: ${prop} = `, bounds[prop]);
+        }
+        
+        // Only fit bounds if we have valid coordinates
+        if (!bounds.isEmpty() && validCoordinatesCount > 0) {
+          console.log('Calling fitBounds...');
+          
+          // Create a literal bounds object instead of using LatLngBounds
+          let north = -90;
+          let south = 90;
+          let east = -180;
+          let west = 180;
+          
+          // Calculate bounds from doctor coordinates
+          doctorsWithLocation.forEach((doctor) => {
+            const lat = Number(doctor.latitude);
+            const lng = Number(doctor.longitude);
+            
+            if (Number.isFinite(lat) && Number.isFinite(lng) && 
+                lat >= -90 && lat <= 90 && 
+                lng >= -180 && lng <= 180) {
+              north = Math.max(north, lat);
+              south = Math.min(south, lat);
+              east = Math.max(east, lng);
+              west = Math.min(west, lng);
+            }
+          });
+          
+          // Include user location if available
+          if (userLocation) {
+            const lat = Number(userLocation.latitude || userLocation.lat);
+            const lng = Number(userLocation.longitude || userLocation.lng);
+            
+            if (Number.isFinite(lat) && Number.isFinite(lng) && 
+                lat >= -90 && lat <= 90 && 
+                lng >= -180 && lng <= 180) {
+              north = Math.max(north, lat);
+              south = Math.min(south, lat);
+              east = Math.max(east, lng);
+              west = Math.min(west, lng);
+            }
+          }
+          
+          // Create a literal bounds object
+          const literalBounds = {
+            north,
+            south,
+            east,
+            west
+          };
+          
+          console.log('Literal bounds object:', literalBounds);
+          
+          // Validate the bounds
+          const isValidBounds = 
+            north > south && 
+            east > west && 
+            north >= -90 && north <= 90 && 
+            south >= -90 && south <= 90 && 
+            east >= -180 && east <= 180 && 
+            west >= -180 && west <= 180;
+          
+          if (!isValidBounds) {
+            console.warn('Invalid literal bounds, using fallback');
+            map.setCenter(defaultCenter);
+            map.setZoom(12);
+            return;
+          }
+          
+          try {
+            // Use the literal bounds object directly with fitBounds
+            map.fitBounds(literalBounds);
+            setHasInitializedBounds(true);
+            console.log('Map bounds set successfully with literal bounds');
+          } catch (error) {
+            console.error('Error setting map bounds:', error);
+            map.setCenter(defaultCenter);
+            map.setZoom(12);
+          }
+          
+          console.log('fitBounds completed successfully');
+        } else {
+          console.warn('No valid coordinates to fit bounds');
+          // Fallback to default center if no valid coordinates
+          map.setCenter(defaultCenter);
+          map.setZoom(12);
+        }
+        
+        setHasInitializedBounds(true); // Prevent infinite retries
+      } catch (error) {
+        console.error('Error calculating bounds:', error);
+        if (map) {
+          map.setCenter(defaultCenter);
+          map.setZoom(12);
+        }
+        
+        setHasInitializedBounds(true); // Prevent infinite retries
       }
-      
-      map.fitBounds(bounds);
-      setHasInitializedBounds(true);
     }
-  }, [isOpen, doctorsWithLocation, userLocation, map, hasInitializedBounds]);
+  }, [isOpen, map, doctorsWithLocation, userLocation, hasInitializedBounds]);
 
   // Reset bounds flag when modal closes
   useEffect(() => {
     if (!isOpen) {
       setHasInitializedBounds(false);
+      // Reset map state when modal closes
+      setMap(null);
+      setSelectedDoctor(null);
+      setSearchResults([]);
+      setSearchQuery('');
     }
   }, [isOpen]);
 
@@ -355,7 +584,10 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
               <GoogleMapComponent
                 ref={mapRef}
                 mapContainerStyle={mapContainerStyle}
-                center={userLocation || defaultCenter}
+                center={userLocation ? {
+                  lat: userLocation.latitude || userLocation.lat,
+                  lng: userLocation.longitude || userLocation.lng
+                } : defaultCenter}
                 zoom={12}
                 options={mapOptions}
                 onLoad={setMap}
@@ -363,7 +595,10 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                 {/* User location marker */}
                 {userLocation && window.google && window.google.maps && (
                   <MarkerComponent
-                    position={userLocation}
+                    position={{
+                      lat: userLocation.latitude || userLocation.lat,
+                      lng: userLocation.longitude || userLocation.lng
+                    }}
                     icon={getUserLocationIcon()}
                     title="Tu ubicación"
                   />
