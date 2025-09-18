@@ -77,7 +77,7 @@ const InfoWindowComponent = React.lazy(() =>
 
 const mapContainerStyle = {
   width: '100%',
-  height: 'calc(100vh - 120px)' // Altura casi completa menos header y controles
+  height: 'calc(100vh - 140px)' // Altura optimizada para dar más espacio a los controles del mapa
 };
 
 const defaultCenter = {
@@ -92,7 +92,11 @@ const mapOptions = {
   mapTypeControl: false,
   fullscreenControl: false,
   scrollwheel: true,
-  gestureHandling: 'greedy'
+  gestureHandling: 'greedy',
+  controlSize: 32, // Tamaño de controles más grande para mejor visibilidad
+  zoomControlOptions: {
+    position: 9 // TOP_RIGHT position para evitar que se corten
+  }
 };
 
 export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation }) {
@@ -465,10 +469,10 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center " style={{ zIndex: 1000 }}>
-      <div className="bg-white shadow-2xl w-full h-[90dvh] flex flex-col justify-between">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4" style={{ zIndex: 1000 }}>
+      <div className="bg-white shadow-2xl w-full max-w-[95vw] h-[95vh] rounded-xl overflow-hidden flex flex-col justify-between">
         {/* Header */}
-        <div className="p-4 md:p-6 border-b border-gray-200">
+        <div className="pt-4 md:pt-6 px-4 md:px-6 border-b border-gray-200 flex-shrink-0">
           {/* Fila superior: Título y botón cerrar */}
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center space-x-2 md:space-x-4">
