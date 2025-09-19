@@ -303,81 +303,47 @@ export default function DoctoresPage() {
       <NavBar />
 
       <main className="pb-24">
-        {/* Enhanced Hero Section */}
-        <div className="relative overflow-hidden">
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 via-white to-blue-50/30"></div>
-
-          {/* Animated background elements */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100/30 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-100/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-          </div>
-
+        {/* Compact Hero Section */}
+        <div className="relative bg-gradient-to-br from-cyan-50/30 via-white to-blue-50/20">
           {/* Content */}
-          <div className="relative mx-auto max-w-7xl px-6 pt-12 pb-8 lg:px-8">
-            <div className="mx-auto max-w-4xl text-center">
-              {/* Main heading with gradient */}
-              <h1 className="mb-8 text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-cyan-700 to-blue-600 sm:text-5xl lg:text-6xl">
-                {showingNearby
-                  ? "Doctores cerca de ti"
-                  : "Encuentra tu especialista médico"}
-              </h1>
-
-              {/* Subtitle with better styling */}
-              <p className="mb-8 text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                {showingNearby
-                  ? "Profesionales de la salud cerca de tu ubicación actual"
-                  : "Conecta con los mejores especialistas médicos disponibles en la plataforma"}
-              </p>
-
-              {showingNearby && nearbyDoctors ? (
-                <div className="mb-6 space-y-4">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-100/80 text-cyan-800 rounded-full text-sm font-medium">
-                    <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
-                    {nearbyDoctors.length} doctores encontrados en un radio de 25km
+          <div className="mx-auto max-w-7xl px-6 pt-8 pb-6 lg:px-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Title and main info - more compact */}
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
+                  {showingNearby ? "Doctores cerca de ti" : "Especialistas médicos"}
+                </h1>
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                    <span>{doctoresData.length > 0 ? `${doctoresData.length} profesionales` : "Cargando..."}</span>
                   </div>
-                  <div className="flex justify-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Consulta online disponible</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Múltiples ubicaciones</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons - more prominent */}
+              <div className="flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
+                {showingNearby && nearbyDoctors ? (
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-100 text-cyan-800 rounded-lg text-sm font-medium">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
+                      {nearbyDoctors.length} doctores en 25km
+                    </div>
                     <NearbyDoctorsButton onReset={handleResetToAllDoctors} />
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <div className="flex items-center gap-2 text-lg text-slate-600">
-                      <span className="text-2xl">👨‍⚕️</span>
-                      <span className="font-medium">
-                        {doctoresData.length > 0
-                          ? `${doctoresData.length} profesionales disponibles`
-                          : "Cargando profesionales..."}
-                      </span>
-                    </div>
-                    {doctoresData.length > 0 && (
-                      <div className="h-6 w-px bg-slate-300 hidden sm:block"></div>
-                    )}
-                    <div className="flex justify-center">
-                      <NearbyDoctorsButton
-                        onNearbyDoctorsFound={handleNearbyDoctorsFound}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Stats badges */}
-                  {doctoresData.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-3 mt-6">
-                      <div className="px-3 py-1 bg-gradient-to-r from-cyan-100 to-cyan-200 text-cyan-800 rounded-full text-sm font-medium border border-cyan-200/50">
-                        Especialidades médicas
-                      </div>
-                      <div className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 rounded-full text-sm font-medium border border-blue-200/50">
-                        Consulta online
-                      </div>
-                      <div className="px-3 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 rounded-full text-sm font-medium border border-purple-200/50">
-                        Ubicaciones múltiples
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                ) : (
+                  <NearbyDoctorsButton onNearbyDoctorsFound={handleNearbyDoctorsFound} />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -436,10 +402,9 @@ export default function DoctoresPage() {
           ) : (
             <div className="text-center py-24 px-4">
               <div className="relative mb-8">
-                <div className="text-8xl mb-4 opacity-20">🩺</div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center">
-                    <div className="text-4xl opacity-60">🔍</div>
+                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full opacity-60"></div>
                   </div>
                 </div>
               </div>
@@ -462,7 +427,7 @@ export default function DoctoresPage() {
                     href="/auth/register"
                     className="inline-flex items-center gap-3 px-8 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    <span>👨‍⚕️</span>
+                    <div className="w-4 h-4 bg-white rounded-full opacity-80"></div>
                     Registrarse como Doctor
                   </Link>
                 ) : (
@@ -481,14 +446,14 @@ export default function DoctoresPage() {
                       }}
                       className="inline-flex items-center gap-3 px-6 py-3 border border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 rounded-xl font-medium transition-all duration-300"
                     >
-                      <span>🔄</span>
+                      <div className="w-3 h-3 border-2 border-cyan-500 rounded-full animate-spin border-t-transparent"></div>
                       Limpiar filtros
                     </button>
                     <Link
                       href="/auth/register"
                       className="inline-flex items-center gap-3 px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 shadow-lg hover:shadow-xl transition-all duration-300"
                     >
-                      <span>👨‍⚕️</span>
+                      <div className="w-4 h-4 bg-white rounded-full opacity-80"></div>
                       Unirse como Doctor
                     </Link>
                   </>
