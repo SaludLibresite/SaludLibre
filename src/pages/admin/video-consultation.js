@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "../../components/admin/AdminLayout";
 import ProtectedRoute from "../../components/ProtectedRoute";
@@ -25,7 +25,6 @@ export default function VideoConsultationPage() {
   const [todayRooms, setTodayRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
-  const [isLocalhost, setIsLocalhost] = useState(false);
   const [notification, setNotification] = useState(null);
 
   // Zustand store - ya no se usa para manejo de estado local
@@ -33,31 +32,16 @@ export default function VideoConsultationPage() {
     setMeetingEnded
   } = useVideoConsultationStore();
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    if (currentUser) {
-      loadDoctorRooms();
-      loadTodayRooms();
-    }
-  }, [currentUser]);
-
-  // Detectar si estamos en localhost
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsLocalhost(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    }
-  }, []);
-
-  const loadDoctorRooms = async () => {
+  const loadDoctorRooms = useCallback(async () => {
     try {
       const rooms = await videoConsultationService.getDoctorRooms(currentUser.uid);
       setScheduledRooms(rooms.filter(room => room.status === 'scheduled'));
     } catch (error) {
       console.error('Error loading doctor rooms:', error);
     }
-  };
+  }, [currentUser.uid]);
 
-  const loadTodayRooms = async () => {
+  const loadTodayRooms = useCallback(async () => {
     try {
       const rooms = await videoConsultationService.getTodayScheduledRooms(currentUser.uid);
       setTodayRooms(rooms);
@@ -66,7 +50,15 @@ export default function VideoConsultationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser.uid]);
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    if (currentUser) {
+      loadDoctorRooms();
+      loadTodayRooms();
+    }
+  }, [currentUser, loadDoctorRooms, loadTodayRooms]);
 
   const handleCreateNewRoom = async (roomData) => {
     try {
@@ -132,74 +124,7 @@ export default function VideoConsultationPage() {
     showNotification('¡Enlace copiado!', 'success');
   };
 
-  // Función para eliminar una sala específica (solo localhost)
-  const handleDeleteRoom = async (roomId) => {
-    if (!isLocalhost) {
-      alert('Esta función solo está disponible en localhost');
-      return;
-    }
 
-    if (confirm('¿Estás seguro de que quieres eliminar esta sala?')) {
-      try {
-        await videoConsultationService.deleteVideoRoom(roomId);
-        
-        // Recargar las listas
-        loadDoctorRooms();
-        loadTodayRooms();
-        
-        showNotification('¡Sala eliminada!', 'error');
-      } catch (error) {
-        console.error('Error deleting room:', error);
-        alert('Error al eliminar la sala');
-      }
-    }
-  };
-
-  // Función para eliminar todas las salas activas (solo localhost)
-  const handleDeleteAllActiveRooms = async () => {
-    if (!isLocalhost) {
-      alert('Esta función solo está disponible en localhost');
-      return;
-    }
-
-    if (confirm('¿Estás seguro de que quieres eliminar TODAS las salas activas? Esta acción no se puede deshacer.')) {
-      try {
-        const deletedCount = await videoConsultationService.deleteAllActiveRooms();
-        
-        // Recargar las listas
-        loadDoctorRooms();
-        loadTodayRooms();
-        
-        showNotification(`¡${deletedCount} salas eliminadas!`, 'error');
-      } catch (error) {
-        console.error('Error deleting all active rooms:', error);
-        alert('Error al eliminar las salas: ' + error.message);
-      }
-    }
-  };
-
-  // Función para eliminar todas las salas del doctor (solo localhost)
-  const handleDeleteAllDoctorRooms = async () => {
-    if (!isLocalhost) {
-      alert('Esta función solo está disponible en localhost');
-      return;
-    }
-
-    if (confirm('¿Estás seguro de que quieres eliminar TODAS tus salas? Esta acción no se puede deshacer.')) {
-      try {
-        const deletedCount = await videoConsultationService.deleteAllDoctorRooms(currentUser.uid);
-        
-        // Recargar las listas
-        loadDoctorRooms();
-        loadTodayRooms();
-        
-        showNotification(`¡${deletedCount} salas eliminadas!`, 'error');
-      } catch (error) {
-        console.error('Error deleting all doctor rooms:', error);
-        alert('Error al eliminar las salas: ' + error.message);
-      }
-    }
-  };
 
   // Interfaz principal (dashboard)
   return (
@@ -220,37 +145,7 @@ export default function VideoConsultationPage() {
                 </p>
               </div>
 
-              <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl px-6 py-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-green-700 font-medium">Sistema activo</span>
-                  </div>
-                </div>
-                
-                {/* Botones de desarrollo - Solo en localhost */}
-                {isLocalhost && (
-                  <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-xl p-2">
-                    <span className="text-xs text-red-600 font-medium">DEV:</span>
-                    <button
-                      onClick={handleDeleteAllDoctorRooms}
-                      className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors flex items-center space-x-1"
-                      title="Eliminar todas mis salas"
-                    >
-                      <TrashIcon className="h-3 w-3" />
-                      <span>Mis salas</span>
-                    </button>
-                    <button
-                      onClick={handleDeleteAllActiveRooms}
-                      className="px-2 py-1 bg-red-700 text-white rounded text-xs hover:bg-red-800 transition-colors flex items-center space-x-1"
-                      title="Eliminar todas las salas activas"
-                    >
-                      <TrashIcon className="h-3 w-3" />
-                      <span>Todas activas</span>
-                    </button>
-                  </div>
-                )}
-                
+              <div className="flex items-center justify-end">
                 <button
                   onClick={() => setShowNewRoomModal(true)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
@@ -313,15 +208,6 @@ export default function VideoConsultationPage() {
                         >
                           <ShareIcon className="h-4 w-4" />
                         </button>
-                        {isLocalhost && (
-                          <button
-                            onClick={() => handleDeleteRoom(room.id)}
-                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                            title="Eliminar sala (Solo desarrollo)"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        )}
                         <button
                           onClick={() => handleJoinRoom(room)}
                           className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -389,15 +275,6 @@ export default function VideoConsultationPage() {
                         >
                           <ShareIcon className="h-4 w-4" />
                         </button>
-                        {isLocalhost && (
-                          <button
-                            onClick={() => handleDeleteRoom(room.id)}
-                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                            title="Eliminar sala (Solo desarrollo)"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        )}
                         <button
                           onClick={() => handleJoinRoom(room)}
                           className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"

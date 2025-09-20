@@ -21,7 +21,9 @@ export default function FeatureProtectedRoute({
       }
 
       try {
+        console.log(`🔍 Checking feature access for feature: ${feature}, user: ${currentUser.uid}`);
         const access = await hasFeatureAccess(currentUser.uid, feature);
+        console.log(`✅ Feature access result for ${feature}:`, access);
         setHasAccess(access);
       } catch (error) {
         console.error("Error checking feature access:", error);

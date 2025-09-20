@@ -355,24 +355,34 @@ export const getPaymentsBySubscription = async (subscriptionId) => {
 
 // Utilidades
 export const isSubscriptionActive = (subscription) => {
-  if (!subscription) return false;
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log("Checking subscription status:", subscription);
+  if (!subscription) {
+    console.log("❌ No subscription provided to isSubscriptionActive");
+    return false;
   }
+  
+  console.log("🔍 Checking subscription status:", {
+    status: subscription.status,
+    expiresAt: subscription.expiresAt,
+    planId: subscription.planId,
+    planName: subscription.planName,
+    price: subscription.price
+  });
   
   // Si el status es pending, considerarla como no activa para mostrar el banner de vencida
   if (subscription.status === "pending") {
+    console.log("❌ Subscription status is pending - considered inactive");
     return false;
   }
   
   // Si el status no es active, no está activa
   if (subscription.status !== "active") {
+    console.log(`❌ Subscription status is not active: ${subscription.status}`);
     return false;
   }
   
   // Si no tiene fecha de expiración, considerarla activa (para planes indefinidos)
   if (!subscription.expiresAt) {
+    console.log("✅ No expiration date - considering active");
     return true;
   }
   
@@ -381,13 +391,11 @@ export const isSubscriptionActive = (subscription) => {
   
   const isActive = expiresAt > now;
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log("Subscription expiry check:", {
-      now: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      isActive
-    });
-  }
+  console.log("📅 Subscription expiry check:", {
+    now: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    isActive: isActive
+  });
   
   return isActive;
 };

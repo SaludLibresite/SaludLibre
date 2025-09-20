@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, Marker, InfoWindow, LoadScript } from '@react-google-maps/api';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
 
 const mapContainerStyle = {
@@ -88,6 +88,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const mapRef = useRef(null);
 
   // Simple filter for doctors with valid coordinates
@@ -296,17 +297,23 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
         {/* Map Container */}
         <div className="flex-1 relative">
           {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-            <GoogleMap
-              ref={mapRef}
-              mapContainerStyle={mapContainerStyle}
-              center={userLocation ? {
-                lat: userLocation.latitude || userLocation.lat,
-                lng: userLocation.longitude || userLocation.lng
-              } : defaultCenter}
-              zoom={12}
-              options={mapOptions}
-              onLoad={handleMapLoad}
+            <LoadScript 
+              googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+              onLoad={() => setIsLoaded(true)}
+              libraries={['places']}
             >
+              {isLoaded && (
+                <GoogleMap
+                  ref={mapRef}
+                  mapContainerStyle={mapContainerStyle}
+                  center={userLocation ? {
+                    lat: userLocation.latitude || userLocation.lat,
+                    lng: userLocation.longitude || userLocation.lng
+                  } : defaultCenter}
+                  zoom={12}
+                  options={mapOptions}
+                  onLoad={handleMapLoad}
+                >
                   {/* User location marker */}
                   {userLocation && (
                     <Marker
@@ -446,7 +453,9 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                     </InfoWindow>
                   )}
                 </GoogleMap>
-              ) : (
+              )}
+            </LoadScript>
+          ) : (
             <div className="flex items-center justify-center h-full bg-gray-100">
               <div className="text-center">
                 <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

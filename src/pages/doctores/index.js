@@ -7,12 +7,14 @@ import PaginationControls from "../../components/doctoresPage/PaginationControls
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import DoctorsMapModal from "../../components/doctoresPage/DoctorsMapModal";
 import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
+import { LoadScript } from '@react-google-maps/api';
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
 import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useRouter } from "next/router";
+import { getBarrioFilterOptions, filterDoctorsByBarrio } from "../../lib/barriosUtils";
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
@@ -24,7 +26,7 @@ export default function DoctoresPage() {
   const [selectedGenero, setSelectedGenero] = useState("");
   const [selectedConsultaOnline, setSelectedConsultaOnline] = useState("");
   const [selectedRango, setSelectedRango] = useState("");
-  const [selectedUbicacion, setSelectedUbicacion] = useState("");
+  const [selectedBarrio, setSelectedBarrio] = useState("");
   const [selectedPrepaga, setSelectedPrepaga] = useState("");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -87,7 +89,8 @@ export default function DoctoresPage() {
     { value: "Intermedio", label: "Plan Medium" }, 
     { value: "Normal", label: "Plan Free (Básico)" }
   ];
-  const ubicaciones = [...new Set(doctoresData.map((d) => d.ubicacion))].sort();
+  // Get barrio filter options instead of individual locations
+  const barrioOptions = getBarrioFilterOptions(doctoresData);
   const prepagas = [
     ...new Set(doctoresData.flatMap((d) => d.prepagas || [])),
   ].sort();
@@ -138,11 +141,11 @@ export default function DoctoresPage() {
       options: rangos,
     },
     {
-      id: "ubicacion",
-      label: "Ubicación",
-      value: selectedUbicacion,
-      setter: setSelectedUbicacion,
-      options: ubicaciones,
+      id: "barrio",
+      label: "Zona/Barrio",
+      value: selectedBarrio,
+      setter: setSelectedBarrio,
+      options: barrioOptions,
     },
     {
       id: "prepaga",
@@ -191,7 +194,13 @@ export default function DoctoresPage() {
   // Use nearby doctors if available, otherwise use filtered doctors
   const doctorsToShow = showingNearby ? nearbyDoctors : doctoresData;
 
-  const filteredDoctors = doctorsToShow.filter((d) => {
+  // Filter by barrio if selected
+  let doctorsFilteredByBarrio = doctorsToShow;
+  if (selectedBarrio && selectedBarrio !== "") {
+    doctorsFilteredByBarrio = filterDoctorsByBarrio(doctorsToShow, selectedBarrio);
+  }
+
+  const filteredDoctors = doctorsFilteredByBarrio.filter((d) => {
     const searchMatch =
       d.nombre?.toLowerCase().includes(search.toLowerCase()) ||
       d.especialidad?.toLowerCase().includes(search.toLowerCase());
@@ -213,8 +222,6 @@ export default function DoctoresPage() {
     const doctorRank = getDoctorRank(d);
     const rangoMatch = selectedRango === "" || doctorRank === selectedRango;
     
-    const ubicacionMatch =
-      selectedUbicacion === "" || d.ubicacion === selectedUbicacion;
     const prepagaMatch =
       selectedPrepaga === "" ||
       (d.prepagas && d.prepagas.includes(selectedPrepaga));
@@ -226,7 +233,6 @@ export default function DoctoresPage() {
       consultaOnlineMatch &&
       ageGroupMatch &&
       rangoMatch &&
-      ubicacionMatch &&
       prepagaMatch
     );
   });
@@ -250,7 +256,7 @@ export default function DoctoresPage() {
     selectedConsultaOnline,
     selectedAgeGroup,
     selectedRango,
-    selectedUbicacion,
+    selectedBarrio,
     selectedPrepaga,
   ]);
 
@@ -292,7 +298,7 @@ export default function DoctoresPage() {
     selectedConsultaOnline,
     selectedAgeGroup,
     selectedRango,
-    selectedUbicacion,
+    selectedBarrio,
     selectedPrepaga,
   ]);
 
@@ -309,10 +315,15 @@ export default function DoctoresPage() {
   }
 
   return (
-    <div>
-      <NavBar />
+    <LoadScript 
+      googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+      libraries={['places']}
+      loadingElement={<div>Cargando Google Maps...</div>}
+    >
+      <div>
+        <NavBar />
 
-      <main className="pb-24">
+        <main className="pb-24">
         {/* Compact Hero Section */}
         <div className="relative bg-gradient-to-br from-cyan-50/30 via-white to-blue-50/20">
           {/* Content */}
@@ -450,7 +461,7 @@ export default function DoctoresPage() {
                         setSelectedConsultaOnline("");
                         setSelectedAgeGroup("");
                         setSelectedRango("");
-                        setSelectedUbicacion("");
+                        setSelectedBarrio("");
                         setSelectedPrepaga("");
                         setCurrentPage(1);
                       }}
@@ -491,5 +502,6 @@ export default function DoctoresPage() {
 
       <Footer />
     </div>
+    </LoadScript>
   );
 }

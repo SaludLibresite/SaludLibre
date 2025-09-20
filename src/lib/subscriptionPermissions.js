@@ -49,25 +49,61 @@ export const PLAN_MAPPING = {
  */
 export const hasFeatureAccess = async (userId, feature) => {
   try {
-    // Obtener la suscripción actual del usuario
-    const subscription = await getUserSubscription(userId);
+    console.log(`🔍 hasFeatureAccess called for userId: ${userId}, feature: ${feature}`);
     
-    // Si no tiene suscripción, usar plan free por defecto
+    // Obtener la suscripción actual del usuario desde la colección subscriptions
+    const subscription = await getUserSubscription(userId);
+    console.log(`📋 User subscription from subscriptions collection:`, subscription);
+    
+    // Si no hay suscripción en la colección, verificar los datos del doctor directamente
     if (!subscription) {
-      return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+      console.log(`❌ No subscription found in collection, checking doctor data...`);
+      
+      try {
+        // Importar getDoctorByUserId dinámicamente para evitar dependencias circulares
+        const { getDoctorByUserId } = await import('./doctorsService');
+        const doctor = await getDoctorByUserId(userId);
+        
+        if (doctor) {
+          console.log(`👨‍⚕️ Doctor data found:`, {
+            subscriptionStatus: doctor.subscriptionStatus,
+            subscriptionPlan: doctor.subscriptionPlan,
+            subscriptionExpiresAt: doctor.subscriptionExpiresAt
+          });
+          
+          // Usar la función específica para verificar acceso desde datos del doctor
+          const hasAccess = hasFeatureAccessFromDoctor(doctor, feature);
+          console.log(`✅ Final access result from doctor data:`, hasAccess);
+          return hasAccess;
+        } else {
+          console.log(`❌ No doctor data found, using free plan`);
+          return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+        }
+      } catch (doctorError) {
+        console.error('Error getting doctor data:', doctorError);
+        return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+      }
     }
     
-    // Si la suscripción no está activa, usar plan free
-    if (!isSubscriptionActive(subscription)) {
+    // Si hay suscripción en la colección, usar la lógica original
+    const isActive = isSubscriptionActive(subscription);
+    console.log(`🔄 Subscription active check:`, isActive);
+    
+    if (!isActive) {
+      console.log(`❌ Subscription not active, using free plan`);
       return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
     }
     
     // Determinar el plan del usuario
     const planKey = determinePlanKey(subscription.planId, subscription.planName, subscription.price);
+    console.log(`📊 Determined plan key:`, planKey, `from planId: ${subscription.planId}, planName: ${subscription.planName}, price: ${subscription.price}`);
     
     // Verificar si el plan incluye la funcionalidad
     const permissions = SUBSCRIPTION_PERMISSIONS[planKey] || SUBSCRIPTION_PERMISSIONS.free;
-    return permissions.includes(feature);
+    const hasAccess = permissions.includes(feature);
+    console.log(`✅ Final access result:`, hasAccess, `(plan: ${planKey}, permissions:`, permissions, `)`);
+    
+    return hasAccess;
     
   } catch (error) {
     console.error('Error checking feature access:', error);
@@ -84,12 +120,23 @@ export const hasFeatureAccess = async (userId, feature) => {
  */
 export const hasFeatureAccessFromDoctor = (doctor, feature) => {
   try {
+    console.log(`🔍 hasFeatureAccessFromDoctor called for feature: ${feature}`);
+    console.log(`👨‍⚕️ Doctor subscription data:`, {
+      subscriptionStatus: doctor.subscriptionStatus,
+      subscriptionPlan: doctor.subscriptionPlan,
+      subscriptionExpiresAt: doctor.subscriptionExpiresAt
+    });
+    
     // Determinar el plan basándose en los datos del doctor
     const planKey = determinePlanKeyFromDoctor(doctor);
+    console.log(`📊 Determined plan key from doctor: ${planKey}`);
     
     // Verificar si el plan incluye la funcionalidad
     const permissions = SUBSCRIPTION_PERMISSIONS[planKey] || SUBSCRIPTION_PERMISSIONS.free;
-    return permissions.includes(feature);
+    const hasAccess = permissions.includes(feature);
+    console.log(`✅ Final access result from doctor:`, hasAccess, `(plan: ${planKey}, permissions:`, permissions, `)`);
+    
+    return hasAccess;
     
   } catch (error) {
     console.error('Error checking feature access from doctor:', error);
@@ -126,8 +173,15 @@ export const getUserFeatures = async (userId) => {
  * @returns {string} - Clave del plan (free, medium, plus)
  */
 const determinePlanKeyFromDoctor = (doctor) => {
+  console.log(`🔍 determinePlanKeyFromDoctor called with doctor:`, {
+    subscriptionStatus: doctor.subscriptionStatus,
+    subscriptionPlan: doctor.subscriptionPlan,
+    subscriptionExpiresAt: doctor.subscriptionExpiresAt
+  });
+  
   // Verificar si tiene suscripción activa basándose solo en los campos especificados
   if (!doctor.subscriptionStatus || doctor.subscriptionStatus !== 'active') {
+    console.log(`❌ Subscription status not active: ${doctor.subscriptionStatus}`);
     return 'free';
   }
 
@@ -137,23 +191,35 @@ const determinePlanKeyFromDoctor = (doctor) => {
       ? doctor.subscriptionExpiresAt.toDate() 
       : new Date(doctor.subscriptionExpiresAt);
     
-    if (expirationDate <= new Date()) {
+    const isExpired = expirationDate <= new Date();
+    console.log(`📅 Expiration check:`, {
+      expirationDate: expirationDate.toISOString(),
+      now: new Date().toISOString(),
+      isExpired: isExpired
+    });
+    
+    if (isExpired) {
+      console.log(`❌ Subscription expired`);
       return 'free';
     }
   }
 
   // Mapear basándose solo en subscriptionPlan (ignorar subscriptionPlanId)
   const planName = doctor.subscriptionPlan?.toLowerCase() || '';
+  console.log(`📝 Plan name (lowercase): '${planName}'`);
   
   if (planName.includes('plus') || planName.includes('premium')) {
+    console.log(`✅ Plan indicates PLUS`);
     return 'plus';
   }
   
   if (planName.includes('medium') || planName.includes('medio')) {
+    console.log(`✅ Plan indicates MEDIUM`);
     return 'medium';
   }
   
   // Por defecto, plan free
+  console.log(`❓ No plan match, defaulting to FREE`);
   return 'free';
 };
 
@@ -165,31 +231,40 @@ const determinePlanKeyFromDoctor = (doctor) => {
  * @returns {string} - Clave del plan (free, medium, plus)
  */
 const determinePlanKey = (planId, planName, price = 0) => {
+  console.log(`🔍 determinePlanKey called with:`, { planId, planName, price });
+  
   // Si el precio es 0, es plan free
   if (price === 0) {
+    console.log(`💰 Price is 0, returning 'free'`);
     return 'free';
   }
   
   // Primero intentar con el ID del plan si existe en el mapeo
   if (PLAN_MAPPING[planId]) {
+    console.log(`🔑 Found planId in mapping: ${planId} -> ${PLAN_MAPPING[planId]}`);
     return PLAN_MAPPING[planId];
   }
   
   // Luego intentar con el nombre del plan (convertir a lowercase)
   const lowerPlanName = planName?.toLowerCase() || '';
+  console.log(`📝 Checking plan name (lowercase): '${lowerPlanName}'`);
   
   if (lowerPlanName.includes('free') || lowerPlanName.includes('gratis') || price === 0) {
+    console.log(`✅ Plan name indicates FREE plan`);
     return 'free';
   }
   
   if (lowerPlanName.includes('medium') || lowerPlanName.includes('medio')) {
+    console.log(`✅ Plan name indicates MEDIUM plan`);
     return 'medium';
   }
   
   if (lowerPlanName.includes('plus') || lowerPlanName.includes('premium')) {
+    console.log(`✅ Plan name indicates PLUS plan`);
     return 'plus';
   }
   
+  console.log(`❓ No plan match found, defaulting to 'free'`);
   return 'free';
 };
 

@@ -15,6 +15,7 @@ import DoctorsNavigation from '../../components/superadmin/DoctorsNavigation';
 import DoctorsList from '../../components/superadmin/DoctorsList';
 import DoctorsLoading from '../../components/superadmin/DoctorsLoading';
 import BulkSubscriptionModal from '../../components/admin/BulkSubscriptionModal';
+import EditDoctorModal from '../../components/superadmin/EditDoctorModal';
 
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
@@ -175,10 +176,20 @@ export default function DoctorsManagement() {
           onDoctorUpdated={loadDoctors}
         />
 
+        {/* Edit Doctor Modal */}
+        <EditDoctorModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingDoctor(null);
+          }}
+          doctor={editingDoctor}
+          onDoctorUpdated={loadDoctors}
+        />
+
         {/* Add other modals here if needed */}
         {/* {showSpecialtyModal && ...} */}
         {/* {showDetailsModal && ...} */}
-        {/* {showEditModal && ...} */}
       </div>
     </SuperAdminLayout>
   );

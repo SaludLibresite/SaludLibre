@@ -1,21 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 import { formatDoctorName } from "../../lib/dataUtils";
-
-// Global loader instance to avoid multiple initializations
-let globalLoader = null;
-
-const getGoogleMapsLoader = () => {
-  if (!globalLoader && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-    globalLoader = new Loader({
-      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-      version: "weekly",
-      libraries: ["places", "geocoding"],
-    });
-  }
-  return globalLoader;
-};
+import { loadGoogleMaps } from "../../lib/googleMapsLoader";
 
 export default function DoctorLocationMap({ doctor, className = "" }) {
   const mapRef = useRef(null);
@@ -35,14 +21,13 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           return;
         }
 
-        const loader = getGoogleMapsLoader();
-        if (!loader) {
+        if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
           setError("Google Maps no configurado");
           setIsLoading(false);
           return;
         }
 
-        const google = await loader.load();
+        const google = await loadGoogleMaps();
         
         // Import the marker library for AdvancedMarkerElement
         const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
@@ -93,7 +78,7 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           content: `
             <div style="padding: 8px; max-width: 250px;">
               <h3 style="margin: 0 0 8px 0; color: #1F2937; font-size: 16px; font-weight: 600;">
-                {formatDoctorName(doctor.nombre, doctor.genero)}
+                ${formatDoctorName(doctor.nombre, doctor.genero)}
               </h3>
               <p style="margin: 0 0 4px 0; color: #3B82F6; font-size: 14px; font-weight: 500;">
                 ${doctor.especialidad}

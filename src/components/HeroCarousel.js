@@ -51,7 +51,7 @@ export default function HeroCarousel({ images }) {
   };
 
   return (
-    <div className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] flex items-center justify-center overflow-hidden shadow-2xl rounded-3xl bg-gradient-to-br from-[#011d2f]/60 to-[#4dbad9]/40">
+    <div className="relative w-full h-[70dvh] sm:h-[500px] lg:h-[600px] flex items-center justify-center overflow-hidden shadow-2xl rounded-3xl bg-gradient-to-br from-[#011d2f]/60 to-[#4dbad9]/40">
       <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={current}
@@ -175,7 +175,7 @@ export default function HeroCarousel({ images }) {
             transition={{ duration: 0.2 }}
           />
           <motion.button
-            className="bg-gradient-to-r from-[#e8ad0f] to-[#4dbad9] px-8 py-4 rounded-2xl font-semibold text-[#011d2f] shadow-2xl hover:shadow-3xl transition-all duration-300 text-lg whitespace-nowrap"
+            className=" bg-[#e8910f] px-8 py-4 rounded-2xl font-semibold text-[#fff] shadow-2xl hover:shadow-3xl transition-all duration-300 text-lg whitespace-nowrap"
             whileHover={{
               scale: 1.05,
               background: "linear-gradient(to right, #4dbad9, #011d2f)"

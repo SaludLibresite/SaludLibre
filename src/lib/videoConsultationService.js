@@ -28,24 +28,8 @@ export const videoConsultationService = {
     notes = ''
   }) {
     try {
-      // Verificar si el paciente ya tiene una sala activa
-      const hasActiveRoom = await this.hasActivePatientRoom(patientId);
-      if (hasActiveRoom) {
-        throw new Error('El paciente ya tiene una videoconsulta activa. No se pueden crear múltiples salas simultáneamente.');
-      }
-
-      // Verificar si el doctor ya tiene una sala activa con el mismo paciente
-      const existingRoomsQuery = query(
-        collection(db, 'videoConsultations'),
-        where('doctorId', '==', doctorId),
-        where('patientId', '==', patientId),
-        where('status', 'in', ['scheduled', 'active'])
-      );
-      
-      const existingRoomsSnapshot = await getDocs(existingRoomsQuery);
-      if (!existingRoomsSnapshot.empty) {
-        throw new Error('Ya existe una videoconsulta activa entre este doctor y paciente.');
-      }
+      // Ya no verificamos si hay salas activas - permitimos crear libremente
+      // Las salas serán limpiadas automáticamente por el cron job a las 12:00 AM
 
       const roomData = {
         doctorId,
@@ -416,54 +400,25 @@ export const videoConsultationService = {
     }
   },
 
-  // Eliminar todas las salas activas de un doctor (solo para desarrollo)
-  async deleteAllDoctorRooms(doctorId) {
+  // Limpieza automática de todas las salas (para cron job)
+  async cleanupAllRooms() {
     try {
-      // Solo permitir en localhost
-      if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
-        throw new Error('Esta función solo está disponible en localhost');
-      }
-
-      const q = query(
-        collection(db, 'videoConsultations'),
-        where('doctorId', '==', doctorId)
-      );
+      // Obtener todas las salas
+      const querySnapshot = await getDocs(collection(db, 'videoConsultations'));
       
-      const querySnapshot = await getDocs(q);
       const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-      
       await Promise.all(deletePromises);
       
-      console.log(`Deleted ${querySnapshot.docs.length} rooms for doctor ${doctorId}`);
-      return querySnapshot.docs.length;
+      const deletedCount = querySnapshot.docs.length;
+      console.log(`[CRON CLEANUP] Deleted ${deletedCount} video consultation rooms`);
+      
+      return {
+        success: true,
+        deletedCount,
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
-      console.error('Error deleting all doctor rooms:', error);
-      throw error;
-    }
-  },
-
-  // Eliminar todas las salas activas (solo para desarrollo)
-  async deleteAllActiveRooms() {
-    try {
-      // Solo permitir en localhost
-      if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
-        throw new Error('Esta función solo está disponible en localhost');
-      }
-
-      const q = query(
-        collection(db, 'videoConsultations'),
-        where('status', 'in', ['scheduled', 'active'])
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-      
-      await Promise.all(deletePromises);
-      
-      console.log(`Deleted ${querySnapshot.docs.length} active rooms`);
-      return querySnapshot.docs.length;
-    } catch (error) {
-      console.error('Error deleting all active rooms:', error);
+      console.error('Error in cleanup all rooms:', error);
       throw error;
     }
   },
