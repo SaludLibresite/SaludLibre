@@ -3,7 +3,7 @@
 ## 🎯 Resumen
 
 El Sistema de Gestión de Familiares permite a los pacientes principales gestionar la información médica de sus familiares (hijos, padresa, esposos, etc.) desde una sola cuenta. Esto facilita la creación de citas, gestión de historial médico y documentos para todos los miembros de la familia.
-
+a
 ## ✨ Características Principales
 
 ### 🏠 Para Pacientesa
