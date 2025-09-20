@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { getUserSubscription } from '../../lib/subscriptionsService';
 import { getFixedPlans } from '../../lib/fixedPlansService';
+import { useAuth } from '../../context/AuthContext';
 
 const ManualSubscriptionActivator = ({ userId, userEmail, onActivated, isEmbedded = false }) => {
+  const { refreshUserData } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -92,6 +94,12 @@ const ManualSubscriptionActivator = ({ userId, userEmail, onActivated, isEmbedde
 
       if (response.ok) {
         toast.success('Suscripción activada exitosamente');
+        
+        // Refresh user data to reflect subscription changes
+        if (refreshUserData) {
+          await refreshUserData();
+        }
+        
         if (!isEmbedded) {
           setIsOpen(false);
         }

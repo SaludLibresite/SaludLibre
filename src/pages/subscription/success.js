@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function SubscriptionSuccess() {
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUserData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [doctor, setDoctor] = useState(null);
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -109,6 +109,11 @@ export default function SubscriptionSuccess() {
       });
 
       console.log('Doctor updated with subscription info for userId:', userId);
+
+      // Refresh user data in AuthContext to update subscription status
+      if (refreshUserData) {
+        await refreshUserData();
+      }
 
       // Cargar el doctor actualizado
       const updatedDoctor = await getDoctorById(userId);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from '../../context/AuthContext';
 import { getDoctorByUserId } from "../../lib/doctorsService";
 import { getActiveSubscriptionPlans } from "../../lib/subscriptionsService";
 import { createPaymentPreference } from "../../lib/mercadopagoService";
@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 
 export default function SubscriptionManagement() {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUserData } = useAuth();
   const [plans, setPlans] = useState([]);
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -172,6 +172,12 @@ export default function SubscriptionManagement() {
       console.log('🔄 Reloading doctor data...');
       // Pequeño delay para asegurar que Firestore haya sincronizado
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh user data in AuthContext to update subscription status
+      if (refreshUserData) {
+        await refreshUserData();
+      }
+      
       await loadData();
       console.log('✅ Data reloaded, current doctor:', doctor);
       

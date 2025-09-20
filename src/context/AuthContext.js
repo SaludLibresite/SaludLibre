@@ -204,6 +204,25 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, [setUserData, clearUserData, setUserStoreLoading]);
 
+  // Function to refresh user data manually
+  const refreshUserData = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setUserStoreLoading(true);
+      console.log('Manually refreshing user data for:', currentUser.email);
+      
+      // Re-detect user type and profile
+      const { type, profile } = await detectUserType(currentUser);
+      console.log('User data refreshed:', type, profile ? 'with updated profile' : 'no profile');
+      setUserData(type, profile);
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
+    } finally {
+      setUserStoreLoading(false);
+    }
+  };
+
   const value = {
     currentUser,
     signup,
@@ -212,6 +231,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     loginWithGoogle,
     registerWithGoogle,
+    refreshUserData,
   };
 
   return (
