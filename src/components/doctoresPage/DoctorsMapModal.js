@@ -1,0 +1,654 @@
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
+import { loadGoogleMaps, isGoogleMapsReady } from '../../lib/googleMapsLoader';
+
+// Lazy load Google Maps components with LoadScript wrapper
+const GoogleMapComponent = React.lazy(() =>
+  import('@react-google-maps/api').then(module => ({
+    default: ({ children, ...props }) => {
+      const { GoogleMap, LoadScript } = module;
+      
+      // If Google Maps is already loaded globally, use only GoogleMap
+      if (window.google && window.google.maps) {
+        return (
+          <GoogleMap {...props}>
+            {children}
+          </GoogleMap>
+        );
+      }
+      
+      // Otherwise, use LoadScript to initialize
+      return (
+        <LoadScript 
+          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
+          loadingElement={<div>Cargando mapa...</div>}
+          preventGoogleFontsLoading={true}
+        >
+          <GoogleMap {...props}>
+            {children}
+          </GoogleMap>
+        </LoadScript>
+      );
+    }
+  }))
+);
+
+const MarkerComponent = React.lazy(() =>
+  import('@react-google-maps/api').then(module => ({
+    default: module.Marker
+  }))
+);
+
+const InfoWindowComponent = React.lazy(() =>
+  import('@react-google-maps/api').then(module => ({
+    default: module.InfoWindow
+  }))
+);
+
+const mapContainerStyle = {
+  width: '100%',
+  height: 'calc(100vh - 140px)'
+};
+
+const defaultCenter = {
+  lat: -34.6037,
+  lng: -58.3816 // Buenos Aires, Argentina
+};
+
+const mapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: false,
+  scrollwheel: true,
+  gestureHandling: 'greedy',
+  controlSize: 32,
+  zoomControlOptions: {
+    position: 9 // TOP_RIGHT position
+  }
+};
+
+// Helper functions for markers
+const getMarkerIcon = (doctor) => {
+  const rank = getDoctorRank(doctor);
+  const baseSize = rank === 'VIP' ? 40 : rank === 'Intermedio' ? 35 : 30;
+  
+  // Check if Google Maps API is loaded
+  if (!window.google || !window.google.maps) {
+    return {
+      url: rank === 'VIP' 
+        ? 'data:image/svg+xml,' + encodeURIComponent(`
+          <svg width="${baseSize}" height="${baseSize}" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="vipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#f97316;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <circle cx="20" cy="20" r="18" fill="url(#vipGradient)" stroke="white" stroke-width="3"/>
+            <text x="20" y="26" text-anchor="middle" fill="white" font-size="16" font-weight="bold">★</text>
+          </svg>
+        `)
+        : rank === 'Intermedio'
+        ? 'data:image/svg+xml,' + encodeURIComponent(`
+          <svg width="${baseSize}" height="${baseSize}" viewBox="0 0 35 35" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="17.5" cy="17.5" r="15" fill="#3b82f6" stroke="white" stroke-width="3"/>
+            <text x="17.5" y="22" text-anchor="middle" fill="white" font-size="14" font-weight="bold">+</text>
+          </svg>
+        `)
+        : 'data:image/svg+xml,' + encodeURIComponent(`
+          <svg width="${baseSize}" height="${baseSize}" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="basicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#fb923c;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <circle cx="15" cy="15" r="12" fill="url(#basicGradient)" stroke="white" stroke-width="2"/>
+          </svg>
+        `)
+    };
+  }
+  
+  return {
+    url: rank === 'VIP' 
+      ? 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg width="${baseSize}" height="${baseSize}" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+              <stop offset="50%" style="stop-color:#f97316;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="20" cy="20" r="18" fill="url(#vipGradient)" stroke="white" stroke-width="3"/>
+          <text x="20" y="26" text-anchor="middle" fill="white" font-size="16" font-weight="bold">★</text>
+        </svg>
+      `)
+      : rank === 'Intermedio'
+      ? 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg width="${baseSize}" height="${baseSize}" viewBox="0 0 35 35" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="17.5" cy="17.5" r="15" fill="#3b82f6" stroke="white" stroke-width="3"/>
+          <text x="17.5" y="22" text-anchor="middle" fill="white" font-size="14" font-weight="bold">+</text>
+        </svg>
+      `)
+      : 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg width="${baseSize}" height="${baseSize}" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="basicGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#fb923c;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <circle cx="15" cy="15" r="12" fill="url(#basicGradient)" stroke="white" stroke-width="2"/>
+        </svg>
+      `),
+    scaledSize: new window.google.maps.Size(baseSize, baseSize),
+    anchor: new window.google.maps.Point(baseSize / 2, baseSize / 2)
+  };
+};
+
+const getUserLocationIcon = () => {
+  // Check if Google Maps API is loaded
+  if (!window.google || !window.google.maps) {
+    return {
+      url: 'data:image/svg+xml,' + encodeURIComponent(`
+        <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="15" r="12" fill="#10b981" stroke="white" stroke-width="3"/>
+          <circle cx="15" cy="15" r="6" fill="white"/>
+        </svg>
+      `)
+    };
+  }
+  
+  return {
+    url: 'data:image/svg+xml,' + encodeURIComponent(`
+      <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="15" cy="15" r="12" fill="#10b981" stroke="white" stroke-width="3"/>
+        <circle cx="15" cy="15" r="6" fill="white"/>
+      </svg>
+    `),
+    scaledSize: new window.google.maps.Size(30, 30),
+    anchor: new window.google.maps.Point(15, 15)
+  };
+};
+
+export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation }) {
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [map, setMap] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+  const [markersReady, setMarkersReady] = useState(false);
+  const mapRef = useRef(null);
+
+  // Load Google Maps API
+  useEffect(() => {
+    if (isOpen && !isGoogleMapsLoaded) {
+      loadGoogleMaps()
+        .then(() => {
+          setIsGoogleMapsLoaded(true);
+        })
+        .catch((error) => {
+          console.error('Failed to load Google Maps:', error);
+        });
+    }
+  }, [isOpen, isGoogleMapsLoaded]);
+
+  // Filter doctors with valid coordinates
+  const doctorsWithLocation = doctors.filter(doctor => {
+    const hasLat = doctor.latitude !== null && doctor.latitude !== undefined && doctor.latitude !== '';
+    const hasLng = doctor.longitude !== null && doctor.longitude !== undefined && doctor.longitude !== '';
+    const validLat = hasLat && !isNaN(parseFloat(doctor.latitude));
+    const validLng = hasLng && !isNaN(parseFloat(doctor.longitude));
+    
+    console.log('Doctor location check:', {
+      id: doctor.id,
+      name: doctor.nombre,
+      hasLat,
+      hasLng,
+      validLat,
+      validLng,
+      rawLat: doctor.latitude,
+      rawLng: doctor.longitude,
+      parsedLat: parseFloat(doctor.latitude),
+      parsedLng: parseFloat(doctor.longitude)
+    });
+    
+    return validLat && validLng;
+  }).map(doctor => ({
+    ...doctor,
+    latitude: parseFloat(doctor.latitude),
+    longitude: parseFloat(doctor.longitude)
+  }));
+
+  // Debug logging
+  useEffect(() => {
+    console.log('DoctorsMapModal Debug:', {
+      isOpen,
+      isGoogleMapsLoaded,
+      markersReady,
+      totalDoctors: doctors.length,
+      doctorsWithLocation: doctorsWithLocation.length,
+      doctorsWithLocationData: doctorsWithLocation.slice(0, 3), // Show first 3 for debugging
+      userLocation,
+      mapInstance: !!map,
+      googleMapsAPI: !!window.google?.maps,
+      markerComponent: !!MarkerComponent
+    });
+  }, [isOpen, isGoogleMapsLoaded, markersReady, doctors.length, doctorsWithLocation.length, userLocation, map]);
+
+  // Handle map load and initial bounds setting
+  const handleMapLoad = (mapInstance) => {
+    setMap(mapInstance);
+    
+    // Set bounds after map is loaded
+    if (doctorsWithLocation.length > 0) {
+      // Check if Google Maps API is available
+      if (!window.google || !window.google.maps) {
+        console.warn('Google Maps API not loaded yet');
+        return;
+      }
+      
+      const bounds = new window.google.maps.LatLngBounds();
+      
+      // Add doctor locations
+      doctorsWithLocation.forEach(doctor => {
+        if (doctor.latitude && doctor.longitude && 
+            !isNaN(doctor.latitude) && !isNaN(doctor.longitude)) {
+          bounds.extend(new window.google.maps.LatLng(doctor.latitude, doctor.longitude));
+        }
+      });
+      
+      // Add user location if available
+      if (userLocation) {
+        const userLat = userLocation.latitude || userLocation.lat;
+        const userLng = userLocation.longitude || userLocation.lng;
+        if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+          bounds.extend(new window.google.maps.LatLng(userLat, userLng));
+        }
+      }
+      
+      // Only fit bounds if we have valid bounds
+      if (!bounds.isEmpty()) {
+        try {
+          mapInstance.fitBounds(bounds, { padding: 50 });
+        } catch (error) {
+          console.warn('Error fitting bounds:', error);
+          // Fallback to default center
+          mapInstance.setCenter(defaultCenter);
+          mapInstance.setZoom(10);
+        }
+      } else {
+        // No valid locations, use default center
+        mapInstance.setCenter(defaultCenter);
+        mapInstance.setZoom(10);
+      }
+    }
+    
+    // Enable markers after a short delay to ensure API is fully ready
+    setTimeout(() => {
+      setMarkersReady(true);
+    }, 100);
+  };
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedDoctor(null);
+      setSearchQuery('');
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [isOpen]);
+
+  // Block body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
+
+  // Search places function
+  const searchPlace = async (query) => {
+    if (!map || !window.google || !query.trim()) return;
+
+    setIsSearching(true);
+    
+    const service = new window.google.maps.places.PlacesService(map);
+    const request = {
+      query: query,
+      fields: ['place_id', 'name', 'geometry', 'formatted_address'],
+    };
+
+    service.textSearch(request, (results, status) => {
+      setIsSearching(false);
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+        setSearchResults(results.slice(0, 5));
+      } else {
+        setSearchResults([]);
+      }
+    });
+  };
+
+  // Go to selected place
+  const goToPlace = (place) => {
+    if (map && place.geometry) {
+      map.setCenter(place.geometry.location);
+      map.setZoom(15);
+      setSearchResults([]);
+      setSearchQuery('');
+    }
+  };
+
+  // Handle search input
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    if (value.length > 2) {
+      searchPlace(value);
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  // Reset states when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedDoctor(null);
+      setSearchResults([]);
+      setSearchQuery('');
+      setMarkersReady(false); // Reset markers ready state
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4" style={{ zIndex: 1000 }}>
+      <div className="bg-white shadow-2xl w-full max-w-[95vw] h-[95vh] rounded-xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="pt-4 md:pt-6 px-4 md:px-6 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900">
+                Doctores en el Mapa
+              </h2>
+              <span className="px-2 py-1 md:px-3 bg-blue-100 text-blue-800 rounded-full text-xs md:text-sm font-medium">
+                {doctorsWithLocation.length} doctores
+              </span>
+            </div>
+            
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            {/* Legend */}
+            <div className="flex items-center gap-2 md:gap-4 text-xs order-2 md:order-1">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 border border-white shadow-sm"></div>
+                <span className="text-gray-700 font-medium hidden sm:inline">Premium</span>
+                <span className="text-gray-700 font-medium sm:hidden">★</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-white shadow-sm"></div>
+                <span className="text-gray-700 font-medium hidden sm:inline">Plus</span>
+                <span className="text-gray-700 font-medium sm:hidden">+</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 border border-white shadow-sm"></div>
+                <span className="text-gray-700 font-medium hidden sm:inline">Básico</span>
+                <span className="text-gray-700 font-medium sm:hidden">○</span>
+              </div>
+              {userLocation && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-red-500 border border-white shadow-sm"></div>
+                  <span className="text-gray-700 font-medium hidden sm:inline">Tu ubicación</span>
+                  <span className="text-gray-700 font-medium sm:hidden">📍</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Search bar */}
+            <div className="relative flex-1 max-w-md order-1 md:order-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar ubicación..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  {isSearching ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  ) : (
+                    <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
+                  {searchResults.map((place, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToPlace(place)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900 text-sm">{place.name}</div>
+                      <div className="text-xs text-gray-600">{place.formatted_address}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Map Container */}
+        <div className="flex-1 relative">
+          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && isGoogleMapsLoaded ? (
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-full bg-gray-100">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando mapa...</p>
+                </div>
+              </div>
+            }>
+              <GoogleMapComponent
+                ref={mapRef}
+                mapContainerStyle={mapContainerStyle}
+                center={userLocation ? {
+                  lat: userLocation.latitude || userLocation.lat,
+                  lng: userLocation.longitude || userLocation.lng
+                } : defaultCenter}
+                zoom={12}
+                options={mapOptions}
+                onLoad={handleMapLoad}
+              >
+                {/* User location marker */}
+                {markersReady && userLocation && (
+                  <Suspense fallback={null}>
+                    <MarkerComponent
+                      position={{
+                        lat: userLocation.latitude || userLocation.lat,
+                        lng: userLocation.longitude || userLocation.lng
+                      }}
+                      icon={getUserLocationIcon()}
+                      title="Tu ubicación"
+                    />
+                  </Suspense>
+                )}
+
+                {/* Doctor markers */}
+                {markersReady && doctorsWithLocation.map((doctor) => {
+                  console.log('Rendering marker for doctor:', doctor.id, doctor.nombre, { lat: doctor.latitude, lng: doctor.longitude });
+                  console.log('Marker icon:', getMarkerIcon(doctor));
+                  console.log('Google Maps API available:', !!window.google?.maps);
+                  console.log('MarkerComponent available:', !!MarkerComponent);
+                  
+                  return (
+                    <Suspense key={doctor.id} fallback={null}>
+                      <MarkerComponent
+                        position={{ lat: doctor.latitude, lng: doctor.longitude }}
+                        icon={getMarkerIcon(doctor)}
+                        title={cleanDoctorName(doctor.nombre, doctor.genero)}
+                        onClick={() => setSelectedDoctor(doctor)}
+                      />
+                    </Suspense>
+                  );
+                })}
+
+                {/* Info window for selected doctor */}
+                {selectedDoctor && (
+                  <InfoWindowComponent
+                    position={{ lat: selectedDoctor.latitude, lng: selectedDoctor.longitude }}
+                    onCloseClick={() => setSelectedDoctor(null)}
+                  >
+                    <div className="p-4 max-w-sm bg-white rounded-lg shadow-lg">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {getDoctorRank(selectedDoctor) === 'VIP' && (
+                            <span className="px-2 py-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white text-xs font-bold rounded-full shadow-sm">
+                              ⭐ PREMIUM
+                            </span>
+                          )}
+                          {getDoctorRank(selectedDoctor) === 'Intermedio' && (
+                            <span className="px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-sm">
+                              💎 PLUS
+                            </span>
+                          )}
+                          {getDoctorRank(selectedDoctor) === 'Normal' && (
+                            <span className="px-2 py-1 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-xs font-bold rounded-full shadow-sm">
+                              ✓ BÁSICO
+                            </span>
+                          )}
+                        </div>
+                        {selectedDoctor.verified && (
+                          <span className="text-blue-500 text-sm">✓</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          <img
+                            src={selectedDoctor.photoURL || selectedDoctor.imagen || "/img/doctor-1.jpg"}
+                            alt={selectedDoctor.nombre}
+                            className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
+                            onError={(e) => {
+                              e.target.src = "/img/doctor-1.jpg";
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-gray-900 mb-1 text-sm leading-tight">
+                            {cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}
+                          </h3>
+                          
+                          <div className="space-y-1 mb-3">
+                            <p className="text-sm text-orange-600 font-medium">
+                              {selectedDoctor.especialidad}
+                            </p>
+                            
+                            {selectedDoctor.experiencia && (
+                              <p className="text-xs text-gray-600 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {selectedDoctor.experiencia} años
+                              </p>
+                            )}
+
+                            {selectedDoctor.rating && (
+                              <div className="flex items-center gap-1">
+                                <div className="flex">
+                                  {[...Array(5)].map((_, i) => (
+                                    <svg 
+                                      key={i} 
+                                      className={`w-3 h-3 ${i < Math.floor(selectedDoctor.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
+                                      fill="currentColor" 
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.784-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-600">({selectedDoctor.rating})</span>
+                              </div>
+                            )}
+
+                            {selectedDoctor.precio && (
+                              <p className="text-xs text-green-600 font-semibold">
+                                💰 Consulta desde ${selectedDoctor.precio}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex gap-2 flex-wrap">
+                            <a
+                              href={`/doctores/${selectedDoctor.slug}`}
+                              className="text-xs bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1.5 rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm font-medium"
+                            >
+                              Ver perfil
+                            </a>
+                            {selectedDoctor.telefono && (
+                              <a
+                                href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}, quisiera agendar una consulta`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-full hover:bg-green-600 transition-colors duration-200 shadow-sm font-medium"
+                              >
+                                WhatsApp
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </InfoWindowComponent>
+                )}
+              </GoogleMapComponent>
+            </Suspense>
+          ) : (
+            <div className="flex items-center justify-center h-full bg-gray-100">
+              <div className="text-center">
+                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3" />
+                </svg>
+                <p className="text-gray-600">Google Maps no está disponible</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

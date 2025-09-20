@@ -43,6 +43,9 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
         }
 
         const google = await loader.load();
+        
+        // Import the marker library for AdvancedMarkerElement
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
         const mapInstance = new google.maps.Map(mapRef.current, {
           center: {
@@ -54,6 +57,7 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           streetViewControl: true,
           fullscreenControl: false,
           zoomControl: true,
+          mapId: "DEMO_MAP_ID", // Required for AdvancedMarkerElement
           styles: [
             {
               featureType: "poi",
@@ -63,27 +67,25 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           ],
         });
 
-        // Create custom marker with doctor info
-        const marker = new google.maps.Marker({
+        // Create custom marker element
+        const markerElement = document.createElement('div');
+        markerElement.innerHTML = `
+          <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="18" fill="#3b82f6" stroke="white" stroke-width="3"/>
+            <text x="20" y="26" text-anchor="middle" fill="white" font-size="16" font-weight="bold">+</text>
+          </svg>
+        `;
+        markerElement.style.cursor = 'pointer';
+
+        // Create advanced marker with doctor info
+        const marker = new AdvancedMarkerElement({
           position: {
             lat: doctor.latitude,
             lng: doctor.longitude,
           },
           map: mapInstance,
           title: `Consultorio del ${formatDoctorName(doctor.nombre, doctor.genero)}`,
-          icon: {
-            url:
-              "data:image/svg+xml;charset=UTF-8," +
-              encodeURIComponent(`
-              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#3B82F6" stroke="white" stroke-width="3"/>
-                <path d="M20 10L20 30 M10 20L30 20" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="20" cy="20" r="4" fill="white"/>
-              </svg>
-            `),
-            scaledSize: new google.maps.Size(40, 40),
-            anchor: new google.maps.Point(20, 20),
-          },
+          content: markerElement,
         });
 
         // Info window with doctor information
@@ -116,7 +118,10 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
 
         // Show info window on marker click
         marker.addListener("click", () => {
-          infoWindow.open(mapInstance, marker);
+          infoWindow.open({
+            anchor: marker,
+            map: mapInstance,
+          });
         });
 
         setIsLoading(false);

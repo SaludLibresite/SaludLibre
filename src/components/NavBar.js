@@ -99,6 +99,7 @@ export default function NavBar() {
                 width={200}
                 height={200}
                 className="object-contain cursor-pointer transform hover:rotate-3 transition-transform duration-300"
+                style={{ height: "auto" }}
               />
             </Link>
           )}

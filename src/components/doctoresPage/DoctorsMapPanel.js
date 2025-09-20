@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
+import { loadGoogleMaps, isGoogleMapsReady } from '../../lib/googleMapsLoader';
 
 // Utility function to safely create bounds for Google Maps
 const createSafeBounds = (coordinates) => {
@@ -41,9 +42,9 @@ const createSafeBounds = (coordinates) => {
 const GoogleMapComponent = React.lazy(() =>
   import('@react-google-maps/api').then(module => ({
     default: ({ children, ...props }) => {
-      const { GoogleMap, LoadScript, Marker, InfoWindow } = module;
+      const { GoogleMap, LoadScript } = module;
       
-      // Si Google Maps ya está cargado, no usar LoadScript
+      // Si Google Maps ya está cargado globalmente, usar solo GoogleMap
       if (window.google && window.google.maps) {
         return (
           <GoogleMap {...props}>
@@ -106,13 +107,46 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [hasInitializedBounds, setHasInitializedBounds] = useState(false);
+  const [initialCenter, setInitialCenter] = useState(null);
+  const [initialZoom, setInitialZoom] = useState(12);
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+  const [markersReady, setMarkersReady] = useState(false);
   const mapRef = useRef(null);
   
-  // Reset state when modal is closed
+  // Handle map load
+  const handleMapLoad = (mapInstance) => {
+    setMap(mapInstance);
+    
+    // Enable markers after a short delay to ensure API is fully ready
+    setTimeout(() => {
+      setMarkersReady(true);
+    }, 100);
+  };
+  
+  // Load Google Maps API
+  useEffect(() => {
+    if (isOpen && !isGoogleMapsLoaded) {
+      loadGoogleMaps()
+        .then(() => {
+          setIsGoogleMapsLoaded(true);
+        })
+        .catch((error) => {
+          console.error('Failed to load Google Maps:', error);
+        });
+    }
+  }, [isOpen, isGoogleMapsLoaded]);
+  
+  // Reset only UI state when modal is closed, preserve map configuration
   useEffect(() => {
     if (!isOpen) {
+      setSelectedDoctor(null);
+      setSearchResults([]);
+      setSearchQuery('');
+      setMarkersReady(false); // Reset markers ready state
+      // Don't reset hasInitializedBounds, initialCenter, or initialZoom
+      // This preserves the map state for consistent reopening
+      // Only reset map to null to allow fresh initialization
       setMap(null);
-      setHasInitializedBounds(false);
     }
   }, [isOpen]);
 
@@ -140,9 +174,27 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
   }, [isOpen]);
 
   // Filter doctors that have location data and clean any extra properties
-  const doctorsWithLocation = doctors.filter(doctor => 
-    doctor.latitude && doctor.longitude && !isNaN(doctor.latitude) && !isNaN(doctor.longitude)
-  ).map(doctor => {
+  const doctorsWithLocation = doctors.filter(doctor => {
+    const hasLat = doctor.latitude !== null && doctor.latitude !== undefined && doctor.latitude !== '';
+    const hasLng = doctor.longitude !== null && doctor.longitude !== undefined && doctor.longitude !== '';
+    const validLat = hasLat && !isNaN(parseFloat(doctor.latitude));
+    const validLng = hasLng && !isNaN(parseFloat(doctor.longitude));
+    
+    console.log('Panel Doctor location check:', {
+      id: doctor.id,
+      name: doctor.nombre,
+      hasLat,
+      hasLng,
+      validLat,
+      validLng,
+      rawLat: doctor.latitude,
+      rawLng: doctor.longitude,
+      parsedLat: parseFloat(doctor.latitude),
+      parsedLng: parseFloat(doctor.longitude)
+    });
+    
+    return validLat && validLng;
+  }).map(doctor => {
     // Create a clean doctor object with only necessary properties
     return {
       ...doctor,
@@ -151,30 +203,32 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
     };
   });
 
-  // Debug logs
-  console.log('DoctorsMapPanel - Total doctors:', doctors.length);
-  console.log('DoctorsMapPanel - Doctors with location:', doctorsWithLocation.length);
-  console.log('DoctorsMapPanel - Sample doctor:', doctors[0]);
-  console.log('DoctorsMapPanel - Panel open:', isOpen);
+  // Debug logging
+  useEffect(() => {
+    console.log('DoctorsMapPanel Debug:', {
+      isOpen,
+      isGoogleMapsLoaded,
+      markersReady,
+      totalDoctors: doctors.length,
+      doctorsWithLocation: doctorsWithLocation.length,
+      doctorsWithLocationData: doctorsWithLocation.slice(0, 3), // Show first 3 for debugging
+      userLocation
+    });
+  }, [isOpen, isGoogleMapsLoaded, markersReady, doctors.length, doctorsWithLocation.length, userLocation]);
 
-    useEffect(() => {
+  // Initialize bounds and center only once when map loads for the first time
+  useEffect(() => {
     if (isOpen && window.google && window.google.maps && doctorsWithLocation.length > 0 && map && !hasInitializedBounds) {
       try {
-        console.log('Starting bounds calculation...');
-        
         // Create bounds with explicit Google Maps constructor
         const bounds = new window.google.maps.LatLngBounds();
         let validCoordinatesCount = 0;
         
         // Add doctor locations with validation
         doctorsWithLocation.forEach((doctor, index) => {
-          console.log(`Doctor ${index}:`, doctor);
-          
           // Ensure we only use numeric values
           const lat = Number(doctor.latitude);
           const lng = Number(doctor.longitude);
-          
-          console.log(`Doctor ${index} coordinates:`, { lat, lng });
           
           // Validate coordinates are valid numbers and within valid ranges
           if (Number.isFinite(lat) && Number.isFinite(lng) && 
@@ -184,8 +238,6 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
             try {
               // Create LatLng object explicitly
               const latLng = new window.google.maps.LatLng(lat, lng);
-              console.log(`Adding doctor ${index} LatLng:`, latLng);
-              
               bounds.extend(latLng);
               validCoordinatesCount++;
             } catch (latLngError) {
@@ -203,8 +255,6 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
           const lat = Number(userLocation.latitude || userLocation.lat);
           const lng = Number(userLocation.longitude || userLocation.lng);
           
-          console.log('User coordinates:', { lat, lng });
-          
           // Validate user location coordinates
           if (Number.isFinite(lat) && Number.isFinite(lng) && 
               lat >= -90 && lat <= 90 && 
@@ -213,8 +263,6 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
             try {
               // Create LatLng object explicitly
               const latLng = new window.google.maps.LatLng(lat, lng);
-              console.log('Adding user LatLng:', latLng);
-              
               bounds.extend(latLng);
               validCoordinatesCount++;
             } catch (latLngError) {
@@ -225,19 +273,8 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
           }
         }
         
-        console.log('Total valid coordinates:', validCoordinatesCount);
-        console.log('Bounds object before fitBounds:', bounds);
-        console.log('Bounds object properties:', Object.getOwnPropertyNames(bounds));
-        console.log('Bounds object keys:', Object.keys(bounds));
-        
-        // Check if bounds has any unexpected properties
-        for (const prop in bounds) {
-          console.log(`Bounds property: ${prop} = `, bounds[prop]);
-        }
-        
         // Only fit bounds if we have valid coordinates
         if (!bounds.isEmpty() && validCoordinatesCount > 0) {
-          console.log('Calling fitBounds...');
           
           // Create a literal bounds object instead of using LatLngBounds
           let north = -90;
@@ -283,8 +320,6 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
             west
           };
           
-          console.log('Literal bounds object:', literalBounds);
-          
           // Validate the bounds
           const isValidBounds = 
             north > south && 
@@ -296,36 +331,73 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
           
           if (!isValidBounds) {
             console.warn('Invalid literal bounds, using fallback');
-            map.setCenter(defaultCenter);
+            const fallbackCenter = userLocation ? {
+              lat: userLocation.latitude || userLocation.lat,
+              lng: userLocation.longitude || userLocation.lng
+            } : defaultCenter;
+            
+            map.setCenter(fallbackCenter);
             map.setZoom(12);
+            setInitialCenter(fallbackCenter);
+            setInitialZoom(12);
             return;
           }
           
           try {
             // Use the literal bounds object directly with fitBounds
             map.fitBounds(literalBounds);
+            
+            // Store the initial center and zoom after fitBounds
+            setTimeout(() => {
+              const center = map.getCenter();
+              const zoom = map.getZoom();
+              setInitialCenter({
+                lat: center.lat(),
+                lng: center.lng()
+              });
+              setInitialZoom(zoom);
+            }, 100);
+            
             setHasInitializedBounds(true);
-            console.log('Map bounds set successfully with literal bounds');
           } catch (error) {
             console.error('Error setting map bounds:', error);
-            map.setCenter(defaultCenter);
+            const fallbackCenter = userLocation ? {
+              lat: userLocation.latitude || userLocation.lat,
+              lng: userLocation.longitude || userLocation.lng
+            } : defaultCenter;
+            
+            map.setCenter(fallbackCenter);
             map.setZoom(12);
+            setInitialCenter(fallbackCenter);
+            setInitialZoom(12);
           }
-          
-          console.log('fitBounds completed successfully');
         } else {
           console.warn('No valid coordinates to fit bounds');
           // Fallback to default center if no valid coordinates
-          map.setCenter(defaultCenter);
+          const fallbackCenter = userLocation ? {
+            lat: userLocation.latitude || userLocation.lat,
+            lng: userLocation.longitude || userLocation.lng
+          } : defaultCenter;
+          
+          map.setCenter(fallbackCenter);
           map.setZoom(12);
+          setInitialCenter(fallbackCenter);
+          setInitialZoom(12);
         }
         
         setHasInitializedBounds(true); // Prevent infinite retries
       } catch (error) {
         console.error('Error calculating bounds:', error);
         if (map) {
-          map.setCenter(defaultCenter);
+          const fallbackCenter = userLocation ? {
+            lat: userLocation.latitude || userLocation.lat,
+            lng: userLocation.longitude || userLocation.lng
+          } : defaultCenter;
+          
+          map.setCenter(fallbackCenter);
           map.setZoom(12);
+          setInitialCenter(fallbackCenter);
+          setInitialZoom(12);
         }
         
         setHasInitializedBounds(true); // Prevent infinite retries
@@ -333,12 +405,20 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
     }
   }, [isOpen, map, doctorsWithLocation, userLocation, hasInitializedBounds]);
 
+  // Restore map position when reopening if we have stored values
+  useEffect(() => {
+    if (isOpen && map && hasInitializedBounds && initialCenter) {
+      map.setCenter(initialCenter);
+      map.setZoom(initialZoom);
+    }
+  }, [isOpen, map, hasInitializedBounds, initialCenter, initialZoom]);
+
   // Reset bounds flag when modal closes
   useEffect(() => {
     if (!isOpen) {
+      // Reset initialization flag to allow fresh bounds calculation
       setHasInitializedBounds(false);
-      // Reset map state when modal closes
-      setMap(null);
+      // Clear selected doctor and search state
       setSelectedDoctor(null);
       setSearchResults([]);
       setSearchQuery('');
@@ -576,16 +656,8 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
 
         {/* Mapa */}
         <div className="relative">
-          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-full bg-gray-100">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Cargando mapa...</p>
-                </div>
-              </div>
-            }>
-              <GoogleMapComponent
+          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && isGoogleMapsLoaded ? (
+            <GoogleMapComponent
                 ref={mapRef}
                 mapContainerStyle={mapContainerStyle}
                 center={userLocation ? {
@@ -594,33 +666,40 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                 } : defaultCenter}
                 zoom={12}
                 options={mapOptions}
-                onLoad={setMap}
+                onLoad={handleMapLoad}
               >
                 {/* User location marker */}
-                {userLocation && window.google && window.google.maps && (
-                  <MarkerComponent
-                    position={{
-                      lat: userLocation.latitude || userLocation.lat,
-                      lng: userLocation.longitude || userLocation.lng
-                    }}
-                    icon={getUserLocationIcon()}
-                    title="Tu ubicación"
-                  />
+                {markersReady && userLocation && map && (
+                  <Suspense fallback={null}>
+                    <MarkerComponent
+                      position={{
+                        lat: userLocation.latitude || userLocation.lat,
+                        lng: userLocation.longitude || userLocation.lng
+                      }}
+                      icon={getUserLocationIcon()}
+                      title="Tu ubicación"
+                    />
+                  </Suspense>
                 )}
 
                 {/* Doctor markers */}
-                {window.google && window.google.maps && doctorsWithLocation.map((doctor) => {
-                  const markerIcon = getMarkerIcon(doctor);
-                  return (
-                    <MarkerComponent
-                      key={doctor.id}
-                      position={{ lat: doctor.latitude, lng: doctor.longitude }}
-                      icon={markerIcon}
-                      title={cleanDoctorName(doctor.nombre, doctor.genero)}
-                      onClick={() => setSelectedDoctor(doctor)}
-                    />
-                  );
-                })}
+                {markersReady && map && doctorsWithLocation.length > 0 && (
+                  <Suspense fallback={null}>
+                    {doctorsWithLocation.map((doctor) => {
+                      console.log('Rendering marker for doctor in panel:', doctor.id, doctor.nombre, { lat: doctor.latitude, lng: doctor.longitude });
+                      const markerIcon = getMarkerIcon(doctor);
+                      return (
+                        <MarkerComponent
+                          key={doctor.id}
+                          position={{ lat: doctor.latitude, lng: doctor.longitude }}
+                          icon={markerIcon}
+                          title={cleanDoctorName(doctor.nombre, doctor.genero)}
+                          onClick={() => setSelectedDoctor(doctor)}
+                        />
+                      );
+                    })}
+                  </Suspense>
+                )}
 
                 {/* Info window for selected doctor */}
                 {selectedDoctor && (
@@ -756,7 +835,6 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
                   </InfoWindowComponent>
                 )}
               </GoogleMapComponent>
-            </Suspense>
           ) : (
             <div className="flex items-center justify-center h-full bg-gray-100">
               <div className="text-center p-8">

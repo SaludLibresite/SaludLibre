@@ -5,7 +5,7 @@ import LoaderComponent from "../../components/doctoresPage/LoaderComponent";
 import RankSection from "../../components/doctoresPage/RankSection";
 import PaginationControls from "../../components/doctoresPage/PaginationControls";
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
-import DoctorsMapPanel from "../../components/doctoresPage/DoctorsMapPanel";
+import DoctorsMapModal from "../../components/doctoresPage/DoctorsMapModal";
 import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
@@ -53,6 +53,16 @@ export default function DoctoresPage() {
         const verifiedDoctors = doctors.filter(
           (doctor) => doctor.verified === true
         );
+        
+        // Debug logging for location data
+        console.log('Doctors loaded:', {
+          total: doctors.length,
+          verified: verifiedDoctors.length,
+          withLocation: verifiedDoctors.filter(d => d.latitude && d.longitude).length,
+          sampleDoctorWithLocation: verifiedDoctors.find(d => d.latitude && d.longitude),
+          sampleDoctorWithoutLocation: verifiedDoctors.find(d => !d.latitude || !d.longitude)
+        });
+        
         setDoctoresData(verifiedDoctors);
       } catch (error) {
         console.error("Error loading doctors:", error);
@@ -464,8 +474,8 @@ export default function DoctoresPage() {
         </div>
       </main>
 
-      {/* Map Panel */}
-      <DoctorsMapPanel
+      {/* Map Modal */}
+      <DoctorsMapModal
         isOpen={isMapOpen}
         onClose={handleCloseMap}
         doctors={sortedFilteredDoctors}
