@@ -375,7 +375,7 @@ function SidebarContent({
       >
         <div className="flex items-center">
           {!isCollapsed && (
-            <img src="/logo.png" alt="MédicsAR" className="h-8 w-auto" />
+            <img src="/logo.png" alt="Salud Libre" className="h-8 w-auto" />
           )}
           {isCollapsed && (
             <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">

@@ -1,4 +1,4 @@
-# 👪 Sistema de Gestión de Familiares - MédicsAR
+# 👪 Sistema de Gestión de Familiares - Salud Libre
 
 ## 🎯 Resumen
 
@@ -357,10 +357,10 @@ match /appointments/{document} {
 
 ## 🎉 Conclusión
 
-El Sistema de Gestión de Familiares de MédicsAR representa una evolución significativa en la plataforma, ofreciendo una solución integral para el manejo de información médica familiar. Con una arquitectura sólida, interfaz intuitiva y consideraciones de seguridad robustas, este sistema posiciona a MédicsAR como una plataforma líder en gestión médica familiar.
+El Sistema de Gestión de Familiares de Salud Libre representa una evolución significativa en la plataforma, ofreciendo una solución integral para el manejo de información médica familiar. Con una arquitectura sólida, interfaz intuitiva y consideraciones de seguridad robustas, este sistema posiciona a Salud Libre como una plataforma líder en gestión médica familiar.
 
 La implementación utiliza las mejores prácticas de desarrollo, con Zustand para gestión de estado, componentes reutilizables y una experiencia de usuario excepcional. El sistema está preparado para escalar y evolucionar según las necesidades de los usuarios.
 
 ---
 
-**Desarrollado con ❤️ para MédicsAR**
+**Desarrollado con ❤️ para Salud Libre**

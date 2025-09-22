@@ -188,7 +188,7 @@ async function sendWelcomeEmail({
         <div class="content">
           <h2>Hola ${patientName},</h2>
           
-          <p>Su doctor <strong>${doctorName}</strong> ha creado una cuenta para usted en nuestro sistema MédicsAR. Ahora podrá acceder a sus citas, historial médico, recetas y mucho más desde nuestro portal de pacientes.</p>
+          <p>Su doctor <strong>${doctorName}</strong> ha creado una cuenta para usted en nuestro sistema Salud Libre. Ahora podrá acceder a sus citas, historial médico, recetas y mucho más desde nuestro portal de pacientes.</p>
           
           <div class="credentials">
             <h3>📧 Sus credenciales de acceso:</h3>
@@ -221,7 +221,7 @@ async function sendWelcomeEmail({
         </div>
         
         <div class="footer">
-          <p>Este correo fue enviado desde <strong>MédicsAR</strong></p>
+          <p>Este correo fue enviado desde <strong>Salud Libre</strong></p>
           <p>Si recibió este correo por error, puede ignorarlo de manera segura.</p>
           <p style="margin-top: 10px; font-size: 12px;">
             <a href="${
@@ -236,7 +236,7 @@ async function sendWelcomeEmail({
     await resend.emails.send({
       from:
         process.env.RESEND_FROM_EMAIL ||
-        "MédicsAR <noreply@email.jhernandez.mx>",
+        "Salud Libre <noreply@email.jhernandez.mx>",
       to: [patientEmail],
       subject: `¡Bienvenido a Salud Libre! - Cuenta creada por ${doctorName}`,
       html: emailHtml,

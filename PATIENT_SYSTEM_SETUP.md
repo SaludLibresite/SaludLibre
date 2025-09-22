@@ -44,7 +44,7 @@ FIREBASE_CLIENT_ID=your_client_id
 
 # Resend Email Configuration (NEW - Required for emails)
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-RESEND_FROM_EMAIL="MédicsAR <noreply@email.jhernandez.mx>"
+RESEND_FROM_EMAIL="Salud Libre <noreply@email.jhernandez.mx>"
 
 # Application Configuration (NEW - Optional)
 NEXT_PUBLIC_APP_URL=https://medicos-ar.vercel.app
@@ -108,7 +108,7 @@ El sistema envía emails con:
 
 - ✅ Responsive design
 - ✅ Compatibilidad con clientes de email
-- ✅ Branding consistente con MédicsAR
+- ✅ Branding consistente con Salud Libre
 - ✅ Información de seguridad clara
 - ✅ Enlaces de acción prominentes
 

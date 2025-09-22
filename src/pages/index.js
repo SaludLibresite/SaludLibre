@@ -5,6 +5,7 @@ import GallerySection from "../components/GallerySection";
 import FAQSection from "../components/FAQSection";
 import Footer from "../components/Footer";
 import NavBar from "../components/NavBar";
+import ChatBubble from "../components/ChatBubble";
 import React, { useEffect, useState } from "react";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 
@@ -92,12 +93,7 @@ const services = [
     icon: "💻",
     color: "bg-[#e8ad0f]",
   },
-  {
-    title: "Emergencias 24/7",
-    description: "Servicio de emergencias disponible las 24 horas",
-    icon: "🚑",
-    color: "bg-[#011d2f]",
-  },
+ 
   {
     title: "Laboratorio",
     description: "Análisis clínicos con resultados rápidos y precisos",
@@ -214,7 +210,7 @@ export default function Home() {
               </motion.p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {services.map((service, index) => (
                 <motion.div
                   key={service.title}
@@ -459,6 +455,9 @@ export default function Home() {
         </motion.div>
 
         <Footer />
+
+        {/* Chat Bubble - Asistente Virtual */}
+        <ChatBubble />
       </motion.div>
     </div>
   );

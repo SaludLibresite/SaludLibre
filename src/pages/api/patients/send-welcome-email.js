@@ -71,7 +71,7 @@ async function sendPatientWelcomeEmail({
         <div class="content">
           <h2>Hola ${patientName},</h2>
 
-          <p>¡Felicitaciones! Su registro en <strong>MédicsAR</strong> ha sido completado exitosamente. Ahora forma parte de nuestra plataforma médica integral.</p>
+          <p>¡Felicitaciones! Su registro en <strong>Salud Libre</strong> ha sido completado exitosamente. Ahora forma parte de nuestra plataforma médica integral.</p>
 
           <div class="features">
             <h3>🩺 ¿Qué puede hacer con su cuenta?</h3>
@@ -104,7 +104,7 @@ async function sendPatientWelcomeEmail({
         </div>
 
         <div class="footer">
-          <p>Este correo fue enviado desde <strong>MédicsAR</strong></p>
+          <p>Este correo fue enviado desde <strong>Salud Libre</strong></p>
           <p>Si recibió este correo por error, puede ignorarlo de manera segura.</p>
           <p style="margin-top: 10px; font-size: 12px;">
             <a href="${
@@ -119,7 +119,7 @@ async function sendPatientWelcomeEmail({
     await resend.emails.send({
       from:
         process.env.RESEND_FROM_EMAIL ||
-        "MédicsAR <noreply@email.jhernandez.mx>",
+        "Salud Libre <noreply@email.jhernandez.mx>",
       to: [patientEmail],
       subject: `¡Bienvenido a Salud Libre! - Registro completado`,
       html: emailHtml,

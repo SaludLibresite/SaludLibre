@@ -7,6 +7,7 @@ import PaginationControls from "../../components/doctoresPage/PaginationControls
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import DoctorsMapModal from "../../components/doctoresPage/DoctorsMapModal";
 import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
+import ChatBubble from "../../components/ChatBubble";
 import { LoadScript } from '@react-google-maps/api';
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
@@ -501,6 +502,9 @@ export default function DoctoresPage() {
       />
 
       <Footer />
+
+      {/* Chat Bubble - Asistente Virtual */}
+      <ChatBubble />
     </div>
     </LoadScript>
   );
