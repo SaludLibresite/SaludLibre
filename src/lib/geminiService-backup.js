@@ -285,18 +285,106 @@ Responde de forma natural y útil. Si necesitas usar alguna función, indícalo 
   }
 
   /**
-   * Extrae la llamada a función del texto de respuesta
+   * Extrae llamadas a funciones del texto de respuesta de Gemini
+   * @param {string} responseText - Texto de respuesta de Gemini
+   * @param {Array} availableFunctions - Funciones disponibles
+   * @returns {Object|null} Función a llamar o null
    */
-  extractFunctionCall(text, availableFunctions) {
-    // Buscar patrones de llamada a función en el texto
-    for (const func of availableFunctions) {
-      if (text.toLowerCase().includes(func.name.toLowerCase())) {
+  extractFunctionCall(responseText, availableFunctions) {
+    // Buscar patrones que indiquen necesidad de funciones específicas
+    const text = responseText.toLowerCase();
+
+    // Preguntar sobre especialidades disponibles
+    if (text.includes('especialidades') && 
+        (text.includes('disponibles') || text.includes('tienen') || text.includes('qué'))) {
+      return {
+        name: 'getAvailableSpecialties',
+        parameters: {}
+      };
+    }
+
+    // Buscar doctores por especialidad
+    if (text.includes('especialidad') || text.includes('especialista') || 
+        text.includes('cardiólogo') || text.includes('dermatólogo') || 
+        text.includes('pediatra') || text.includes('ginecólogo') ||
+        text.includes('traumatólogo') || text.includes('neurólogo') ||
+        text.includes('psiquiatra') || text.includes('psicólogo') || 
+        text.includes('oftalmólogo') || text.includes('urólogo') ||
+        text.includes('endocrinólogo') || text.includes('gastroenterólogo')) {
+      
+      // Extraer la especialidad mencionada
+      let specialty = '';
+      
+      // Especialidades comunes con diferentes variaciones
+      const specialtyVariations = {
+        'Cardiología': ['cardiólogo', 'cardiología', 'corazón', 'cardiovascular'],
+        'Dermatología': ['dermatólogo', 'dermatología', 'piel', 'dermatológico'],
+        'Pediatría': ['pediatra', 'pediatría', 'niños', 'infantil'],
+        'Ginecología': ['ginecólogo', 'ginecología', 'mujer', 'ginecológico'],
+        'Traumatología': ['traumatólogo', 'traumatología', 'huesos', 'fracturas'],
+        'Neurología': ['neurólogo', 'neurología', 'cerebro', 'neurológico'],
+        'Psiquiatría': ['psiquiatra', 'psiquiatría', 'mental', 'psiquiátrico'],
+        'Psicología': ['psicólogo', 'psicóloga', 'psicología', 'terapia'],
+        'Oftalmología': ['oftalmólogo', 'oftalmología', 'ojos', 'vista'],
+        'Urología': ['urólogo', 'urología', 'riñones', 'vías urinarias'],
+        'Endocrinología': ['endocrinólogo', 'endocrinología', 'hormonas', 'diabetes'],
+        'Gastroenterología': ['gastroenterólogo', 'gastroenterología', 'estómago', 'digestivo'],
+        'Neumología': ['neumólogo', 'neumología', 'pulmones', 'respiratorio'],
+        'Otorrinolaringología': ['otorrinolaringólogo', 'otorrino', 'oído', 'nariz', 'garganta']
+      };
+
+      for (const [mainSpecialty, variations] of Object.entries(specialtyVariations)) {
+        for (const variation of variations) {
+          if (text.includes(variation)) {
+            specialty = mainSpecialty;
+            break;
+          }
+        }
+        if (specialty) break;
+      }
+
+      // Si no encontramos una especialidad específica, intentar extraer del texto
+      if (!specialty) {
+        const specialtyMatch = responseText.match(/(?:especialidad|especialista en)[\s:]*([\w\s]+)/i);
+        if (specialtyMatch) {
+          specialty = specialtyMatch[1].trim();
+        }
+      }
+
+      if (specialty) {
         return {
-          name: func.name,
-          parameters: {}
+          name: 'searchDoctorsBySpecialty',
+          parameters: {
+            specialty: specialty
+          }
         };
       }
     }
+
+    // Buscar información específica de doctor
+    if (text.includes('información') && (text.includes('doctor') || text.includes('médico'))) {
+      const doctorMatch = responseText.match(/(?:doctor|médico|dr\.?)[\s:]*([\w\s]+)/i);
+      if (doctorMatch) {
+        return {
+          name: 'getDoctorInfo',
+          parameters: {
+            doctorName: doctorMatch[1].trim()
+          }
+        };
+      }
+    }
+
+    // Buscar mejores doctores
+    if (text.includes('mejor') && (text.includes('calificado') || text.includes('rating') || 
+        text.includes('puntuación') || text.includes('recomendado'))) {
+      return {
+        name: 'getTopRatedDoctors',
+        parameters: {
+          limitResults: 5
+        }
+      };
+    }
+
     return null;
   }
 
@@ -343,7 +431,7 @@ Responde de forma natural y útil. Si necesitas usar alguna función, indícalo 
         return this.formatNoResultsResponse(originalQuery, functionName);
       }
 
-      // Construir contexto de conversación
+      // Construir contexto de conversación para respuestas más contextuales
       let conversationContext = '';
       if (chatHistory && chatHistory.length > 0) {
         const recentMessages = chatHistory.slice(-3); // Solo los últimos 3 mensajes
@@ -370,22 +458,26 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
 
     } catch (error) {
       console.error('Error generando respuesta con resultado de función:', error);
-      return 'Tuve problemas para procesar tu consulta. Por favor intenta de nuevo.';
+      return 'He encontrado información, pero tuve problemas para formatear la respuesta. ¿Podrías reformular tu pregunta?';
     }
   }
 
   /**
-   * Formatea respuesta de lista de doctores con enlaces clickeables
+   * Formatea respuesta de búsqueda de doctores con enlaces
    */
   formatDoctorsResponse(doctors, query, functionName) {
-    let contextText = '';
+    const queryLower = query.toLowerCase();
     
-    if (functionName === 'searchDoctorsBySpecialty') {
-      contextText = 'especialistas para ti';
-    } else if (functionName === 'searchDoctorsByLocation') {
-      contextText = 'doctores en esa zona';
+    // Determinar el contexto de búsqueda
+    let contextText = '';
+    if (functionName === 'searchDoctorsByLocation') {
+      contextText = 'en la zona solicitada';
     } else if (functionName === 'searchDoctorsBySpecialtyAndLocation') {
-      contextText = 'especialistas en esa zona';
+      contextText = 'que coinciden con tu búsqueda';
+    } else {
+      const specialtyMatch = queryLower.match(/(dermatólogo|cardiólogo|pediatra|ginecólogo|traumatólogo|neurólogo|psiquiatra|psicólogo|oftalmólogo)/i);
+      const specialty = specialtyMatch ? specialtyMatch[1] : 'especialistas';
+      contextText = specialty + (doctors.length > 1 ? 's' : '');
     }
     
     // Si hay solo un doctor, mostrar formato especial con botones de contacto
@@ -459,77 +551,13 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
     
     response += '\n**¿Cómo te gustaría contactarlo?**\n\n';
     
-    // Botones de contacto - SIEMPRE mostrar
+    // Botones de contacto - siempre mostrar
     if (doctor.phone) {
       const phoneClean = doctor.phone.replace(/[^0-9]/g, '');
-      response += `📞 [Llamar ahora](tel:+54${phoneClean})\n`;
-      response += `💬 [WhatsApp](https://wa.me?phone=54${phoneClean}&text=Hola%2C%20me%20interesa%20agendar%20una%20consulta)\n`;
-    } else {
-      // Mostrar botones genéricos si no hay teléfono específico
-      response += `📞 [Llamar ahora](tel:+541143218765)\n`;
-      response += `💬 [WhatsApp](https://wa.me?phone=541143218765&text=Hola%2C%20me%20interesa%20información%20médica)\n`;
-    }
-    
-    // Enlace al perfil completo
-    if (doctor.slug) {
-      response += `👨‍⚕️ [Ver perfil completo y agendar online](/doctores/${doctor.slug})\n`;
-    }
-    
-    response += '\n¿Necesitas ayuda con algo más? 😊';
-    
-    return response;
-  }
-
-  /**
-   * Formatea respuesta de información de doctor específico - CON DEBUG
-   */
-  formatDoctorInfoResponse(doctor) {
-    // DEBUG: Verificar qué datos estamos recibiendo
-    console.log('🔍 DEBUG formatDoctorInfoResponse - Doctor data:', {
-      name: doctor.name,
-      phone: doctor.phone,
-      hasPhone: !!doctor.phone,
-      slug: doctor.slug,
-      allData: doctor
-    });
-    
-    let response = `¡Aquí tienes la información de **${doctor.name}**! 👨‍⚕️\n\n`;
-    
-    response += `🏥 **Especialidad:** ${doctor.specialty}\n`;
-    
-    if (doctor.rating > 0) {
-      response += `⭐ **Calificación:** ${doctor.rating.toFixed(1)}`;
-      if (doctor.reviewCount > 0) {
-        response += ` (${doctor.reviewCount} reseñas)`;
-      }
-      response += '\n';
-    }
-    
-    if (doctor.consultationFee) {
-      response += `💰 **Consulta:** $${doctor.consultationFee}\n`;
-    }
-    
-    if (doctor.barrio && doctor.barrio !== 'Otros') {
-      response += `📍 **Zona:** ${doctor.barrio}\n`;
-    } else if (doctor.address) {
-      response += `📍 **Ubicación:** ${doctor.address}\n`;
-    }
-    
-    if (doctor.description) {
-      response += `📝 **Descripción:** ${doctor.description}\n`;
-    }
-    
-    response += '\n**¿Cómo te gustaría contactarlo?**\n\n';
-    
-    // Botones de contacto - SIEMPRE mostrar botones
-    if (doctor.phone) {
-      const phoneClean = doctor.phone.replace(/[^0-9]/g, '');
-      console.log('📞 DEBUG - Teléfono encontrado:', doctor.phone, '-> limpio:', phoneClean);
       response += `📞 [Llamar ahora](tel:+54${phoneClean})\n`;
       response += `💬 [WhatsApp](https://wa.me?phone=54${phoneClean}&text=Hola%2C%20me%20interesa%20agendar%20una%20consulta%20con%20${encodeURIComponent(doctor.name)})\n`;
     } else {
-      console.log('⚠️ DEBUG - No se encontró teléfono para el doctor:', doctor.name);
-      // Mostrar botones genéricos si no hay teléfono específico
+      // Si no hay teléfono, mostrar botones genéricos
       response += `📞 [Llamar ahora](tel:+541143218765)\n`;
       response += `💬 [WhatsApp](https://wa.me?phone=541143218765&text=Hola%2C%20me%20interesa%20información%20sobre%20el%20Dr.%20${encodeURIComponent(doctor.name)})\n`;
     }
@@ -539,7 +567,7 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
       response += `👨‍⚕️ [Ver perfil completo y agendar online](/doctores/${doctor.slug})\n`;
     }
     
-    response += '\n¿Te gustaría que te ayude con algo más? 😊';
+    response += '\n¿Necesitas ayuda con algo más? 😊';
     
     return response;
   }
@@ -558,35 +586,46 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
       return `No encontré doctores de esa especialidad en esa zona específica. 😔\n\nTe sugiero:\n• Buscar solo por especialidad: "Necesito un cardiólogo"\n• Buscar solo por zona: "Doctores en Palermo"\n• Ver especialidades disponibles: "¿Qué especialidades tienen?"`;
     }
     
-    return `No encontré resultados para tu búsqueda. 😔\n\n¿Podrías intentar con términos diferentes o más específicos?`;
+    return 'Lo siento, no encontré resultados para tu búsqueda. ¿Podrías intentar con términos diferentes?';
   }
 
   /**
    * Formatea respuesta de especialidades disponibles
    */
   formatSpecialtiesResponse(specialties) {
-    let response = `Tenemos ${specialties.length} especialidades médicas disponibles: 🩺\n\n`;
+    let response = `Tenemos ${specialties.length} especialidades médicas disponibles:\n\n`;
     
     specialties.forEach((specialty, index) => {
-      response += `${index + 1}. ${specialty}\n`;
+      response += `${index + 1}. **${specialty.title}**\n`;
+      if (specialty.description) {
+        response += `   ${specialty.description}\n`;
+      }
+      response += '\n';
     });
     
-    response += '\n¿Qué especialidad te interesa? Puedes preguntarme "Necesito un cardiólogo" o "Busco dermatólogos en Palermo" 😊';
+    response += '¿Qué especialidad te interesa? ¡Puedo ayudarte a encontrar doctores! 🔍';
     
     return response;
   }
 
   /**
-   * Formatea respuesta de barrios disponibles
+   * Formatea respuesta de barrios/zonas disponibles
    */
   formatNeighborhoodsResponse(neighborhoods) {
-    let response = `Tenemos doctores en ${neighborhoods.length} zonas: 📍\n\n`;
+    let response = `Tenemos doctores en ${neighborhoods.length} zonas diferentes:\n\n`;
     
-    neighborhoods.forEach((neighborhood, index) => {
-      response += `${index + 1}. ${neighborhood}\n`;
+    // Mostrar los primeros 10 barrios con más doctores
+    const topNeighborhoods = neighborhoods.slice(0, 10);
+    
+    topNeighborhoods.forEach((neighborhood, index) => {
+      response += `${index + 1}. **${neighborhood.name}** (${neighborhood.count} doctores)\n`;
     });
     
-    response += '\n¿En qué zona te gustaría buscar? Puedes preguntarme "Doctores en Palermo" o "Vivo en Caballito" 😊';
+    if (neighborhoods.length > 10) {
+      response += `\n... y ${neighborhoods.length - 10} zonas más.\n`;
+    }
+    
+    response += '\n¿En qué zona te gustaría buscar doctores? 📍';
     
     return response;
   }
@@ -595,20 +634,22 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
    * Formatea respuesta de top doctores
    */
   formatTopDoctorsResponse(doctors) {
-    let response = `¡Aquí tienes los doctores mejor calificados! ⭐\n\n`;
+    let response = `Aquí tienes los ${doctors.length} doctores mejor calificados: ⭐\n\n`;
     
     doctors.forEach((doctor, index) => {
-      const rating = doctor.rating > 0 ? `⭐ ${doctor.rating.toFixed(1)}` : 'Sin calificación';
-      const reviewText = doctor.reviewCount > 0 ? ` (${doctor.reviewCount} reseñas)` : '';
-      
       response += `${index + 1}. **${doctor.name}**\n`;
       response += `🏥 ${doctor.specialty}\n`;
-      response += `${rating}${reviewText}\n`;
+      response += `⭐ ${doctor.rating.toFixed(1)} (${doctor.reviewCount} reseñas)\n`;
+      
+      if (doctor.consultationFee) {
+        response += `💰 Consulta: $${doctor.consultationFee}\n`;
+      }
       
       if (doctor.barrio && doctor.barrio !== 'Otros') {
         response += `📍 ${doctor.barrio}\n`;
       }
       
+      // Agregar enlace clickeable
       if (doctor.slug) {
         response += `👉 [Ver perfil completo](/doctores/${doctor.slug})\n`;
       }
@@ -616,7 +657,56 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
       response += '\n';
     });
     
-    response += '¿Te interesa alguno en particular? ¡Puedo darte más información! 😊';
+    response += '¿Te gustaría saber más sobre alguno de estos doctores? 😊';
+    
+    return response;
+  }
+
+  /**
+   * Formatea respuesta de información de doctor específico
+   */
+  formatDoctorInfoResponse(doctor) {
+    let response = `¡Aquí tienes la información de **${doctor.name}**! 👨‍⚕️\n\n`;
+    
+    response += `🏥 **Especialidad:** ${doctor.specialty}\n`;
+    
+    if (doctor.rating > 0) {
+      response += `⭐ **Calificación:** ${doctor.rating.toFixed(1)}`;
+      if (doctor.reviewCount > 0) {
+        response += ` (${doctor.reviewCount} reseñas)`;
+      }
+      response += '\n';
+    }
+    
+    if (doctor.consultationFee) {
+      response += `� **Consulta:** $${doctor.consultationFee}\n`;
+    }
+    
+    if (doctor.barrio && doctor.barrio !== 'Otros') {
+      response += `📍 **Zona:** ${doctor.barrio}\n`;
+    } else if (doctor.address) {
+      response += `📍 **Ubicación:** ${doctor.address}\n`;
+    }
+    
+    if (doctor.description) {
+      response += `📝 **Descripción:** ${doctor.description}\n`;
+    }
+    
+    response += '\n**¿Cómo te gustaría contactarlo?**\n\n';
+    
+    // Botones de contacto
+    if (doctor.phone) {
+      const phoneClean = doctor.phone.replace(/[^0-9]/g, '');
+      response += `📞 [Llamar ahora](tel:${phoneClean})\n`;
+      response += `💬 [WhatsApp](https://wa.me/54${phoneClean}?text=Hola%2C%20me%20interesa%20agendar%20una%20consulta%20con%20${encodeURIComponent(doctor.name)})\n`;
+    }
+    
+    // Enlace al perfil completo
+    if (doctor.slug) {
+      response += `�‍⚕️ [Ver perfil completo y agendar online](/doctores/${doctor.slug})\n`;
+    }
+    
+    response += '\n¿Te gustaría que te ayude con algo más? 😊';
     
     return response;
   }

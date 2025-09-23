@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 import { formatDoctorName } from "../../lib/dataUtils";
-import { loadGoogleMaps } from "../../lib/googleMapsLoader";
+import { useGoogleMapsLoader } from "../../hooks/useGoogleMapsLoader";
 
 export default function DoctorLocationMap({ doctor, className = "" }) {
   const mapRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const { loadGoogleMaps, isLoaded, google } = useGoogleMapsLoader();
 
   useEffect(() => {
+    let isMounted = true;
+    
     const initializeMap = async () => {
       try {
         setIsLoading(true);
@@ -16,23 +21,55 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
 
         // Check if doctor has location data
         if (!doctor.latitude || !doctor.longitude) {
-          setError("Ubicación no disponible");
-          setIsLoading(false);
+          if (isMounted) {
+            setError("Ubicación no disponible");
+            setIsLoading(false);
+          }
           return;
         }
 
         if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-          setError("Google Maps no configurado");
-          setIsLoading(false);
+          if (isMounted) {
+            setError("Google Maps no configurado");
+            setIsLoading(false);
+          }
           return;
         }
 
-        const google = await loadGoogleMaps();
-        
-        // Import the marker library for AdvancedMarkerElement
-        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        // Si Google Maps ya está cargado, crear el mapa directamente
+        if (isLoaded && google && google.maps) {
+          console.log('Using already loaded Google Maps');
+          createMap(google);
+          return;
+        }
 
-        const mapInstance = new google.maps.Map(mapRef.current, {
+        // Si no está cargado, usar el contexto para cargarlo
+        console.log('Loading Google Maps via context');
+        const googleInstance = await loadGoogleMaps();
+        
+        if (isMounted && googleInstance && googleInstance.maps) {
+          createMap(googleInstance);
+        }
+
+      } catch (error) {
+        console.error("Error initializing map:", error);
+        if (isMounted) {
+          setError("Error al cargar el mapa");
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const createMap = (googleInstance) => {
+      if (!mapRef.current || mapInstanceRef.current || !isMounted) {
+        return;
+      }
+
+      try {
+        console.log('Creating Google Maps instance...');
+        
+        // Create the map
+        mapInstanceRef.current = new googleInstance.maps.Map(mapRef.current, {
           center: {
             lat: doctor.latitude,
             lng: doctor.longitude,
@@ -42,39 +79,20 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           streetViewControl: true,
           fullscreenControl: false,
           zoomControl: true,
-          mapId: "DEMO_MAP_ID", // Required for AdvancedMarkerElement
-          styles: [
-            {
-              featureType: "poi",
-              elementType: "labels",
-              stylers: [{ visibility: "on" }],
-            },
-          ],
         });
 
-        // Create custom marker element
-        const markerElement = document.createElement('div');
-        markerElement.innerHTML = `
-          <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="18" fill="#3b82f6" stroke="white" stroke-width="3"/>
-            <text x="20" y="26" text-anchor="middle" fill="white" font-size="16" font-weight="bold">+</text>
-          </svg>
-        `;
-        markerElement.style.cursor = 'pointer';
-
-        // Create advanced marker with doctor info
-        const marker = new AdvancedMarkerElement({
+        // Create marker
+        markerRef.current = new googleInstance.maps.Marker({
           position: {
             lat: doctor.latitude,
             lng: doctor.longitude,
           },
-          map: mapInstance,
+          map: mapInstanceRef.current,
           title: `Consultorio del ${formatDoctorName(doctor.nombre, doctor.genero)}`,
-          content: markerElement,
         });
 
-        // Info window with doctor information
-        const infoWindow = new google.maps.InfoWindow({
+        // Info window
+        const infoWindow = new googleInstance.maps.InfoWindow({
           content: `
             <div style="padding: 8px; max-width: 250px;">
               <h3 style="margin: 0 0 8px 0; color: #1F2937; font-size: 16px; font-weight: 600;">
@@ -101,29 +119,40 @@ export default function DoctorLocationMap({ doctor, className = "" }) {
           `,
         });
 
-        // Show info window on marker click
-        marker.addListener("click", () => {
-          infoWindow.open({
-            anchor: marker,
-            map: mapInstance,
-          });
+        // Add click listener
+        markerRef.current.addListener("click", () => {
+          infoWindow.open(mapInstanceRef.current, markerRef.current);
         });
 
-        setIsLoading(false);
+        console.log('Map and marker created successfully');
+        if (isMounted) {
+          setIsLoading(false);
+        }
+
       } catch (error) {
-        console.error("Error loading map:", error);
-        setError("Error al cargar el mapa");
-        setIsLoading(false);
+        console.error("Error creating map:", error);
+        if (isMounted) {
+          setError("Error al crear el mapa");
+          setIsLoading(false);
+        }
       }
     };
 
-    if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-      initializeMap();
-    } else {
-      setError("Google Maps no configurado");
-      setIsLoading(false);
-    }
-  }, [doctor]);
+    // Small delay to ensure DOM is ready
+    const initTimer = setTimeout(initializeMap, 100);
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      clearTimeout(initTimer);
+      
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      mapInstanceRef.current = null;
+    };
+  }, [doctor, isLoaded, google, loadGoogleMaps]);
 
   // Function to open in Google Maps
   const openInGoogleMaps = () => {

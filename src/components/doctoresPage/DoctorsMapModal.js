@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { useLoadScript, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
+
+// Google Maps libraries
+const libraries = ['places'];
 
 const mapContainerStyle = {
   width: '100%',
@@ -89,6 +92,12 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const mapRef = useRef(null);
+
+  // Load Google Maps
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    libraries,
+  });
 
   // Simple filter for doctors with valid coordinates
   const doctorsWithLocation = doctors.filter(doctor => {
@@ -202,6 +211,40 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
 
   if (!isOpen) return null;
 
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4" style={{ zIndex: 1000 }}>
+        <div className="bg-white shadow-2xl w-full max-w-[95vw] h-[95vh] rounded-xl overflow-hidden flex flex-col items-center justify-center">
+          <div className="text-center">
+            <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p className="text-gray-600">Error al cargar Google Maps</p>
+            <button 
+              onClick={onClose}
+              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4" style={{ zIndex: 1000 }}>
+        <div className="bg-white shadow-2xl w-full max-w-[95vw] h-[95vh] rounded-xl overflow-hidden flex flex-col items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando mapa...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4" style={{ zIndex: 1000 }}>
       <div className="bg-white shadow-2xl w-full max-w-[95vw] h-[95vh] rounded-xl overflow-hidden flex flex-col">
@@ -295,11 +338,10 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
 
         {/* Map Container */}
         <div className="flex-1 relative">
-          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-            <GoogleMap
-              ref={mapRef}
-              mapContainerStyle={mapContainerStyle}
-              center={userLocation ? {
+          <GoogleMap
+            ref={mapRef}
+            mapContainerStyle={mapContainerStyle}
+            center={userLocation ? {
                 lat: userLocation.latitude || userLocation.lat,
                 lng: userLocation.longitude || userLocation.lng
               } : defaultCenter}
@@ -446,16 +488,6 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                     </InfoWindow>
                   )}
                 </GoogleMap>
-              ) : (
-            <div className="flex items-center justify-center h-full bg-gray-100">
-              <div className="text-center">
-                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3" />
-                </svg>
-                <p className="text-gray-600">Google Maps no está disponible</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

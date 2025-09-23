@@ -5,7 +5,6 @@ import GallerySection from "../components/GallerySection";
 import FAQSection from "../components/FAQSection";
 import Footer from "../components/Footer";
 import NavBar from "../components/NavBar";
-import ChatBubble from "../components/ChatBubble";
 import React, { useEffect, useState } from "react";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 
@@ -456,8 +455,7 @@ export default function Home() {
 
         <Footer />
 
-        {/* Chat Bubble - Asistente Virtual */}
-        <ChatBubble />
+    
       </motion.div>
     </div>
   );

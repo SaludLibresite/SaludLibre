@@ -7,8 +7,6 @@ import PaginationControls from "../../components/doctoresPage/PaginationControls
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import DoctorsMapModal from "../../components/doctoresPage/DoctorsMapModal";
 import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
-import ChatBubble from "../../components/ChatBubble";
-import { LoadScript } from '@react-google-maps/api';
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
@@ -316,13 +314,8 @@ export default function DoctoresPage() {
   }
 
   return (
-    <LoadScript 
-      googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-      libraries={['places']}
-      loadingElement={<div>Cargando Google Maps...</div>}
-    >
-      <div>
-        <NavBar />
+    <div>
+      <NavBar />
 
         <main className="pb-24">
         {/* Compact Hero Section */}
@@ -504,8 +497,6 @@ export default function DoctoresPage() {
       <Footer />
 
       {/* Chat Bubble - Asistente Virtual */}
-      <ChatBubble />
     </div>
-    </LoadScript>
   );
 }

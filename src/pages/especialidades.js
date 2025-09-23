@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
-import ChatBubble from "../components/ChatBubble";
 import { getActiveSpecialties } from "../lib/specialtiesService";
 
 
@@ -760,8 +759,7 @@ export default function Especialidades() {
 
       <Footer />
 
-      {/* Chat Bubble - Asistente Virtual */}
-      <ChatBubble />
+      
     </div>
   );
 }
