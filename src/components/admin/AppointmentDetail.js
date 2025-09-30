@@ -21,6 +21,7 @@ import {
 } from "../../lib/appointmentsService";
 import { getPatientById, addMedicalNote } from "../../lib/patientsService";
 import AppointmentDocuments from "./AppointmentDocuments";
+import PatientDocumentsAdmin from "./PatientDocumentsAdmin";
 
 export default function AppointmentDetail({ appointmentId }) {
   const { currentUser } = useAuth();
@@ -85,6 +86,7 @@ export default function AppointmentDetail({ appointmentId }) {
       patientAppointments.length > 0 ? ` (${patientAppointments.length})` : ""
     }`,
     "Documentos",
+    "Documentos Paciente",
   ];
 
   const handleCompleteVisit = async () => {
@@ -645,6 +647,12 @@ export default function AppointmentDetail({ appointmentId }) {
         {activeTab === "Documentos" && (
           <AppointmentDocuments
             appointmentId={appointmentId}
+            patientId={appointment?.patientId}
+          />
+        )}
+
+        {activeTab === "Documentos Paciente" && (
+          <PatientDocumentsAdmin
             patientId={appointment?.patientId}
           />
         )}

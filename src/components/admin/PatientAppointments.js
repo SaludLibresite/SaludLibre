@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 import {
   CalendarIcon,
   ClockIcon,
@@ -19,6 +20,7 @@ export default function PatientAppointments({
   appointments,
   onRefresh,
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -168,7 +170,8 @@ export default function PatientAppointments({
             {upcomingAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                onClick={() => router.push(`/admin/appointment/${appointment.id}`)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -206,12 +209,23 @@ export default function PatientAppointments({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/admin/appointment/${appointment.id}`);
+                      }}
+                      className="text-gray-600 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition-colors duration-200"
+                      title="Ver detalles"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
                     {appointment.status === "pending" && (
                       <>
                         <button
-                          onClick={() =>
-                            handleStatusChange(appointment.id, "scheduled")
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(appointment.id, "scheduled");
+                          }}
                           disabled={loading}
                           className="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-50 transition-colors duration-200"
                           title="Confirmar cita"
@@ -219,9 +233,10 @@ export default function PatientAppointments({
                           <CheckCircleIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() =>
-                            handleStatusChange(appointment.id, "cancelled")
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(appointment.id, "cancelled");
+                          }}
                           disabled={loading}
                           className="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors duration-200"
                           title="Cancelar cita"
@@ -232,9 +247,10 @@ export default function PatientAppointments({
                     )}
                     {appointment.status === "scheduled" && (
                       <button
-                        onClick={() =>
-                          handleStatusChange(appointment.id, "completed")
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(appointment.id, "completed");
+                        }}
                         disabled={loading}
                         className="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-50 transition-colors duration-200"
                         title="Marcar como completada"
@@ -243,7 +259,10 @@ export default function PatientAppointments({
                       </button>
                     )}
                     <button
-                      onClick={() => handleDeleteAppointment(appointment.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAppointment(appointment.id);
+                      }}
                       disabled={loading}
                       className="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors duration-200"
                       title="Eliminar cita"
@@ -280,7 +299,8 @@ export default function PatientAppointments({
             {pastAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                className="bg-gray-50 border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow duration-200"
+                onClick={() => router.push(`/admin/appointment/${appointment.id}`)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -324,6 +344,10 @@ export default function PatientAppointments({
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/admin/appointment/${appointment.id}`);
+                      }}
                       className="text-gray-600 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition-colors duration-200"
                       title="Ver detalles"
                     >

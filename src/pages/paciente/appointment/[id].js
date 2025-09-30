@@ -6,6 +6,7 @@ import { getPatientById } from "../../../lib/patientsService";
 import PatientLayout from "../../../components/paciente/PatientLayout";
 import ProtectedPatientRoute from "../../../components/paciente/ProtectedPatientRoute";
 import AppointmentDocumentsPatient from "../../../components/paciente/AppointmentDocumentsPatient";
+import PatientDocuments from "../../../components/paciente/PatientDocuments";
 import { removeDoctorTitle, getDoctorTitle } from "../../../lib/dataUtils";
 import {
   CalendarIcon,
@@ -125,7 +126,7 @@ export default function PatientAppointmentDetail() {
     }
   };
 
-  const tabs = ["Información", "Documentos"];
+  const tabs = ["Información", "Documentos", "Mis documentos"];
 
   if (loading) {
     return (
@@ -350,6 +351,13 @@ export default function PatientAppointmentDetail() {
                     appointment.status === "completed" ||
                     appointment.status === "cancelled"
                   }
+                />
+              )}
+
+              {activeTab === "Mis documentos" && (
+                <PatientDocuments
+                  patientId={patient?.id}
+                  readOnly={false}
                 />
               )}
             </div>

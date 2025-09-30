@@ -29,7 +29,8 @@ import {
 import { getPatientById } from "@/lib/patientsService";
 import { getAppointmentsByPatientId } from "@/lib/appointmentsService";
 import { getDoctorByUserId } from "@/lib/doctorsService";
-import { getPrescriptionsByPatientId } from "@/lib/prescriptionsService";
+// Removed global prescriptions import; prescriptions are per appointment
+// import { getPrescriptionsByPatientId } from "@/lib/prescriptionsService";
 import {
   getMedicalFilesByPatientId,
   uploadMedicalFile,
@@ -56,7 +57,7 @@ export default function PatientDetailPage() {
 
   // Medical history states
   const [medicalRecords, setMedicalRecords] = useState([]);
-  const [prescriptions, setPrescriptions] = useState([]);
+  // const [prescriptions, setPrescriptions] = useState([]);
   const [medicalFiles, setMedicalFiles] = useState([]);
   const [completedAppointments, setCompletedAppointments] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -115,9 +116,7 @@ export default function PatientDetailPage() {
       );
       setCompletedAppointments(completed);
 
-      // Load prescriptions
-      const prescriptionsList = await getPrescriptionsByPatientId(patientId);
-      setPrescriptions(prescriptionsList);
+      // Removed: prescriptions are handled per appointment detail
 
       // Load medical files
       const filesList = await getMedicalFilesByPatientId(patientId);
@@ -142,27 +141,7 @@ export default function PatientDetailPage() {
         });
       });
 
-      // Add prescriptions as records
-      prescriptionsList.forEach((prescription) => {
-        records.push({
-          id: `prescription-${prescription.id}`,
-          type: "prescription",
-          date: prescription.createdAt?.toDate
-            ? prescription.createdAt.toDate()
-            : new Date(prescription.createdAt),
-          title: "Receta Médica",
-          description: `${
-            prescription.medications?.length || 0
-          } medicamento(s) recetado(s)`,
-          medications: prescription.medications,
-          notes: prescription.notes,
-          doctorName: prescription.doctorInfo?.nombre,
-          prescriptionId: prescription.id,
-          createdAt: prescription.createdAt?.toDate
-            ? prescription.createdAt.toDate()
-            : new Date(prescription.createdAt),
-        });
-      });
+      // Removed: recetas globales; se visualizan dentro del detalle de cada cita
 
       // Add medical files as records
       filesList.forEach((file) => {
@@ -423,13 +402,7 @@ export default function PatientDetailPage() {
                 <CalendarIcon className="h-4 w-4" />
                 <span>Nueva Cita</span>
               </button>
-              <button
-                onClick={() => setShowPrescriptionModal(true)}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>Receta</span>
-              </button>
+              {/* Botón de Receta removido: las recetas se generan desde el detalle de la cita */}
               <button
                 onClick={() => setShowEditPatientModal(true)}
                 className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -707,19 +680,7 @@ export default function PatientDetailPage() {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
-                      <div className="flex items-center">
-                        <div className="p-3 bg-green-100 rounded-lg">
-                          <ClipboardDocumentListIcon className="h-6 w-6 text-green-600" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-2xl font-bold text-gray-900">
-                            {prescriptions.length}
-                          </p>
-                          <p className="text-sm text-gray-600">Recetas</p>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Tarjeta de conteo de recetas removida */}
 
                     <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
                       <div className="flex items-center">
@@ -874,19 +835,7 @@ export default function PatientDetailPage() {
                               </div>
 
                               <div className="ml-4 flex space-x-2">
-                                {record.type === "prescription" && (
-                                  <button
-                                    onClick={() =>
-                                      downloadPrescription(
-                                        record.prescriptionId
-                                      )
-                                    }
-                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-amber-600 bg-amber-100 hover:bg-amber-200"
-                                    title="Descargar PDF"
-                                  >
-                                    <ArrowDownTrayIcon className="h-4 w-4" />
-                                  </button>
-                                )}
+                                {/* Acciones de receta removidas del timeline */}
 
                                 {record.type === "file" && (
                                   <>
@@ -1049,17 +998,7 @@ export default function PatientDetailPage() {
             }}
           />
 
-          <PrescriptionModal
-            isOpen={showPrescriptionModal}
-            onClose={() => setShowPrescriptionModal(false)}
-            patientId={patient?.id}
-            onSuccess={() => {
-              setShowPrescriptionModal(false);
-              loadMedicalData(id); // Refresh medical data to show new prescription
-              setMessage("Receta generada exitosamente");
-              setTimeout(() => setMessage(""), 3000);
-            }}
-          />
+          {/** Modal de receta eliminado en esta vista */}
         </div>
       </AdminLayout>
       </FeatureProtectedRoute>

@@ -127,7 +127,7 @@ export default function GallerySection({ items }) {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            Nuestras Especialidades
+             Especialidades
           </motion.h2>
           <motion.p
             className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto"
