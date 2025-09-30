@@ -10,7 +10,6 @@ export default function NavBar() {
     { href: "/", label: "Inicio" },
     { href: "/doctores", label: "Doctores" },
     { href: "/especialidades", label: "Especialidades" },
-    { href: "/beneficios", label: "Beneficios" },
     { href: "/preguntas-frecuentes", label: "Preguntas Frecuentes" },
   ];
   const button = { text: "Iniciar Sesión", href: "/paciente/login" };

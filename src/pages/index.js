@@ -94,9 +94,9 @@ const services = [
   },
  
   {
-    title: "Laboratorio",
-    description: "Análisis clínicos con resultados rápidos y precisos",
-    icon: "🧪",
+    title: "Recetas digitales",
+    description: "Emisión de recetas electrónicas válidas, seguras y fáciles de compartir",
+    icon: "💊",
     color: "bg-[#4dbad9]",
   },
 ];
