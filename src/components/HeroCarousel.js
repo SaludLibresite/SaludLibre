@@ -207,8 +207,7 @@ export default function HeroCarousel({ images }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => window.location.href = "/beneficios"}
-          >
-            Beneficios Disponibles
+          >Planes para medicos
           </motion.button>
         </motion.div>
       </motion.div>
