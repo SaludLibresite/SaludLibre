@@ -8,7 +8,7 @@ const ChatBubble = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      content: '¡Hola! Soy tu asistente virtual de MédicsAR. ¿En qué puedo ayudarte hoy? 🩺\n\nPuedo ayudarte a:\n• Encontrar doctores por especialidad médica\n• Buscar profesionales por barrio o zona\n• Mostrar especialidades disponibles\n• Recomendar doctores mejor calificados\n• Responder preguntas sobre nuestros servicios\n\n¿Qué necesitas?',
+      content: '¡Hola! Soy tu asistente virtual de Salud Libre. ¿En qué puedo ayudarte hoy? 🩺\n\nPuedo ayudarte a:\n• Encontrar doctores por especialidad médica\n• Buscar profesionales por barrio o zona\n• Mostrar especialidades disponibles\n• Recomendar doctores mejor calificados\n• Responder preguntas sobre nuestros servicios\n\n¿Qué necesitas?',
       isBot: true,
       timestamp: new Date()
     }
