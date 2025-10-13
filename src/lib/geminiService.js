@@ -42,16 +42,31 @@ export class GeminiService {
 
       // Si no hay función directa, usar Gemini para procesar
       const systemPrompt = `
-Eres un asistente virtual médico especializado en ayudar a encontrar doctores y información médica.
+Eres un asistente virtual médico amigable de Salud Libre en Argentina. Tu trabajo es ayudar a encontrar doctores.
 
 Consulta del usuario: "${userQuery}"
 ${conversationContext}
 
-Funciones disponibles: ${JSON.stringify(availableFunctions, null, 2)}
+REGLAS CRÍTICAS:
+1. NUNCA menciones "funciones", "búsquedas", "procesos técnicos" o "sistemas internos" al usuario
+2. Cuando el usuario mencione UNA ubicación específica, NO preguntes por la ubicación de nuevo
+3. Si el usuario da una ubicación, intenta buscar doctores ahí INMEDIATAMENTE
+4. Si no hay resultados en esa zona, di claramente "No tengo doctores disponibles en [zona]" y sugiere ver zonas disponibles
+5. Sé DIRECTO - no des vueltas preguntando lo mismo repetidamente
+6. Si falta información crítica (especialidad O ubicación), pregunta UNA sola vez de forma natural
+7. Responde en español de Argentina, de forma cálida pero eficiente
 
-Analiza la consulta y determina si necesitas usar alguna función específica para responder.
+Ejemplos CORRECTOS:
+- Usuario: "Busco dermatólogo en Palermo" → Buscar inmediatamente, no preguntar de nuevo por ubicación
+- Usuario: "Puebla" (tras pedir ubicación) → Buscar ahí, si no hay resultados decir claramente
+- Usuario: "Busco médico clínico" → "¿En qué zona lo necesitas?"
 
-Responde de forma natural y útil. Si necesitas usar alguna función, indícalo claramente.`;
+Ejemplos INCORRECTOS (NO hacer):
+- ❌ "¿Hay alguna zona en particular que te venga mejor?"
+- ❌ "necesitaré usar la función..."
+- ❌ Preguntar por ubicación cuando ya la dieron
+
+Responde ahora de forma natural y DIRECTA:`;
 
       const result = await this.model.generateContent(systemPrompt);
       const response = await result.response;
@@ -80,6 +95,56 @@ Responde de forma natural y útil. Si necesitas usar alguna función, indícalo 
    */
   detectDirectFunction(query, chatHistory = []) {
     const queryLower = query.toLowerCase();
+    
+    // NUEVO: Detectar si el usuario está respondiendo con una ubicación en contexto
+    // Buscar en el historial si el bot preguntó por ubicación recientemente
+    if (chatHistory.length > 0) {
+      const lastBotMessage = chatHistory[chatHistory.length - 1];
+      if (lastBotMessage && lastBotMessage.isBot) {
+        const botMessageLower = lastBotMessage.content.toLowerCase();
+        
+        // Si el bot preguntó por zona/ubicación y el usuario responde
+        if ((botMessageLower.includes('zona') || 
+             botMessageLower.includes('ubicación') || 
+             botMessageLower.includes('dónde') ||
+             botMessageLower.includes('en qué parte')) &&
+            !queryLower.includes('doctor') && 
+            !queryLower.includes('médico') &&
+            query.length < 50) { // Probablemente es solo una ubicación
+          
+          // Buscar si hay una especialidad mencionada en mensajes anteriores
+          let specialty = null;
+          for (let i = chatHistory.length - 1; i >= 0; i--) {
+            const msg = chatHistory[i];
+            if (!msg.isBot) {
+              const msgLower = msg.content.toLowerCase();
+              const specialtyKeywords = [
+                'dermatólogo', 'cardiólogo', 'pediatra', 'ginecólogo', 'traumatólogo',
+                'neurólogo', 'psiquiatra', 'psicólogo', 'oftalmólogo', 'otorrinolaringólogo',
+                'urólogo', 'gastroenterólogo', 'endocrinólogo', 'nutricionista',
+                'médico clínico', 'médico general', 'clínico'
+              ];
+              specialty = specialtyKeywords.find(kw => msgLower.includes(kw));
+              if (specialty) break;
+            }
+          }
+          
+          // Si encontramos especialidad en el historial, hacer búsqueda combinada
+          if (specialty) {
+            return {
+              name: 'searchDoctorsBySpecialtyAndLocation',
+              parameters: { specialty, location: query.trim() }
+            };
+          } else {
+            // Si no hay especialidad, buscar solo por ubicación
+            return {
+              name: 'searchDoctorsByLocation',
+              parameters: { location: query.trim() }
+            };
+          }
+        }
+      }
+    }
     
     // Detectar referencia numérica a doctores de listas anteriores (ej: "2", "el 3", "número 1")
     const numberMatch = query.match(/^(?:el\s+)?(\d+)$|^número\s+(\d+)$|me\s+interesa\s+el\s+(\d+)|quiero\s+(?:información\s+)?del?\s+(\d+)|(?:más\s+)?(?:info|información)\s+del?\s+(\d+)/i);
@@ -551,14 +616,14 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
     const queryLower = query.toLowerCase();
     
     if (functionName === 'searchDoctorsByLocation') {
-      return `Lo siento, no encontré doctores en esa zona específica. 😔\n\n¿Te gustaría que busque en zonas cercanas o que te muestre los barrios donde tenemos doctores disponibles?\n\nPrueba preguntando: "¿Qué barrios tienen doctores?"`;
+      return `Lo siento, no tengo doctores disponibles en esa zona. 😔\n\nPero tengo doctores en estas zonas de Argentina:\n• Palermo\n• Recoleta\n• Belgrano\n• Núñez\n• Centro\n• Caballito\n• Y más...\n\n¿Querés ver todas las zonas disponibles? Preguntame: "¿En qué zonas tienen doctores?"`;
     } else if (functionName === 'searchDoctorsBySpecialty') {
-      return `No encontré doctores de esa especialidad en este momento. 😔\n\n¿Te gustaría ver todas las especialidades disponibles o buscar algo similar?\n\nPuedes preguntar: "¿Qué especialidades están disponibles?"`;
+      return `No encontré doctores de esa especialidad. 😔\n\n¿Te gustaría ver todas las especialidades disponibles?\n\nPreguntame: "¿Qué especialidades tienen?"`;
     } else if (functionName === 'searchDoctorsBySpecialtyAndLocation') {
-      return `No encontré doctores de esa especialidad en esa zona específica. 😔\n\nTe sugiero:\n• Buscar solo por especialidad: "Necesito un cardiólogo"\n• Buscar solo por zona: "Doctores en Palermo"\n• Ver especialidades disponibles: "¿Qué especialidades tienen?"`;
+      return `No tengo doctores de esa especialidad en esa zona. 😔\n\nTe sugiero:\n• Ver todas las zonas disponibles: "¿En qué zonas tienen doctores?"\n• Buscar solo la especialidad sin zona: "Busco [especialidad]"\n• Ver todas las especialidades: "¿Qué especialidades tienen?"`;
     }
     
-    return `No encontré resultados para tu búsqueda. 😔\n\n¿Podrías intentar con términos diferentes o más específicos?`;
+    return `No encontré resultados para tu búsqueda. 😔\n\n¿Podrías intentar con otros términos?`;
   }
 
   /**
@@ -568,7 +633,20 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
     let response = `Tenemos ${specialties.length} especialidades médicas disponibles: 🩺\n\n`;
     
     specialties.forEach((specialty, index) => {
-      response += `${index + 1}. ${specialty}\n`;
+      // Si es un objeto con title, formatear apropiadamente
+      if (typeof specialty === 'object' && specialty.title) {
+        response += `${index + 1}. **${specialty.title}**`;
+        if (specialty.description) {
+          response += ` - ${specialty.description}`;
+        }
+        response += '\n';
+      } else if (typeof specialty === 'object' && specialty.name) {
+        // Fallback por si viene con name
+        response += `${index + 1}. ${specialty.name}\n`;
+      } else {
+        // Fallback para strings simples
+        response += `${index + 1}. ${specialty}\n`;
+      }
     });
     
     response += '\n¿Qué especialidad te interesa? Puedes preguntarme "Necesito un cardiólogo" o "Busco dermatólogos en Palermo" 😊';
@@ -583,7 +661,13 @@ Genera una respuesta natural y útil en español para el usuario basada en estos
     let response = `Tenemos doctores en ${neighborhoods.length} zonas: 📍\n\n`;
     
     neighborhoods.forEach((neighborhood, index) => {
-      response += `${index + 1}. ${neighborhood}\n`;
+      // Si es un objeto con name y count, formatear apropiadamente
+      if (typeof neighborhood === 'object' && neighborhood.name) {
+        response += `${index + 1}. **${neighborhood.name}** (${neighborhood.count} doctores)\n`;
+      } else {
+        // Fallback para strings simples
+        response += `${index + 1}. ${neighborhood}\n`;
+      }
     });
     
     response += '\n¿En qué zona te gustaría buscar? Puedes preguntarme "Doctores en Palermo" o "Vivo en Caballito" 😊';
