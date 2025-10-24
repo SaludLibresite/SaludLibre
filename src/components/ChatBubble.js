@@ -177,13 +177,13 @@ const ChatBubble = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          className="fixed bottom-20 sm:bottom-24 right-4 sm:right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
           aria-label="Abrir chat de asistencia"
         >
-          <ChatBubbleLeftEllipsisIcon className="h-6 w-6" />
+          <ChatBubbleLeftEllipsisIcon className="h-5 w-5 sm:h-6 sm:w-6" />
           
           {/* Notification dot */}
-          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center animate-pulse">
             1
           </div>
         </button>
@@ -191,10 +191,11 @@ const ChatBubble = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-6 pointer-events-none">
+          <div className="w-full max-w-sm sm:max-w-md lg:w-96 h-[500px] max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden pointer-events-auto">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 sm:px-6 py-4 flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                 <ChatBubbleLeftEllipsisIcon className="h-5 w-5" />
@@ -214,14 +215,14 @@ const ChatBubble = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-gray-50">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl text-sm ${
+                  className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 rounded-2xl text-sm ${
                     message.isBot
                       ? message.isError
                         ? 'bg-red-100 text-red-800 border border-red-200'
@@ -229,7 +230,7 @@ const ChatBubble = () => {
                       : 'bg-blue-600 text-white'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">
+                  <div className="whitespace-pre-wrap break-words">
                     {renderMessageContent(message.content)}
                   </div>
                   <p className={`text-xs mt-1 ${
@@ -244,7 +245,7 @@ const ChatBubble = () => {
             {/* Typing indicator */}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-white text-gray-800 px-4 py-2 rounded-2xl shadow-sm border border-gray-200 max-w-xs">
+                <div className="bg-white text-gray-800 px-3 sm:px-4 py-2 rounded-2xl shadow-sm border border-gray-200 max-w-xs">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -258,7 +259,7 @@ const ChatBubble = () => {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-200 bg-white">
+          <div className="p-3 sm:p-4 border-t border-gray-200 bg-white">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -267,12 +268,12 @@ const ChatBubble = () => {
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
                 disabled={isLoading}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
                 aria-label="Enviar mensaje"
               >
                 <PaperAirplaneIcon className="h-5 w-5" />
@@ -285,37 +286,37 @@ const ChatBubble = () => {
                 <>
                   <button
                     onClick={() => setInputValue('¿Qué especialidades médicas tienen disponibles?')}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Ver especialidades
                   </button>
                   <button
                     onClick={() => setInputValue('Necesito un cardiólogo')}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Buscar cardiólogo
                   </button>
                   <button
                     onClick={() => setInputValue('Doctores en Palermo')}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Doctores en Palermo
                   </button>
                   <button
                     onClick={() => setInputValue('Vivo en Caballito')}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Vivo en Caballito
                   </button>
                   <button
                     onClick={() => setInputValue('Doctor García')}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Buscar doctor
                   </button>
                   <button
                     onClick={() => setInputValue('¿Qué barrios tienen doctores?')}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Ver zonas
                   </button>
@@ -323,6 +324,7 @@ const ChatBubble = () => {
               )}
             </div>
           </div>
+        </div>
         </div>
       )}
     </>

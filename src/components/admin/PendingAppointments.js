@@ -260,81 +260,79 @@ function AppointmentCard({
 
   return (
     <>
-      <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             {/* Patient Info */}
             <div className="flex items-center mb-3">
-              <div className="h-12 w-12 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center mr-4">
-                <UserIcon className="h-6 w-6 text-white" />
+              <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">
+              <div className="min-w-0">
+                <h4 className="font-semibold text-gray-900 truncate text-sm sm:text-base">
                   {appointment.patientData?.name || "Paciente"}
                 </h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">
                   {appointment.patientData?.email || "Email no disponible"}
                 </p>
               </div>
-              <div className="ml-auto flex space-x-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getUrgencyColor(appointment.urgency)}`}>
+              <div className="ml-auto flex-shrink-0 flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0 items-end">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getUrgencyColor(appointment.urgency)} max-w-[100px] sm:max-w-[140px] text-center break-words`}>
                   {getUrgencyText(appointment.urgency)}
                 </span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 max-w-[120px] sm:max-w-[160px] text-center break-words">
                   {getAppointmentTypeText(appointment.type)}
                 </span>
               </div>
-            </div>
-
-            {/* Appointment Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            </div>            {/* Appointment Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-3">
               <div className="flex items-center text-sm text-gray-600">
-                <CalendarIcon className="h-4 w-4 mr-2 text-amber-600" />
-                <span>
+                <CalendarIcon className="h-4 w-4 mr-2 text-amber-600 flex-shrink-0" />
+                <span className="min-w-0">
                   {new Date(appointment.date.toDate ? appointment.date.toDate() : appointment.date)
                     .toLocaleDateString("es-ES", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
+                      weekday: "short",
+                      year: "numeric", 
+                      month: "short",
                       day: "numeric",
                     })}
                 </span>
               </div>
               <div className="flex items-center text-sm text-gray-600">
-                <ClockIcon className="h-4 w-4 mr-2 text-amber-600" />
+                <ClockIcon className="h-4 w-4 mr-2 text-amber-600 flex-shrink-0" />
                 <span>{appointment.time}</span>
               </div>
             </div>
 
             {/* Reason */}
-            <div className="mb-4">
-              <h5 className="font-medium text-gray-900 mb-1">Motivo de la consulta:</h5>
-              <p className="text-gray-600 text-sm">{appointment.reason}</p>
+            <div className="mb-3">
+              <h5 className="font-medium text-gray-900 mb-1 text-sm">Motivo:</h5>
+              <p className="text-gray-600 text-sm leading-relaxed">{appointment.reason}</p>
             </div>
 
             {/* Additional Notes */}
             {appointment.notes && (
-              <div className="mb-4">
-                <h5 className="font-medium text-gray-900 mb-1">Notas adicionales:</h5>
-                <p className="text-gray-600 text-sm">{appointment.notes}</p>
+              <div className="mb-3">
+                <h5 className="font-medium text-gray-900 mb-1 text-sm">Notas:</h5>
+                <p className="text-gray-600 text-sm leading-relaxed">{appointment.notes}</p>
               </div>
             )}
 
             {/* Request Date */}
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 border-t border-gray-100 pt-2">
               Solicitada el {new Date(appointment.requestedAt.toDate ? appointment.requestedAt.toDate() : appointment.requestedAt)
-                .toLocaleDateString("es-ES")} a las {new Date(appointment.requestedAt.toDate ? appointment.requestedAt.toDate() : appointment.requestedAt)
+                .toLocaleDateString("es-ES", { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(appointment.requestedAt.toDate ? appointment.requestedAt.toDate() : appointment.requestedAt)
                 .toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end space-x-3 mt-4 pt-4 border-t border-gray-200">
+            {/* Actions */}
+        <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0 mt-4 pt-4 border-t border-gray-200">
           <button
             onClick={() => setShowRejectModal(true)}
             disabled={isProcessing}
-            className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
           >
             <XMarkIcon className="h-4 w-4 inline mr-1" />
             Rechazar
@@ -342,7 +340,7 @@ function AppointmentCard({
           <button
             onClick={() => onApprove(appointment.id)}
             disabled={isProcessing}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center"
+            className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center"
           >
             {isProcessing ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>

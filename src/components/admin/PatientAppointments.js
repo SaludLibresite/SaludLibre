@@ -170,45 +170,45 @@ export default function PatientAppointments({
             {upcomingAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow duration-200 cursor-pointer"
                 onClick={() => router.push(`/admin/appointment/${appointment.id}`)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <CalendarIcon className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="font-medium text-gray-900 text-sm sm:text-base truncate">
                           {formatDate(appointment.date)}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <ClockIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-600">
+                        <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-gray-600 text-sm">
                           {formatTime(appointment.time)}
                         </span>
                       </div>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
                           appointment.status
-                        )}`}
+                        )} flex-shrink-0`}
                       >
                         {getStatusText(appointment.status)}
                       </span>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 space-y-1">
                       <p className="text-sm text-gray-600">
                         <strong>Motivo:</strong>{" "}
                         {appointment.reason || "Consulta general"}
                       </p>
                       {appointment.notes && (
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600">
                           <strong>Notas:</strong> {appointment.notes}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex-shrink-0 flex items-center space-x-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -299,50 +299,50 @@ export default function PatientAppointments({
             {pastAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow duration-200"
+                className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow duration-200"
                 onClick={() => router.push(`/admin/appointment/${appointment.id}`)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <CalendarIcon className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="font-medium text-gray-900 text-sm sm:text-base truncate">
                           {formatDate(appointment.date)}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <ClockIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-600">
+                        <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-gray-600 text-sm">
                           {formatTime(appointment.time)}
                         </span>
                       </div>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
                           appointment.status
-                        )}`}
+                        )} flex-shrink-0`}
                       >
                         {getStatusText(appointment.status)}
                       </span>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 space-y-1">
                       <p className="text-sm text-gray-600">
                         <strong>Motivo:</strong>{" "}
                         {appointment.reason || "Consulta general"}
                       </p>
                       {appointment.notes && (
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600">
                           <strong>Notas:</strong> {appointment.notes}
                         </p>
                       )}
                       {appointment.diagnosis && (
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600">
                           <strong>Diagnóstico:</strong> {appointment.diagnosis}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex-shrink-0 flex items-center space-x-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

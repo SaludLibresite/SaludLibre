@@ -338,18 +338,18 @@ export default function PatientDetailPage() {
       <ProtectedRoute>
         <FeatureProtectedRoute feature="patients">
           <AdminLayout>
-            <div className="p-6">
-              <div className="flex items-center mb-6">
+            <div className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
                 <button
                   onClick={() => router.push("/admin/patients")}
-                  className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                  className="flex items-center text-gray-600 hover:text-gray-900 mr-0 sm:mr-4 w-fit"
                 >
-                  <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                  Volver a Pacientes
+                  <ArrowLeftIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <span className="text-sm sm:text-base">Volver a Pacientes</span>
                 </button>
               </div>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-700">{message}</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                <p className="text-red-700 text-sm sm:text-base break-words">{message}</p>
               </div>
             </div>
           </AdminLayout>
@@ -362,20 +362,20 @@ export default function PatientDetailPage() {
     <ProtectedRoute>
       <FeatureProtectedRoute feature="patients">
         <AdminLayout>
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-6">
             <div className="flex items-center">
               <button
                 onClick={() => router.push("/admin/patients")}
-                className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+                className="flex items-center text-gray-600 hover:text-gray-900 mr-3 sm:mr-4 flex-shrink-0"
               >
-                <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                Volver
+                <ArrowLeftIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                <span className="text-sm sm:text-base">Volver</span>
               </button>
-              <div className="flex items-center">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center shadow-md mr-4">
-                  <span className="text-lg font-medium text-white">
+              <div className="flex items-center min-w-0 flex-1">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 flex items-center justify-center shadow-md mr-3 sm:mr-4 flex-shrink-0">
+                  <span className="text-sm sm:text-lg font-medium text-white">
                     {patient?.name
                       ?.split(" ")
                       .map((n) => n[0])
@@ -383,21 +383,21 @@ export default function PatientDetailPage() {
                       .toUpperCase() || "?"}
                   </span>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                     {patient?.name || "Paciente"}
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">
                     {patient?.patientId && `ID: ${patient.patientId} • `}
                     {patient?.age || calculateAge(patient?.dateOfBirth)} años
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
               <button
                 onClick={() => setShowNewAppointmentModal(true)}
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base"
               >
                 <CalendarIcon className="h-4 w-4" />
                 <span>Nueva Cita</span>
@@ -405,7 +405,7 @@ export default function PatientDetailPage() {
               {/* Botón de Receta removido: las recetas se generan desde el detalle de la cita */}
               <button
                 onClick={() => setShowEditPatientModal(true)}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base"
               >
                 <PencilIcon className="h-4 w-4" />
                 <span>Editar</span>
@@ -429,7 +429,7 @@ export default function PatientDetailPage() {
           {/* Tabs */}
           <div className="bg-white rounded-xl shadow-md border border-gray-100">
             <div className="border-b border-gray-200">
-              <nav className="flex space-x-8 px-6" aria-label="Tabs">
+              <nav className="flex overflow-x-auto px-3 sm:px-6" aria-label="Tabs">
                 {[
                   { id: "info", name: "Información", icon: UserIcon },
                   { id: "appointments", name: "Citas", icon: CalendarIcon },
@@ -442,65 +442,65 @@ export default function PatientDetailPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                    className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-1 sm:space-x-2 whitespace-nowrap flex-shrink-0 mr-4 sm:mr-8 last:mr-0 ${
                       activeTab === tab.id
                         ? "border-amber-500 text-amber-600"
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
-                    <tab.icon className="h-4 w-4" />
+                    <tab.icon className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span>{tab.name}</span>
                   </button>
                 ))}
               </nav>
             </div>
 
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               {activeTab === "info" && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {/* Personal Information */}
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                         Información Personal
                       </h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">Nombre</div>
-                            <div className="font-medium">
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">Nombre</div>
+                            <div className="font-medium text-sm sm:text-base break-words">
                               {patient?.name || "N/A"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">Email</div>
-                            <div className="font-medium">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <EnvelopeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">Email</div>
+                            <div className="font-medium text-sm sm:text-base break-all">
                               {patient?.email || "N/A"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <PhoneIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">
                               Teléfono
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-sm sm:text-base">
                               {patient?.phone || "N/A"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <CalendarIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">
                               Fecha de Nacimiento
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-sm sm:text-base">
                               {patient?.dateOfBirth
                                 ? new Date(
                                     patient.dateOfBirth
@@ -509,22 +509,22 @@ export default function PatientDetailPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">Género</div>
-                            <div className="font-medium">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">Género</div>
+                            <div className="font-medium text-sm sm:text-base">
                               {patient?.gender || "N/A"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <MapPinIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <MapPinIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">
                               Dirección
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-sm sm:text-base break-words">
                               {patient?.address || "N/A"}
                             </div>
                           </div>
@@ -534,26 +534,26 @@ export default function PatientDetailPage() {
 
                     {/* Emergency Contact */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                         Contacto de Emergencia
                       </h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">Nombre</div>
-                            <div className="font-medium">
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">Nombre</div>
+                            <div className="font-medium text-sm sm:text-base break-words">
                               {patient?.emergencyContact || "N/A"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <PhoneIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">
                               Teléfono
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-sm sm:text-base">
                               {patient?.emergencyPhone || "N/A"}
                             </div>
                           </div>
@@ -563,35 +563,35 @@ export default function PatientDetailPage() {
                   </div>
 
                   {/* Medical & Insurance Information */}
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Medical Information */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                         Información Médica
                       </h3>
-                      <div className="space-y-4">
+                      <div className="space-y-3 sm:space-y-4">
                         <div className="p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm text-gray-500 mb-1">
+                          <div className="text-xs sm:text-sm text-gray-500 mb-1">
                             Alergias
                           </div>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm sm:text-base break-words">
                             {patient?.allergies || "Ninguna registrada"}
                           </div>
                         </div>
                         <div className="p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm text-gray-500 mb-1">
+                          <div className="text-xs sm:text-sm text-gray-500 mb-1">
                             Medicaciones Actuales
                           </div>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm sm:text-base break-words">
                             {patient?.currentMedications ||
                               "Ninguna registrada"}
                           </div>
                         </div>
                         <div className="p-3 bg-gray-50 rounded-lg">
-                          <div className="text-sm text-gray-500 mb-1">
+                          <div className="text-xs sm:text-sm text-gray-500 mb-1">
                             Historial Médico
                           </div>
-                          <div className="font-medium">
+                          <div className="font-medium text-sm sm:text-base break-words">
                             {patient?.medicalHistory &&
                             patient.medicalHistory.length > 0
                               ? patient.medicalHistory[0]?.notes || "Sin notas"
@@ -603,28 +603,28 @@ export default function PatientDetailPage() {
 
                     {/* Insurance Information */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                         Información del Seguro
                       </h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <ShieldCheckIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <ShieldCheckIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">
                               Obra Social/Prepaga
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-sm sm:text-base break-words">
                               {patient?.insuranceProvider || "N/A"}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                          <IdentificationIcon className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <div className="text-sm text-gray-500">
+                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
+                          <IdentificationIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs sm:text-sm text-gray-500">
                               Número de Afiliado
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-sm sm:text-base break-words">
                               {patient?.insuranceNumber || "N/A"}
                             </div>
                           </div>
@@ -646,18 +646,18 @@ export default function PatientDetailPage() {
               {activeTab === "medical" && (
                 <div>
                   {/* Medical Records Header */}
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 space-y-3 sm:space-y-0">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                         Historial Médico Completo
                       </h3>
-                      <p className="text-gray-600">
+                      <p className="text-sm sm:text-base text-gray-600">
                         Historial de consultas, recetas y documentos médicos
                       </p>
                     </div>
                     <button
                       onClick={() => setShowUploadModal(true)}
-                      className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                      className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base w-full sm:w-auto"
                     >
                       <DocumentArrowUpIcon className="h-4 w-4" />
                       <span>Subir Documento</span>
@@ -665,58 +665,58 @@ export default function PatientDetailPage() {
                   </div>
 
                   {/* Stats Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-3 sm:p-6">
                       <div className="flex items-center">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <CalendarIcon className="h-6 w-6 text-blue-600" />
+                        <div className="p-2 sm:p-3 bg-blue-100 rounded-lg">
+                          <CalendarIcon className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
                         </div>
-                        <div className="ml-4">
-                          <p className="text-2xl font-bold text-gray-900">
+                        <div className="ml-2 sm:ml-4 min-w-0">
+                          <p className="text-lg sm:text-2xl font-bold text-gray-900">
                             {completedAppointments.length}
                           </p>
-                          <p className="text-sm text-gray-600">Consultas</p>
+                          <p className="text-xs sm:text-sm text-gray-600 truncate">Consultas</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Tarjeta de conteo de recetas removida */}
 
-                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-3 sm:p-6">
                       <div className="flex items-center">
-                        <div className="p-3 bg-purple-100 rounded-lg">
-                          <DocumentArrowUpIcon className="h-6 w-6 text-purple-600" />
+                        <div className="p-2 sm:p-3 bg-purple-100 rounded-lg">
+                          <DocumentArrowUpIcon className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
                         </div>
-                        <div className="ml-4">
-                          <p className="text-2xl font-bold text-gray-900">
+                        <div className="ml-2 sm:ml-4 min-w-0">
+                          <p className="text-lg sm:text-2xl font-bold text-gray-900">
                             {medicalFiles.length}
                           </p>
-                          <p className="text-sm text-gray-600">Archivos</p>
+                          <p className="text-xs sm:text-sm text-gray-600 truncate">Archivos</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
+                    <div className="bg-white rounded-lg shadow-md border border-gray-100 p-3 sm:p-6">
                       <div className="flex items-center">
-                        <div className="p-3 bg-amber-100 rounded-lg">
-                          <BeakerIcon className="h-6 w-6 text-amber-600" />
+                        <div className="p-2 sm:p-3 bg-amber-100 rounded-lg">
+                          <BeakerIcon className="h-4 w-4 sm:h-6 sm:w-6 text-amber-600" />
                         </div>
-                        <div className="ml-4">
-                          <p className="text-2xl font-bold text-gray-900">
+                        <div className="ml-2 sm:ml-4 min-w-0">
+                          <p className="text-lg sm:text-2xl font-bold text-gray-900">
                             {
                               medicalFiles.filter((f) => f.category === "lab")
                                 .length
                             }
                           </p>
-                          <p className="text-sm text-gray-600">Estudios</p>
+                          <p className="text-xs sm:text-sm text-gray-600 truncate">Estudios</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Medical Records Timeline */}
-                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                       Cronología Médica ({medicalRecords.length} registros)
                     </h4>
 
@@ -740,39 +740,43 @@ export default function PatientDetailPage() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <div className="flex items-center mb-2">
-                                  {record.type === "appointment" && (
-                                    <CalendarIcon className="h-5 w-5 text-blue-500 mr-2" />
-                                  )}
-                                  {record.type === "prescription" && (
-                                    <ClipboardDocumentListIcon className="h-5 w-5 text-green-500 mr-2" />
-                                  )}
-                                  {record.type === "file" && (
-                                    <DocumentArrowUpIcon className="h-5 w-5 text-purple-500 mr-2" />
-                                  )}
-                                  <h3 className="text-lg font-semibold text-gray-900">
-                                    {record.title}
-                                  </h3>
-                                  <span
-                                    className={`ml-3 px-2 py-1 text-xs rounded-full ${
-                                      record.type === "appointment"
-                                        ? "bg-blue-100 text-blue-800"
+                                <div className="flex flex-col sm:flex-row sm:items-center mb-2 space-y-2 sm:space-y-0">
+                                  <div className="flex items-center">
+                                    {record.type === "appointment" && (
+                                      <CalendarIcon className="h-5 w-5 text-blue-500 mr-2" />
+                                    )}
+                                    {record.type === "prescription" && (
+                                      <ClipboardDocumentListIcon className="h-5 w-5 text-green-500 mr-2" />
+                                    )}
+                                    {record.type === "file" && (
+                                      <DocumentArrowUpIcon className="h-5 w-5 text-purple-500 mr-2" />
+                                    )}
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-1">
+                                      {record.title}
+                                    </h3>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2 sm:ml-3">
+                                    <span
+                                      className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${
+                                        record.type === "appointment"
+                                          ? "bg-blue-100 text-blue-800"
+                                          : record.type === "prescription"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-purple-100 text-purple-800"
+                                      }`}
+                                    >
+                                      {record.type === "appointment"
+                                        ? "Consulta"
                                         : record.type === "prescription"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-purple-100 text-purple-800"
-                                    }`}
-                                  >
-                                    {record.type === "appointment"
-                                      ? "Consulta"
-                                      : record.type === "prescription"
-                                      ? "Receta"
-                                      : "Archivo"}
-                                  </span>
-                                  {record.category === "lab" && (
-                                    <span className="ml-2 px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800">
-                                      Estudio
+                                        ? "Receta"
+                                        : "Archivo"}
                                     </span>
-                                  )}
+                                    {record.category === "lab" && (
+                                      <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-800 flex-shrink-0">
+                                        Estudio
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
 
                                 <p className="text-gray-600 mb-2">

@@ -102,11 +102,11 @@ export function LoginButton({ isMobile = false }) {
             <div className={`w-10 h-10 rounded-full ${userTypeInfo.color} bg-white border-2 ${userTypeInfo.borderColor} flex items-center justify-center`}>
               <TypeIcon className="w-5 h-5" />
             </div>
-            <div className="flex-1">
-              <div className="font-medium text-gray-900 truncate">
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-900 truncate text-sm leading-tight">
                 {displayName}
               </div>
-              <div className={`text-sm ${userTypeInfo.color} font-medium`}>
+              <div className={`text-xs ${userTypeInfo.color} font-medium`}>
                 {userTypeInfo.label}
               </div>
             </div>

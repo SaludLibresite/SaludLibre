@@ -9,7 +9,7 @@ export default function SchedulePage() {
     <ProtectedRoute>
       <FeatureProtectedRoute feature="schedule">
         <AdminLayout>
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             <Calendar />
           </div>
         </AdminLayout>

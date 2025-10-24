@@ -177,22 +177,22 @@ export default function AppointmentDocuments({ appointmentId, patientId }) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 space-y-3 sm:space-y-0">
+        <h3 className="text-base sm:text-lg font-medium text-gray-900">
           Documentos de la Cita
         </h3>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowPrescriptionModal(true)}
             disabled={!patientId}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
           >
             <DocumentTextIcon className="h-4 w-4" />
             <span>Crear Receta Médica</span>
           </button>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 flex items-center space-x-2"
+            className="bg-amber-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-700 flex items-center justify-center space-x-2 text-sm sm:text-base w-full sm:w-auto"
           >
             <PlusIcon className="h-4 w-4" />
             <span>Subir Documento</span>

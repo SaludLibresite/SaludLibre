@@ -51,7 +51,7 @@ export default function HeroCarousel({ images }) {
   };
 
   return (
-    <div className="relative w-full h-[70dvh] sm:h-[500px] lg:h-[600px] flex items-center justify-center overflow-hidden shadow-2xl rounded-3xl bg-gradient-to-br from-[#011d2f]/60 to-[#4dbad9]/40">
+    <div className="relative w-full h-[80dvh] sm:h-[550px] lg:h-[650px] flex items-center justify-center overflow-hidden shadow-2xl rounded-3xl bg-gradient-to-br from-[#011d2f]/60 to-[#4dbad9]/40">
       <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={current}
@@ -156,7 +156,7 @@ export default function HeroCarousel({ images }) {
         </motion.div>
 
         <motion.form
-          className="flex flex-col sm:flex-row w-full max-w-2xl gap-3 px-4 sm:px-0"
+          className="flex flex-col sm:flex-row w-full max-w-2xl gap-3 px-6 sm:px-4 lg:px-0"
           onSubmit={(e) => {
             e.preventDefault();
             handleSearch(query);
@@ -166,7 +166,7 @@ export default function HeroCarousel({ images }) {
           transition={{ delay: 0.8 }}
         >
           <motion.input
-            className="flex-1 bg-white/95 backdrop-blur-md px-6 py-4 rounded-2xl outline-none text-lg shadow-2xl border-0 focus:ring-2 focus:ring-cyan-400 transition-all duration-300"
+            className="flex-1 bg-white/95 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl outline-none text-base sm:text-lg shadow-2xl border-0 focus:ring-2 focus:ring-cyan-400 transition-all duration-300"
             type="text"
             placeholder="Buscar doctor, especialidad, área..."
             value={query}
@@ -175,7 +175,7 @@ export default function HeroCarousel({ images }) {
             transition={{ duration: 0.2 }}
           />
           <motion.button
-            className=" bg-[#e8910f] px-8 py-4 rounded-2xl font-semibold text-[#fff] shadow-2xl hover:shadow-3xl transition-all duration-300 text-lg whitespace-nowrap"
+            className="bg-[#e8910f] px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold text-white shadow-2xl hover:shadow-3xl transition-all duration-300 text-base sm:text-lg whitespace-nowrap"
             whileHover={{
               scale: 1.05,
               background: "linear-gradient(to right, #4dbad9, #011d2f)"
@@ -189,13 +189,13 @@ export default function HeroCarousel({ images }) {
 
         {/* Quick action buttons */}
         <motion.div
-          className="flex flex-wrap gap-4 mt-8 justify-center"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center w-full max-w-md sm:max-w-none"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
         >
           <motion.button
-            className="bg-black/30 backdrop-blur-md text-white px-6 py-3 rounded-xl font-medium hover:bg-black/50 transition-all duration-300 border border-white/20 shadow-lg"
+            className="bg-black/30 backdrop-blur-md text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-black/50 transition-all duration-300 border border-white/20 shadow-lg text-sm sm:text-base"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => window.location.href = "/doctores"}
@@ -203,21 +203,23 @@ export default function HeroCarousel({ images }) {
             Ver Doctores
           </motion.button>
           <motion.button
-            className="bg-white/10 backdrop-blur-md text-white px-6 py-3 rounded-xl font-medium hover:bg-white/20 transition-all duration-300 border border-white/30 shadow-lg"
+            className="bg-white/10 backdrop-blur-md text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-white/20 transition-all duration-300 border border-white/30 shadow-lg text-sm sm:text-base"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => window.location.href = "/beneficios"}
-          >Planes para medicos
+          >
+            Planes para médicos
           </motion.button>
         </motion.div>
       </motion.div>
 
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-3 z-30">
+      {/* Page indicators - centered at bottom with proper spacing */}
+      <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 sm:gap-3 z-30">
         {images.map((_, idx) => (
           <motion.button
             key={idx}
-            className={`w-3 h-3 rounded-full ${
-              idx === current ? "bg-yellow-400" : "bg-white/60"
+            className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
+              idx === current ? "bg-yellow-400 scale-110" : "bg-white/60 hover:bg-white/80"
             }`}
             onClick={() => {
               setDirection(idx > current ? 1 : -1);
@@ -230,15 +232,16 @@ export default function HeroCarousel({ images }) {
         ))}
       </div>
 
+      {/* Navigation arrows - responsive positioning */}
       <motion.button
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/20 backdrop-blur-sm p-2 rounded-full hover:bg-white/30 transition-colors"
+        className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/20 backdrop-blur-sm p-1.5 sm:p-2 rounded-full hover:bg-white/30 transition-colors hidden sm:block"
         onClick={() => paginate(-1)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         aria-label="Slide anterior"
       >
         <svg
-          className="w-6 h-6 text-white"
+          className="w-4 h-4 sm:w-6 sm:h-6 text-white"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -253,14 +256,14 @@ export default function HeroCarousel({ images }) {
       </motion.button>
 
       <motion.button
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/20 backdrop-blur-sm p-2 rounded-full hover:bg-white/30 transition-colors"
+        className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 z-30 bg-white/20 backdrop-blur-sm p-1.5 sm:p-2 rounded-full hover:bg-white/30 transition-colors hidden sm:block"
         onClick={() => paginate(1)}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         aria-label="Slide siguiente"
       >
         <svg
-          className="w-6 h-6 text-white"
+          className="w-4 h-4 sm:w-6 sm:h-6 text-white"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

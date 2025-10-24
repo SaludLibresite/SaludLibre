@@ -133,25 +133,25 @@ export default function VideoConsultationPage() {
         <AdminLayout>
         <div className="p-6">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                  <VideoCameraIcon className="h-7 w-7 mr-3 text-blue-600" />
-                  Video Consultas
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+                  <VideoCameraIcon className="h-6 w-6 sm:h-7 sm:w-7 mr-2 sm:mr-3 text-blue-600 flex-shrink-0" />
+                  <span className="truncate">Video Consultas</span>
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-600 mt-1 text-sm sm:text-base">
                   Gestiona tus consultas médicas virtuales
                 </p>
               </div>
 
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-end flex-shrink-0">
                 <button
                   onClick={() => setShowNewRoomModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1 sm:space-x-2 w-full sm:w-auto text-sm sm:text-base"
                 >
-                  <PlusIcon className="h-4 w-4" />
-                  <span>Nueva Consulta</span>
+                  <PlusIcon className="h-4 w-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Nueva Consulta</span>
                 </button>
               </div>
             </div>

@@ -304,33 +304,34 @@ export default function Calendar() {
   return (
     <div className="bg-white rounded-lg shadow">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Agenda</h2>
+      <div className="px-3 sm:px-6 py-4 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Agenda</h2>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-amber-700"
+            className="bg-amber-600 text-white px-3 py-2 sm:px-4 rounded-lg flex items-center justify-center space-x-2 hover:bg-amber-700 text-sm sm:text-base"
           >
             <PlusIcon className="h-4 w-4" />
-            <span>Nueva Cita</span>
+            <span className="hidden sm:inline">Nueva Cita</span>
+            <span className="sm:hidden">Nueva</span>
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="mt-4 flex space-x-8">
+        <div className="mt-4 flex space-x-1 sm:space-x-8 overflow-x-auto">
           {["Agenda", "Calendario", "Lista"].map((tab) => (
             <button
               key={tab}
               onClick={() => setSelectedTab(tab)}
-              className={`pb-2 text-sm font-medium border-b-2 flex items-center space-x-2 ${
+              className={`pb-2 text-xs sm:text-sm font-medium border-b-2 flex items-center space-x-1 sm:space-x-2 whitespace-nowrap flex-shrink-0 px-2 sm:px-0 ${
                 selectedTab === tab
                   ? "border-blue-500 text-amber-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab === "Agenda" && <CalendarIcon className="h-4 w-4" />}
-              {tab === "Calendario" && <TableCellsIcon className="h-4 w-4" />}
-              {tab === "Lista" && <ListBulletIcon className="h-4 w-4" />}
+              {tab === "Agenda" && <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4" />}
+              {tab === "Calendario" && <TableCellsIcon className="h-3 w-3 sm:h-4 sm:w-4" />}
+              {tab === "Lista" && <ListBulletIcon className="h-3 w-3 sm:h-4 sm:w-4" />}
               <span>{tab}</span>
             </button>
           ))}
@@ -338,11 +339,11 @@ export default function Calendar() {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         {/* Agenda Tab */}
         {selectedTab === "Agenda" && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">
               Citas de Hoy ({getTodayAppointments().length})
             </h3>
             <div className="space-y-3">
@@ -354,7 +355,7 @@ export default function Calendar() {
                   </p>
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="mt-4 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+                    className="mt-4 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 text-sm"
                   >
                     Crear Primera Cita
                   </button>
@@ -366,24 +367,24 @@ export default function Calendar() {
                     onClick={() =>
                       router.push(`/admin/appointment/${appointment.id}`)
                     }
-                    className="bg-gray-50 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="bg-gray-50 p-3 sm:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">
                           {appointment.patientName}
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600 truncate">
                           {appointment.reason}
                         </p>
                         {appointment.patientPhone && (
-                          <p className="text-sm text-gray-500">
+                          <p className="text-xs text-gray-500 truncate">
                             {appointment.patientPhone}
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-gray-900">
+                      <div className="flex items-center justify-between sm:flex-col sm:items-end sm:text-right flex-shrink-0">
+                        <p className="font-medium text-gray-900 text-sm">
                           {appointment.time}
                         </p>
                         <span
@@ -414,18 +415,18 @@ export default function Calendar() {
         {selectedTab === "Calendario" && (
           <div>
             {/* Custom Calendar Toolbar */}
-            <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
+              <div className="flex items-center justify-center sm:justify-start space-x-2 sm:space-x-4">
                 <button
                   onClick={() => onNavigate("PREV")}
                   className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  <ChevronLeftIcon className="h-5 w-5" />
+                  <ChevronLeftIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
 
                 <button
                   onClick={() => onNavigate("TODAY")}
-                  className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                  className="px-3 py-2 sm:px-4 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-xs sm:text-sm"
                 >
                   Hoy
                 </button>
@@ -434,20 +435,20 @@ export default function Calendar() {
                   onClick={() => onNavigate("NEXT")}
                   className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  <ChevronRightIcon className="h-5 w-5" />
+                  <ChevronRightIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
 
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-sm sm:text-lg font-semibold text-gray-900 text-center sm:text-left">
                   {moment(date).format(
-                    view === "month" ? "MMMM YYYY" : "D MMMM YYYY"
+                    view === "month" ? "MMM YYYY" : "D MMM YYYY"
                   )}
                 </h2>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center space-x-1 sm:space-x-2">
                 <button
                   onClick={() => handleViewChange("month")}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`px-2 py-1 sm:px-4 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm ${
                     view === "month"
                       ? "bg-amber-600 text-white"
                       : "bg-white text-gray-700 hover:bg-gray-100"
@@ -457,7 +458,7 @@ export default function Calendar() {
                 </button>
                 <button
                   onClick={() => handleViewChange("week")}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`px-2 py-1 sm:px-4 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm ${
                     view === "week"
                       ? "bg-amber-600 text-white"
                       : "bg-white text-gray-700 hover:bg-gray-100"
@@ -468,32 +469,34 @@ export default function Calendar() {
               </div>
             </div>
 
-            <div style={{ height: "600px" }}>
-              <BigCalendar
-                localizer={localizer}
-                events={events}
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: "100%" }}
-                messages={messages}
-                onSelectEvent={handleSelectEvent}
-                onSelectSlot={handleSelectSlot}
-                onNavigate={handleNavigate}
-                onView={handleViewChange}
-                date={date}
-                view={view}
-                selectable
-                popup
-                components={{
-                  event: EventComponent,
-                  toolbar: () => null, // Disable built-in toolbar
-                }}
-                views={["month", "week"]}
-                step={30}
-                timeslots={2}
-                min={new Date(0, 0, 0, 8, 0, 0)} // 8 AM
-                max={new Date(0, 0, 0, 20, 0, 0)} // 8 PM
-              />
+            <div className="overflow-x-auto">
+              <div style={{ height: view === "month" ? "400px" : "600px", minWidth: view === "month" ? "320px" : "600px" }}>
+                <BigCalendar
+                  localizer={localizer}
+                  events={events}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: "100%" }}
+                  messages={messages}
+                  onSelectEvent={handleSelectEvent}
+                  onSelectSlot={handleSelectSlot}
+                  onNavigate={handleNavigate}
+                  onView={handleViewChange}
+                  date={date}
+                  view={view}
+                  selectable
+                  popup
+                  components={{
+                    event: EventComponent,
+                    toolbar: () => null, // Disable built-in toolbar
+                  }}
+                  views={["month", "week"]}
+                  step={30}
+                  timeslots={2}
+                  min={new Date(0, 0, 0, 8, 0, 0)} // 8 AM
+                  max={new Date(0, 0, 0, 20, 0, 0)} // 8 PM
+                />
+              </div>
             </div>
           </div>
         )}
@@ -501,7 +504,7 @@ export default function Calendar() {
         {/* List Tab */}
         {selectedTab === "Lista" && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">
               Próximas Citas ({getAllUpcomingAppointments().length})
             </h3>
 
@@ -514,7 +517,7 @@ export default function Calendar() {
                   </p>
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="mt-4 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+                    className="mt-4 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 text-sm"
                   >
                     Crear Primera Cita
                   </button>
@@ -531,29 +534,29 @@ export default function Calendar() {
                       onClick={() =>
                         router.push(`/admin/appointment/${appointment.id}`)
                       }
-                      className="bg-gray-50 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="bg-gray-50 p-3 sm:p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                        <div className="min-w-0">
+                          <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">
                             {appointment.patientName}
                           </h4>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs sm:text-sm text-gray-600 truncate">
                             {appointment.reason}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-xs sm:text-sm text-gray-500 truncate">
                             {appointmentDate.format(
-                              "dddd, D [de] MMMM [de] YYYY"
+                              "ddd, D MMM YYYY"
                             )}
                           </p>
                           {appointment.patientPhone && (
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs text-gray-500 truncate">
                               {appointment.patientPhone}
                             </p>
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">
+                        <div className="flex items-center justify-between sm:flex-col sm:items-end sm:text-right flex-shrink-0">
+                          <p className="font-medium text-gray-900 text-sm">
                             {appointment.time}
                           </p>
                           <span
@@ -584,10 +587,10 @@ export default function Calendar() {
 
       {/* Create Appointment Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md mx-4 max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Nueva Cita</h3>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">Nueva Cita</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -612,7 +615,7 @@ export default function Calendar() {
                       : null
                   }
                   onChange={(option) => setSelectedPatient(option)}
-                  placeholder="Buscar paciente por nombre..."
+                  placeholder="Buscar paciente..."
                   isClearable
                   isSearchable
                   noOptionsMessage={() => "No se encontraron pacientes"}
@@ -652,12 +655,11 @@ export default function Calendar() {
                   </div>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  Si el paciente no existe, agrégalo primero en la sección de
-                  Pacientes
+                  Si el paciente no existe, agrégalo primero en Pacientes
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha *
@@ -672,7 +674,7 @@ export default function Calendar() {
                         date: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                   />
                 </div>
 
@@ -690,14 +692,14 @@ export default function Calendar() {
                         time: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Motivo de la Consulta *
+                  Motivo *
                 </label>
                 <input
                   type="text"
@@ -709,7 +711,7 @@ export default function Calendar() {
                       reason: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                   placeholder="Ej: Consulta general, seguimiento, etc."
                 />
               </div>
@@ -727,12 +729,12 @@ export default function Calendar() {
                     }))
                   }
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                   placeholder="Información adicional (opcional)"
                 />
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0 pt-4">
                 <button
                   type="submit"
                   disabled={
@@ -740,14 +742,14 @@ export default function Calendar() {
                     !selectedPatient ||
                     !newAppointment.reason.trim()
                   }
-                  className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:flex-1 bg-amber-600 text-white py-2 px-4 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   {creating ? "Creando..." : "Crear Cita"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                  className="w-full sm:flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 text-sm"
                 >
                   Cancelar
                 </button>
@@ -799,6 +801,12 @@ export default function Calendar() {
         .rbc-header {
           padding: 0.5rem;
           font-weight: 600;
+          font-size: 0.75rem;
+        }
+        @media (min-width: 640px) {
+          .rbc-header {
+            font-size: 0.875rem;
+          }
         }
         .rbc-date-cell {
           padding: 0.25rem;
@@ -809,10 +817,41 @@ export default function Calendar() {
         .rbc-event {
           border-radius: 0.25rem;
           padding: 0.125rem 0.25rem;
+          font-size: 0.6rem;
+        }
+        @media (min-width: 640px) {
+          .rbc-event {
+            font-size: 0.75rem;
+          }
         }
         .rbc-show-more {
           color: #3b82f6;
-          font-size: 0.75rem;
+          font-size: 0.6rem;
+        }
+        @media (min-width: 640px) {
+          .rbc-show-more {
+            font-size: 0.75rem;
+          }
+        }
+        .rbc-month-view .rbc-date-cell {
+          min-height: 80px;
+        }
+        @media (max-width: 640px) {
+          .rbc-month-view .rbc-date-cell {
+            min-height: 60px;
+          }
+          .rbc-header {
+            padding: 0.25rem;
+          }
+          .rbc-time-view .rbc-time-gutter {
+            width: 40px;
+          }
+          .rbc-time-view .rbc-time-gutter .rbc-timeslot-group {
+            font-size: 0.7rem;
+          }
+          .rbc-time-content {
+            min-height: 400px;
+          }
         }
       `}</style>
     </div>

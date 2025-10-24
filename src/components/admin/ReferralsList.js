@@ -315,19 +315,20 @@ export default function ReferralsList() {
             )}
             
             {referralStats?.referralCode ? (
-              <div className="flex items-center space-x-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
-                  <code className="text-2xl font-mono font-bold text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 sm:p-4 flex-1">
+                  <code className="text-lg sm:text-2xl font-mono font-bold text-white break-all">
                     {referralStats.referralCode}
                   </code>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   <button
                     onClick={() =>
                       copyToClipboard(referralStats.referralCode, "Código")
                     }
-                    className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                    className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex-shrink-0"
                     disabled={!canRefer.canRefer}
+                    title="Copiar código"
                   >
                     <CopyIcon className="h-5 w-5" />
                   </button>
@@ -338,15 +339,17 @@ export default function ReferralsList() {
                         "Enlace"
                       )
                     }
-                    className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                    className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex-shrink-0"
                     disabled={!canRefer.canRefer}
+                    title="Copiar enlace"
                   >
                     <LinkIcon className="h-5 w-5" />
                   </button>
                   <button
                     onClick={shareViaWhatsApp}
-                    className="bg-green-500 hover:bg-green-600 p-2 rounded-lg transition-colors"
+                    className="bg-green-500 hover:bg-green-600 p-2 rounded-lg transition-colors flex-shrink-0"
                     disabled={!canRefer.canRefer}
+                    title="Compartir por WhatsApp"
                   >
                     <ShareIcon className="h-5 w-5" />
                   </button>
@@ -380,24 +383,24 @@ export default function ReferralsList() {
         </div>
 
         {referralStats && (
-          <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {referralStats.referralStats?.totalReferrals || 0}
               </div>
-              <div className="text-white/80">Total Referidos</div>
+              <div className="text-white/80 text-sm">Total Referidos</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {referralStats.referralStats?.pendingReferrals || 0}
               </div>
-              <div className="text-white/80">Pendientes</div>
+              <div className="text-white/80 text-sm">Pendientes</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {referralStats.referralStats?.confirmedReferrals || 0}
               </div>
-              <div className="text-white/80">Confirmados</div>
+              <div className="text-white/80 text-sm">Confirmados</div>
             </div>
           </div>
         )}
@@ -406,27 +409,27 @@ export default function ReferralsList() {
         {referralStats?.referralRewards && (
           <div className="mt-6 border-t border-white/20 pt-6">
             <h3 className="text-lg font-semibold mb-4">🎁 Sistema de Recompensas</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
               <div className="text-center">
-                <div className="text-2xl font-bold">
+                <div className="text-xl sm:text-2xl font-bold">
                   {Math.floor((referralStats.referralStats?.confirmedReferrals || 0) / REFERRAL_REWARDS_CONFIG.REFERRALS_PER_REWARD)}
                 </div>
                 <div className="text-white/80">Recompensas Ganadas</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">
+                <div className="text-xl sm:text-2xl font-bold">
                   {referralStats.referralRewards?.pendingRewards || 0}
                 </div>
                 <div className="text-white/80">Pendientes</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">
+                <div className="text-xl sm:text-2xl font-bold">
                   {referralStats.referralRewards?.approvedRewards || 0}
                 </div>
                 <div className="text-white/80">Aprobadas</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">
+                <div className="text-xl sm:text-2xl font-bold">
                   {referralStats.referralRewards?.totalRewardsEarned || 0}
                 </div>
                 <div className="text-white/80">Días Gratis</div>
@@ -499,7 +502,7 @@ export default function ReferralsList() {
           </div>
 
           {/* Filters */}
-          <div className="mt-4 flex space-x-4">
+          <div className="mt-4 flex flex-wrap gap-2">
             {[
               { key: "all", label: "Todos los Referidos" },
               { key: "pending", label: "Pendientes" },
@@ -508,7 +511,7 @@ export default function ReferralsList() {
               <button
                 key={status.key}
                 onClick={() => setFilter(status.key)}
-                className={`px-3 py-1 text-sm rounded-lg ${
+                className={`px-3 py-1 text-sm rounded-lg whitespace-nowrap ${
                   filter === status.key
                     ? "bg-yellow-100 text-yellow-700"
                     : "text-gray-600 hover:bg-gray-100"

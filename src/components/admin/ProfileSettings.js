@@ -558,20 +558,20 @@ export default function ProfileSettings() {
   return (
     <div className="bg-white rounded-lg shadow">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900">
+      <div className="px-3 sm:px-6 py-4 border-b border-gray-200">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
           Configuración del Perfil
         </h2>
       </div>
 
       {/* Tabs */}
-      <div className="px-6 border-b border-gray-200">
-        <nav className="flex space-x-8">
+      <div className="px-3 sm:px-6 border-b border-gray-200">
+        <nav className="flex space-x-1 sm:space-x-8 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab
                   ? "border-blue-500 text-amber-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -584,10 +584,10 @@ export default function ProfileSettings() {
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         {message && (
           <div
-            className={`mb-4 p-4 rounded-lg ${
+            className={`mb-4 p-3 sm:p-4 rounded-lg ${
               message.includes("Error")
                 ? "bg-red-50 text-red-800"
                 : "bg-green-50 text-green-800"
@@ -604,11 +604,11 @@ export default function ProfileSettings() {
         ) : (
           <>
             {activeTab === "Personal" && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Profile Photo */}
-                <div className="flex items-center space-x-6">
-                  <div className="relative">
-                    <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                  <div className="relative flex-shrink-0 mx-auto sm:mx-0">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                       {profile.photoURL ? (
                         <img
                           src={profile.photoURL}
@@ -616,18 +616,18 @@ export default function ProfileSettings() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <UserIcon className="h-12 w-12 text-gray-600" />
+                        <UserIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-600" />
                       )}
                     </div>
                     <button
                       onClick={handlePhotoClick}
                       disabled={uploadingPhoto}
-                      className="absolute bottom-0 right-0 bg-amber-600 text-white p-2 rounded-full hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="absolute bottom-0 right-0 bg-amber-600 text-white p-1.5 sm:p-2 rounded-full hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {uploadingPhoto ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent"></div>
                       ) : (
-                        <CameraIcon className="h-4 w-4" />
+                        <CameraIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                       )}
                     </button>
                     <input
@@ -638,24 +638,23 @@ export default function ProfileSettings() {
                       className="hidden"
                     />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
+                  <div className="text-center sm:text-left">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">
                       Foto de Perfil
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Haz clic en el ícono de cámara para actualizar tu foto de
-                      perfil
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Haz clic en el ícono de cámara para actualizar tu foto
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Formatos soportados: JPG, PNG. Tamaño máximo: 5MB
+                      JPG, PNG. Máximo: 5MB
                     </p>
                   </div>
                 </div>
 
                 {/* Personal Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Nombre Completo
                     </label>
                     <input
@@ -664,11 +663,11 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("nombre", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Correo Electrónico
                     </label>
                     <input
@@ -677,12 +676,12 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                       disabled
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Teléfono
                     </label>
                     <input
@@ -691,11 +690,11 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("telefono", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Género
                     </label>
                     <select
@@ -703,7 +702,7 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("genero", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     >
                       <option value="">Seleccionar</option>
                       <option value="Masculino">Masculino</option>
@@ -712,18 +711,18 @@ export default function ProfileSettings() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       DNI
                     </label>
                     <input
                       type="text"
                       value={profile.dni}
                       onChange={(e) => handleInputChange("dni", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Fecha de Nacimiento
                     </label>
                     <input
@@ -732,18 +731,17 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("fechaNacimiento", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                     Ubicación del Consultorio
                   </label>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                     Selecciona la ubicación exacta de tu consultorio en el mapa.
-                    Esto ayudará a los pacientes a encontrarte más fácilmente.
                   </p>
                   <GoogleMapsLocationPicker
                     initialLocation={
@@ -761,7 +759,7 @@ export default function ProfileSettings() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                     Descripción Profesional
                   </label>
                   <textarea
@@ -769,8 +767,8 @@ export default function ProfileSettings() {
                     onChange={(e) =>
                       handleInputChange("descripcion", e.target.value)
                     }
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     placeholder="Describe tu experiencia profesional y especialidades..."
                   />
                 </div>
@@ -792,10 +790,10 @@ export default function ProfileSettings() {
             )}
 
             {activeTab === "Profesional" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Especialidad
                     </label>
                     <select
@@ -803,7 +801,7 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("especialidad", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     >
                       <option value="">Selecciona tu especialidad</option>
                       <option value="Cardiología">Cardiología</option>
@@ -824,12 +822,12 @@ export default function ProfileSettings() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Plan Actual
                     </label>
                     <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-900">{getDoctorPlanName(profile)}</span>
+                        <span className="text-gray-900 text-sm sm:text-base">{getDoctorPlanName(profile)}</span>
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             getDoctorRank(profile) === "VIP"
@@ -844,14 +842,14 @@ export default function ProfileSettings() {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Tu rango se determina automáticamente según tu plan de suscripción activo
+                      Tu rango se determina automáticamente según tu plan activo
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Grupo de Edad que Atiende
                     </label>
                     <select
@@ -859,20 +857,20 @@ export default function ProfileSettings() {
                       onChange={(e) =>
                         handleInputChange("ageGroup", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     >
                       <option value="ambos">Menores y Adultos</option>
                       <option value="menores">Solo Menores (Pediatría)</option>
                       <option value="adultos">Solo Adultos</option>
                     </select>
                     <p className="text-xs text-gray-500 mt-1">
-                      Especifica qué grupo de edad atiendes en tu consulta
+                      Especifica qué grupo de edad atiendes
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                     Horarios de atención
                   </label>
                   <input
@@ -881,30 +879,30 @@ export default function ProfileSettings() {
                     onChange={(e) =>
                       handleInputChange("horario", e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     placeholder="Ej: Lunes a Viernes, 9:00 AM - 5:00 PM"
                   />
                 </div>
 
                 {/* Professional Documents Section */}
-                <div className="mt-8">
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">
+                <div className="mt-6 sm:mt-8">
+                  <h4 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">
                     Documentos Profesionales
                   </h4>
-                  <p className="text-sm text-gray-600 mb-6">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                     Sube tu título profesional, firma y sello para ser incluidos
                     automáticamente en las recetas médicas.
                   </p>
 
                   {/* Title Upload Section */}
-                  <div className="mb-8">
-                    <h5 className="text-md font-medium text-gray-800 mb-4">
+                  <div className="mb-6 sm:mb-8">
+                    <h5 className="text-sm sm:text-md font-medium text-gray-800 mb-3 sm:mb-4">
                       Título Profesional
                     </h5>
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-center">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+                      <div className="flex items-start">
                         <svg
-                          className="w-5 h-5 text-yellow-600 mr-2"
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -916,36 +914,35 @@ export default function ProfileSettings() {
                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
                           />
                         </svg>
-                        <p className="text-sm text-yellow-800 font-medium">
-                          ⚠️ El título queda sujeto a aprobación por parte del
-                          equipo administrativo
+                        <p className="text-xs sm:text-sm text-yellow-800 font-medium">
+                          ⚠️ El título queda sujeto a aprobación del equipo administrativo
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                    <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-3 sm:p-6 hover:border-amber-400 transition-colors">
                       {profile.tituloURL ? (
-                        <div className="text-center">
+                        <div className="text-center w-full">
                           <img
                             src={profile.tituloURL}
                             alt="Título Profesional"
-                            className="max-h-32 max-w-full object-contain mb-3 border rounded-lg"
+                            className="max-h-24 sm:max-h-32 max-w-full object-contain mb-2 sm:mb-3 border rounded-lg mx-auto"
                           />
-                          <p className="text-sm text-gray-600 mb-3">
+                          <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                             Título actual
                           </p>
                           <button
                             onClick={() => tituloInputRef.current?.click()}
                             disabled={uploadingTitulo}
-                            className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                            className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                           >
                             {uploadingTitulo ? "Subiendo..." : "Cambiar Título"}
                           </button>
                         </div>
                       ) : (
-                        <div className="text-center">
+                        <div className="text-center w-full">
                           <svg
-                            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                            className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mb-2 sm:mb-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -957,7 +954,7 @@ export default function ProfileSettings() {
                               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
-                          <div className="text-sm text-gray-600 mb-3">
+                          <div className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                             <p className="font-medium">
                               Subir título profesional
                             </p>
@@ -966,7 +963,7 @@ export default function ProfileSettings() {
                           <button
                             onClick={() => tituloInputRef.current?.click()}
                             disabled={uploadingTitulo}
-                            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                            className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                           >
                             {uploadingTitulo ? "Subiendo..." : "Subir Título"}
                           </button>
@@ -985,24 +982,24 @@ export default function ProfileSettings() {
 
                   {/* Signature and Stamp Section */}
                   <div>
-                    <h5 className="text-md font-medium text-gray-800 mb-4">
+                    <h5 className="text-sm sm:text-md font-medium text-gray-800 mb-3 sm:mb-4">
                       Firma y Sello Digital
                     </h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                       {/* Signature Upload */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                           Firma Digital
                         </label>
-                        <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                        <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-3 sm:p-6 hover:border-amber-400 transition-colors">
                           {profile.signatureURL ? (
-                            <div className="text-center">
+                            <div className="text-center w-full">
                               <img
                                 src={profile.signatureURL}
                                 alt="Firma"
-                                className="max-h-20 max-w-full object-contain mb-3"
+                                className="max-h-16 sm:max-h-20 max-w-full object-contain mb-2 sm:mb-3 mx-auto"
                               />
-                              <p className="text-sm text-gray-600 mb-3">
+                              <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                                 Firma actual
                               </p>
                               <button
@@ -1010,7 +1007,7 @@ export default function ProfileSettings() {
                                   signatureInputRef.current?.click()
                                 }
                                 disabled={uploadingSignature}
-                                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                                className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                               >
                                 {uploadingSignature
                                   ? "Subiendo..."
@@ -1018,12 +1015,12 @@ export default function ProfileSettings() {
                               </button>
                             </div>
                           ) : (
-                            <div className="text-center">
-                              <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                              <p className="text-sm font-medium text-gray-900 mb-1">
+                            <div className="text-center w-full">
+                              <CameraIcon className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mb-2 sm:mb-3" />
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1">
                                 Sube tu firma
                               </p>
-                              <p className="text-xs text-gray-500 mb-4">
+                              <p className="text-xs text-gray-500 mb-3 sm:mb-4">
                                 PNG, JPG hasta 2MB
                               </p>
                               <button
@@ -1031,7 +1028,7 @@ export default function ProfileSettings() {
                                   signatureInputRef.current?.click()
                                 }
                                 disabled={uploadingSignature}
-                                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                                className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                               >
                                 {uploadingSignature
                                   ? "Subiendo..."
@@ -1051,24 +1048,24 @@ export default function ProfileSettings() {
 
                       {/* Stamp Upload */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                           Sello Profesional
                         </label>
-                        <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-6 hover:border-amber-400 transition-colors">
+                        <div className="flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg p-3 sm:p-6 hover:border-amber-400 transition-colors">
                           {profile.stampURL ? (
-                            <div className="text-center">
+                            <div className="text-center w-full">
                               <img
                                 src={profile.stampURL}
                                 alt="Sello"
-                                className="max-h-20 max-w-full object-contain mb-3"
+                                className="max-h-16 sm:max-h-20 max-w-full object-contain mb-2 sm:mb-3 mx-auto"
                               />
-                              <p className="text-sm text-gray-600 mb-3">
+                              <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">
                                 Sello actual
                               </p>
                               <button
                                 onClick={() => stampInputRef.current?.click()}
                                 disabled={uploadingStamp}
-                                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+                                className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                               >
                                 {uploadingStamp
                                   ? "Subiendo..."
@@ -1076,18 +1073,18 @@ export default function ProfileSettings() {
                               </button>
                             </div>
                           ) : (
-                            <div className="text-center">
-                              <CameraIcon className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                              <p className="text-sm font-medium text-gray-900 mb-1">
+                            <div className="text-center w-full">
+                              <CameraIcon className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mb-2 sm:mb-3" />
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1">
                                 Sube tu sello
                               </p>
-                              <p className="text-xs text-gray-500 mb-4">
+                              <p className="text-xs text-gray-500 mb-3 sm:mb-4">
                                 PNG, JPG hasta 2MB
                               </p>
                               <button
                                 onClick={() => stampInputRef.current?.click()}
                                 disabled={uploadingStamp}
-                                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50"
+                                className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                               >
                                 {uploadingStamp
                                   ? "Subiendo..."
@@ -1111,18 +1108,18 @@ export default function ProfileSettings() {
             )}
 
             {activeTab === "Galería" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900">
                     Galería de Trabajo
                   </h3>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-xs sm:text-sm text-gray-500">
                     {profile.galleryImages?.length || 0}/10 imágenes
                   </span>
                 </div>
 
                 {/* Upload Area */}
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6 text-center hover:border-gray-400 transition-colors">
                   <input
                     type="file"
                     multiple
@@ -1144,9 +1141,9 @@ export default function ProfileSettings() {
                         : ""
                     }`}
                   >
-                    <div className="mx-auto h-12 w-12 text-gray-400">
+                    <div className="mx-auto h-8 w-8 sm:h-12 sm:w-12 text-gray-400">
                       {uploadingGallery ? (
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-4 border-gray-300 border-t-blue-600"></div>
                       ) : (
                         <svg
                           fill="none"
@@ -1162,13 +1159,13 @@ export default function ProfileSettings() {
                         </svg>
                       )}
                     </div>
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-900">
+                    <div className="mt-2 sm:mt-4">
+                      <p className="text-xs sm:text-sm font-medium text-gray-900">
                         {uploadingGallery
                           ? "Subiendo imágenes..."
                           : "Subir imágenes a la galería"}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-500">
                         PNG, JPG hasta 5MB cada una. Máximo 10 imágenes.
                       </p>
                     </div>
@@ -1177,22 +1174,22 @@ export default function ProfileSettings() {
 
                 {/* Gallery Grid */}
                 {profile.galleryImages && profile.galleryImages.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                     {profile.galleryImages.map((imageUrl, index) => (
                       <div key={index} className="relative group">
                         <img
                           src={imageUrl}
                           alt={`Galería ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                          className="w-full h-24 sm:h-32 object-cover rounded-lg border-2 border-gray-200"
                         />
                         <button
                           onClick={() =>
                             handleRemoveGalleryImage(imageUrl, index)
                           }
-                          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
                         >
                           <svg
-                            className="h-4 w-4"
+                            className="h-3 w-3 sm:h-4 sm:w-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1327,12 +1324,12 @@ export default function ProfileSettings() {
             )}
 
             {/* Save Button */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200">
               <div className="flex justify-end">
                 <button
                   onClick={handleSaveProfile}
                   disabled={saving || !doctorId}
-                  className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
                 >
                   {saving ? (
                     <>
