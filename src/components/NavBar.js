@@ -8,7 +8,8 @@ export default function NavBar() {
   const logo = "/logo.png";
   const links = [
     { href: "/", label: "Inicio" },
-    { href: "/doctores", label: "Doctores" },
+    { href: "/acerca-de", label: "Acerca de" },
+    { href: "/doctores", label: "Especialistas" },
     { href: "/especialidades", label: "Especialidades" },
     { href: "/preguntas-frecuentes", label: "Preguntas Frecuentes" },
   ];

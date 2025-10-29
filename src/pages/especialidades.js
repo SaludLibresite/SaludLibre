@@ -224,17 +224,7 @@ export default function Especialidades() {
             className="text-center max-w-5xl mx-auto"
             variants={fadeInUp}
           >
-            {/* Breadcrumb */}
-            <motion.div
-              className="flex items-center justify-center space-x-2 text-sm text-gray-500 mb-8"
-              variants={fadeInUp}
-            >
-              <span>Inicio</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              <span className="text-[#4dbad9] font-medium">Especialidades Médicas</span>
-            </motion.div>
+
 
             {/* Main title with enhanced typography */}
             <motion.h1
@@ -518,12 +508,10 @@ export default function Especialidades() {
                 <motion.div
                   key={specialty.id}
                   variants={fadeInUp}
-                  className="group relative"
-                  whileHover={{ y: -8 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="relative"
                   custom={index}
                 >
-                  <div className="relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100/50 h-full backdrop-blur-sm">
+                  <div className="relative bg-white rounded-3xl shadow-lg transition-shadow duration-300 hover:shadow-xl overflow-hidden border border-gray-100/50 h-full backdrop-blur-sm">
                     {/* Gradient overlay for depth */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent pointer-events-none z-10" />
                     
@@ -535,27 +523,34 @@ export default function Especialidades() {
                         src={specialty.imageUrl || "/img/doctor-1.jpg"}
                         alt={specialty.title}
                         fill
-                        className="object-cover transition-all duration-700 group-hover:scale-110"
+                        className="object-cover"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       />
                     </div>
 
                     {/* Enhanced Content */}
                     <div className="relative p-6 z-20">
-                      {/* Specialty Title */}
+                      {/* Specialty Title - Clickeable */}
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#4dbad9] transition-colors duration-300">
+                        <motion.a
+                          href={`/doctores?search=${encodeURIComponent(specialty.title)}`}
+                          className="text-xl font-bold text-gray-900 hover:text-[#4dbad9] transition-colors duration-300 cursor-pointer"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
                           {specialty.title}
-                        </h3>
-                        <motion.div
-                          className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#4dbad9] group-hover:text-white transition-all duration-300"
-                          whileHover={{ rotate: 180 }}
-                          transition={{ duration: 0.3 }}
+                        </motion.a>
+                        <motion.a
+                          href={`/doctores?search=${encodeURIComponent(specialty.title)}`}
+                          className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#4dbad9] hover:text-white transition-all duration-300 cursor-pointer"
+                          whileHover={{ rotate: 15, scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          transition={{ duration: 0.2 }}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
-                        </motion.div>
+                        </motion.a>
                       </div>
 
                       {/* Description */}
@@ -592,9 +587,6 @@ export default function Especialidades() {
                         </motion.svg>
                       </motion.a>
                     </div>
-
-                    {/* Hover effect overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#4dbad9]/0 to-[#4dbad9]/0 group-hover:from-[#4dbad9]/5 group-hover:to-[#e8ad0f]/5 transition-all duration-500 rounded-3xl pointer-events-none" />
                   </div>
                 </motion.div>
               ))}

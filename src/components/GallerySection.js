@@ -124,8 +124,6 @@ export default function GallerySection({ items }) {
         >
           <motion.h2
             className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-800 sm:text-5xl"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
              Especialidades
           </motion.h2>

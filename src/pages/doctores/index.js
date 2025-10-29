@@ -125,8 +125,8 @@ export default function DoctoresPage() {
       value: selectedAgeGroup,
       setter: setSelectedAgeGroup,
       options: [
-        { value: "menores", label: "Solo Menores" },
-        { value: "adultos", label: "Solo Adultos" },
+        { value: "menores", label: "Solo Menores (0-18)" },
+        { value: "adultos", label: "Solo Adultos (18-65+)" },
         { value: "ambos", label: "Menores y Adultos" },
       ],
       iconPath:
