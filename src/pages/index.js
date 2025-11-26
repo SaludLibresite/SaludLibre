@@ -1,5 +1,6 @@
 import HeroCarousel from "../components/HeroCarousel";
 import InfoSection from "../components/InfoSection";
+import LearnPlatformSection from "../components/LearnPlatformSection";
 import StatsSection from "../components/StatsSection";
 import GallerySection from "../components/GallerySection";
 import FAQSection from "../components/FAQSection";
@@ -334,9 +335,17 @@ export default function Home() {
                 icon: "💡",
               },
             ]}
-            lastTitle="Compromiso con la salud"
-            lastDescription="Se esfuerza por ofrecer servicios médicos de alta calidad y ambientes cómodos para los pacientes, combinando la mejor tecnología con un trato humano excepcional."
           />
+        </motion.div>
+
+        {/* Learn Platform Section */}
+        <motion.div
+          variants={fadeInLeft}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="mb-20 max-w-7xl mx-auto px-6"
+        >
+          <LearnPlatformSection />
         </motion.div>
 
         

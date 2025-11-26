@@ -147,28 +147,30 @@ export default function InfoSection({
           </motion.div>
         </div>
 
-        <motion.div
-          className="mt-20 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <motion.h2
-            className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent"
-          >
-            {lastTitle}
-          </motion.h2>
-          <motion.p
-            className="text-lg text-slate-600 max-w-3xl mx-auto"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+        {lastTitle && lastDescription && (
+          <motion.div
+            className="mt-20 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
+            transition={{ duration: 0.6 }}
           >
-            {lastDescription}
-          </motion.p>
-        </motion.div>
+            <motion.h2
+              className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent"
+            >
+              {lastTitle}
+            </motion.h2>
+            <motion.p
+              className="text-lg text-slate-600 max-w-3xl mx-auto"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              {lastDescription}
+            </motion.p>
+          </motion.div>
+        )}
       </div>
     </div>
   );
