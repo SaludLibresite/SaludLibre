@@ -351,7 +351,7 @@ export default function AcercaDe() {
                 </div>
 
                 <motion.button
-                  onClick={() => (window.location.href = "/beneficios")}
+                  onClick={() => (window.location.href = "/beneficios#planes")}
                   className="w-full bg-[#e8ad0f] text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#e8ad0f] focus:ring-offset-2"
                   whileHover={{
                     scale: 1.02,

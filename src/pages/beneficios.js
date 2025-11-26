@@ -9,88 +9,102 @@ import {
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getActiveSubscriptionPlans } from "../lib/subscriptionsService";
+
+// Fallback plans in case the API is not available
+const defaultPlans = [
+  {
+    name: "Básico",
+    price: 0,
+    description: "Perfecto para comenzar",
+    features: [
+      "Perfil básico",
+      "Hasta 5 citas por mes",
+      "Soporte por email",
+      "Reseñas de pacientes",
+    ],
+    isPopular: false,
+  },
+  {
+    name: "Profesional",
+    price: 29,
+    description: "Para médicos establecidos",
+    features: [
+      "Perfil completo con galería",
+      "Citas ilimitadas",
+      "Consultas online",
+      "Dashboard de estadísticas",
+      "Soporte prioritario",
+      "Integración con calendario",
+    ],
+    isPopular: true,
+  },
+  {
+    name: "Premium",
+    price: 59,
+    description: "Para clínicas y centros médicos",
+    features: [
+      "Todo de Profesional",
+      "Múltiples especialistas",
+      "API personalizada",
+      "Reportes avanzados",
+      "Soporte 24/7",
+      "Gestor de cuenta dedicado",
+    ],
+    isPopular: false,
+  },
+];
 
 export default function Beneficios() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const planesRef = useRef(null);
 
   useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        const activePlans = await getActiveSubscriptionPlans();
+        console.log('Loaded plans from SuperAdmin:', activePlans);
+        
+        // Transform plans to match expected structure
+        const transformedPlans = activePlans.map((plan, index) => ({
+          id: plan.id,
+          name: plan.name,
+          price: plan.price,
+          description: plan.description || `Plan ${plan.name}`,
+          features: plan.features || [],
+          isPopular: plan.isPopular || false,
+          duration: plan.duration || 30,
+          isActive: plan.isActive
+        }));
+        
+        console.log('Transformed plans:', transformedPlans);
+        setPlans(transformedPlans);
+      } catch (error) {
+        console.error("Error loading plans:", error);
+        // Fallback to default plans if API fails
+        setPlans(defaultPlans);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     loadPlans();
   }, []);
 
-  const loadPlans = async () => {
-    try {
-      const activePlans = await getActiveSubscriptionPlans();
-      console.log('Loaded plans from SuperAdmin:', activePlans);
-      
-      // Transform plans to match expected structure
-      const transformedPlans = activePlans.map((plan, index) => ({
-        id: plan.id,
-        name: plan.name,
-        price: plan.price,
-        description: plan.description || `Plan ${plan.name}`,
-        features: plan.features || [],
-        isPopular: plan.isPopular || false,
-        duration: plan.duration || 30,
-        isActive: plan.isActive
-      }));
-      
-      console.log('Transformed plans:', transformedPlans);
-      setPlans(transformedPlans);
-    } catch (error) {
-      console.error("Error loading plans:", error);
-      // Fallback to default plans if API fails
-      setPlans(defaultPlans);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    // Check if URL has #planes hash
+    if (window.location.hash === '#planes' && planesRef.current) {
+      setTimeout(() => {
+        planesRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
     }
-  };
+  }, [loading]); // Wait for plans to load
 
-  // Fallback plans in case the API is not available
-  const defaultPlans = [
-    {
-      name: "Básico",
-      price: 0,
-      description: "Perfecto para comenzar",
-      features: [
-        "Perfil básico",
-        "Hasta 5 citas por mes",
-        "Soporte por email",
-        "Reseñas de pacientes",
-      ],
-      isPopular: false,
-    },
-    {
-      name: "Profesional",
-      price: 29,
-      description: "Para médicos establecidos",
-      features: [
-        "Perfil completo con galería",
-        "Citas ilimitadas",
-        "Consultas online",
-        "Dashboard de estadísticas",
-        "Soporte prioritario",
-        "Integración con calendario",
-      ],
-      isPopular: true,
-    },
-    {
-      name: "Premium",
-      price: 59,
-      description: "Para clínicas y centros médicos",
-      features: [
-        "Todo de Profesional",
-        "Múltiples especialistas",
-        "API personalizada",
-        "Reportes avanzados",
-        "Soporte 24/7",
-        "Gestor de cuenta dedicado",
-      ],
-      isPopular: false,
-    },
-  ];
   const benefits = [
     {
       icon: UsersIcon,
@@ -211,7 +225,7 @@ export default function Beneficios() {
       </div>
 
       {/* Pricing Section */}
-      <div className="bg-gray-50 py-24 sm:py-32">
+      <div ref={planesRef} id="planes" className="bg-gray-50 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
