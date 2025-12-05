@@ -73,7 +73,7 @@ export default function NewAppointmentModal({
         patientEmail: patient.email,
         patientPhone: patient.phone,
         doctorId: doctorData.id,
-        doctorName: doctorData.name,
+        doctorName: doctorData.nombre,
         date: new Date(`${formData.date}T00:00:00`),
         time: formData.time,
         reason: formData.reason,
@@ -82,6 +82,14 @@ export default function NewAppointmentModal({
         duration: parseInt(formData.duration),
         status: "scheduled",
       };
+
+      // Add optional fields only if they exist
+      if (doctorData.especialidad) {
+        appointmentData.doctorSpecialty = doctorData.especialidad;
+      }
+      if (doctorData.genero) {
+        appointmentData.doctorGender = doctorData.genero;
+      }
 
       await createAppointment(appointmentData);
 
