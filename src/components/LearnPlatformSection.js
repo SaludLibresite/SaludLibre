@@ -78,7 +78,7 @@ export default function LearnPlatformSection() {
             transition={{ delay: 0.3, duration: 0.5 }}
           >
             <a
-              href="https://www.youtube.com/@SaludLibre"
+              href="https://www.youtube.com/@saludlibre2025"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 rounded-full shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-300"
