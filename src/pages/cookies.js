@@ -360,10 +360,10 @@ export default function PoliticaCookies() {
                 </p>
                 <div className="space-y-2 text-gray-700">
                   <p>
-                    <strong>Email:</strong> cookies@saludlibre.com.ar
+                    <strong>Email:</strong> saludlibre2025@gmail.com
                   </p>
                   <p>
-                    <strong>Teléfono:</strong> +54 11 4444-5555
+                    <strong>Teléfono:</strong> 1124765705
                   </p>
                   <p>
                     <strong>Formulario de contacto:</strong>
