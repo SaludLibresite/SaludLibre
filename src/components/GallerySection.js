@@ -10,8 +10,11 @@ export default function GallerySection({ items }) {
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
-    align: "start",
+    align: "center", // Centrar en mobile
     skipSnaps: false,
+    breakpoints: {
+      '(min-width: 768px)': { align: 'start' } // Alinear a la izquierda en desktop
+    }
   });
 
   const scrollPrev = useCallback(() => {
@@ -170,20 +173,20 @@ export default function GallerySection({ items }) {
 
         {/* Embla carousel container with gradient overlays */}
         <div className="relative">
-          {/* Left gradient overlay */}
-          <div className="absolute left-0 top-0 bottom-0 w-[15%] bg-gradient-to-r from-white to-transparent z-10" />
-          {/* Right gradient overlay */}
-          <div className="absolute right-0 top-0 bottom-0 w-[15%] bg-gradient-to-l from-white to-transparent z-10" />
+          {/* Left gradient overlay - hidden on mobile for better visibility */}
+          <div className="hidden md:block absolute left-0 top-0 bottom-0 w-[15%] bg-gradient-to-r from-white to-transparent z-10" />
+          {/* Right gradient overlay - hidden on mobile for better visibility */}
+          <div className="hidden md:block absolute right-0 top-0 bottom-0 w-[15%] bg-gradient-to-l from-white to-transparent z-10" />
 
           {/* Carousel wrapper */}
-          <div className="overflow-hidden px-6 lg:px-8" ref={emblaRef}>
-            <div className="flex -ml-4 pl-[5%] [&>:nth-child(1)]:ml-24">
+          <div className="overflow-hidden px-2 sm:px-6 lg:px-8" ref={emblaRef}>
+            <div className="flex -ml-2 sm:-ml-4 md:pl-[5%] md:[&>:nth-child(1)]:ml-24">
               {loading
                 ? // Loading skeleton
                   Array.from({ length: 3 }).map((_, index) => (
                     <div
                       key={`skeleton-${index}`}
-                      className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                      className="min-w-0 flex-[0_0_90%] sm:flex-[0_0_85%] md:flex-[0_0_45%] lg:flex-[0_0_30%] pl-2 sm:pl-4"
                     >
                       <div className="h-[36rem] bg-gray-200 rounded-3xl animate-pulse" />
                     </div>
@@ -191,7 +194,7 @@ export default function GallerySection({ items }) {
                 : categories.map((category) => (
                     <motion.div
                       key={category.id}
-                      className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                      className="min-w-0 flex-[0_0_90%] sm:flex-[0_0_85%] md:flex-[0_0_45%] lg:flex-[0_0_30%] pl-2 sm:pl-4"
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: "-100px" }}
@@ -212,26 +215,26 @@ export default function GallerySection({ items }) {
                             alt={category.title}
                             fill
                             className="object-cover transition-all duration-700"
-                            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
+                            sizes="(max-width: 640px) 90vw, (max-width: 768px) 85vw, (max-width: 1024px) 45vw, 30vw"
                             priority
                           />
                         </div>
 
                         {/* Contenido */}
-                        <div className="relative h-full z-10 flex flex-col justify-end p-8">
+                        <div className="relative h-full z-10 flex flex-col justify-end p-4 sm:p-6 md:p-8">
                           {/* Badge de categoría */}
-                          <div className="bg-amber-50 w-fit px-4 py-2 rounded-full mb-6 shadow-sm">
-                            <span className="text-sm font-medium text-amber-700">
+                          <div className="bg-amber-50 w-fit px-3 py-1.5 sm:px-4 sm:py-2 rounded-full mb-4 sm:mb-6 shadow-sm">
+                            <span className="text-xs sm:text-sm font-medium text-amber-700">
                               Especialidad médica
                             </span>
                           </div>
 
                           {/* Contenedor del texto principal */}
-                          <div className="bg-white rounded-2xl p-8 transition-transform duration-300 group-hover:translate-y-[-4px]">
-                            <h3 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
+                          <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 transition-transform duration-300 group-hover:translate-y-[-4px]">
+                            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 md:mb-4 tracking-tight break-words hyphens-auto">
                               {category.title}
                             </h3>
-                            <p className="text-gray-600 text-base leading-relaxed mb-8 line-clamp-3">
+                            <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-4 sm:mb-6 md:mb-8 line-clamp-3">
                               {category.description}
                             </p>
 
@@ -239,12 +242,13 @@ export default function GallerySection({ items }) {
                               href={`/doctores?search=${encodeURIComponent(
                                 category.title
                               )}`}
-                              className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium text-sm hover:from-amber-600 hover:to-yellow-600 transition-all duration-300"
+                              className="inline-flex items-center px-4 py-2 sm:px-5 sm:py-2.5 md:px-6 md:py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium text-xs sm:text-sm hover:from-amber-600 hover:to-yellow-600 transition-all duration-300"
                               whileTap={{ scale: 0.98 }}
                             >
-                              Encuentra tu especialista
+                              <span className="hidden sm:inline">Encuentra tu especialista</span>
+                              <span className="sm:hidden">Ver especialistas</span>
                               <svg
-                                className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                                className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -266,7 +270,7 @@ export default function GallerySection({ items }) {
 
               {/* Card "Ver más" */}
               <motion.div
-                className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                className="min-w-0 flex-[0_0_90%] sm:flex-[0_0_85%] md:flex-[0_0_45%] lg:flex-[0_0_30%] pl-2 sm:pl-4"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
@@ -279,10 +283,10 @@ export default function GallerySection({ items }) {
                     transition: { duration: 0.3, ease: "easeOut" },
                   }}
                 >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center">
-                    <div className="w-20 h-20 mb-8 rounded-full bg-amber-100 flex items-center justify-center">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 md:p-12 text-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 mb-6 sm:mb-8 rounded-full bg-amber-100 flex items-center justify-center">
                       <svg
-                        className="w-10 h-10 text-amber-600"
+                        className="w-8 h-8 sm:w-10 sm:h-10 text-amber-600"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -295,19 +299,20 @@ export default function GallerySection({ items }) {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
                       ¿Buscas otro especialista?
                     </h3>
-                    <p className="text-gray-600 text-base leading-relaxed mb-8">
+                    <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8 px-2">
                       Explora todos los médicos especialistas disponibles y encuentra
                       exactamente lo que necesitas para tu salud
                     </p>
                     <motion.a
                       href="/doctores"
-                      className="inline-flex items-center px-6 py-3 rounded-xl border-2 border-amber-200 text-amber-700 font-medium text-sm hover:bg-amber-50 transition-colors duration-300"
+                      className="inline-flex items-center px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl border-2 border-amber-200 text-amber-700 font-medium text-sm hover:bg-amber-50 transition-colors duration-300"
                       whileTap={{ scale: 0.98 }}
                     >
-                      Ver todos los doctores
+                      <span className="hidden sm:inline">Ver todos los doctores</span>
+                      <span className="sm:hidden">Ver doctores</span>
                       <svg
                         className="w-4 h-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
                         xmlns="http://www.w3.org/2000/svg"
@@ -329,7 +334,7 @@ export default function GallerySection({ items }) {
 
               {/* Card vacía para scroll */}
               <motion.div
-                className="min-w-0 flex-[0_0_85%] sm:flex-[0_0_45%] md:flex-[0_0_30%] pl-4"
+                className="min-w-0 flex-[0_0_90%] sm:flex-[0_0_85%] md:flex-[0_0_45%] lg:flex-[0_0_30%] pl-2 sm:pl-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0 }}
               >
