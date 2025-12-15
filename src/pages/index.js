@@ -438,7 +438,7 @@ export default function Home() {
                 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Ver Beneficios
+                Planes para Médicos
               </motion.button>
             </motion.div>
           </motion.div>
