@@ -13,7 +13,7 @@ export default function AppointmentDetailPage() {
     <ProtectedRoute>
       <FeatureProtectedRoute feature="appointments">
         <AdminLayout>
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             <AppointmentDetail appointmentId={id} />
           </div>
         </AdminLayout>

@@ -166,23 +166,23 @@ export default function PatientsList() {
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <UserGroupIcon className="h-5 w-5 text-amber-600" />
+      <div className="px-3 sm:px-6 py-4 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-yellow-50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+            <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+              <UserGroupIcon className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
               Lista de Pacientes
             </h2>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 flex-shrink-0">
               {patients.length}{" "}
               {patients.length === 1 ? "paciente" : "pacientes"}
             </span>
           </div>
           <button
             onClick={() => setShowChoiceModal(true)}
-            className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 transition-all duration-200 shadow-md hover:shadow-lg"
+            className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 transition-all duration-200 shadow-md hover:shadow-lg text-sm sm:text-base w-full sm:w-auto flex-shrink-0"
             disabled={!doctorData}
           >
             <PlusIcon className="h-4 w-4" />
@@ -203,9 +203,9 @@ export default function PatientsList() {
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="mt-4 flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between sm:space-x-4">
           {/* Search */}
-          <div className="flex-1 max-w-md">
+          <div className="flex-1 max-w-full sm:max-w-md">
             <div className="relative">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
@@ -213,26 +213,28 @@ export default function PatientsList() {
                 placeholder="Buscar pacientes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors duration-200"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors duration-200 text-sm sm:text-base"
               />
             </div>
           </div>
 
           {/* Sort */}
           <div className="flex items-center space-x-4">
-            <div>
-              <label className="text-sm text-gray-600">Ordenar por</label>
+            <div className="w-full sm:w-auto min-w-0">
+              <label className="block text-xs sm:text-sm text-gray-600 mb-1">
+                Ordenar por
+              </label>
               <div className="relative">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm rounded-md transition-colors duration-200"
+                  className="block w-full pl-3 pr-8 sm:pr-10 py-2 text-sm sm:text-base border border-gray-300 focus:outline-none focus:ring-amber-500 focus:border-amber-500 rounded-md transition-colors duration-200 bg-white"
                 >
                   <option value="name">Nombre</option>
                   <option value="date">Fecha de registro</option>
                   <option value="status">Estado</option>
                 </select>
-                <ChevronDownIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <ChevronDownIcon className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
           </div>

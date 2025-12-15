@@ -29,6 +29,36 @@ export default function NavBar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [scrolled]);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (open) {
+      // Immediately scroll to top and lock scroll
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollTop}px`;
+      document.body.style.width = '100%';
+    } else {
+      // Restore scroll position
+      const scrollTop = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      if (scrollTop) {
+        window.scrollTo(0, parseInt(scrollTop || '0') * -1);
+      }
+    }
+
+    // Cleanup function to restore scroll when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
+  }, [open]);
+
   const navVariants = {
     hidden: { y: -100, opacity: 0 },
     visible: {
@@ -135,7 +165,7 @@ export default function NavBar() {
 
           {/* Mobile menu button */}
           <motion.button
-            className="md:hidden flex flex-col justify-center items-center w-10 h-10 relative z-50"
+            className="md:hidden flex flex-col justify-center items-center w-10 h-10 relative z-[102]"
             onClick={() => setOpen(!open)}
             whileTap={{ scale: 0.9 }}
             aria-label="Abrir menú"
@@ -164,50 +194,48 @@ export default function NavBar() {
         {open && (
           <>
             <motion.div
-              className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+              className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
+              style={{ 
+                position: 'fixed', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                bottom: 0,
+                width: '100vw',
+                height: '100vh'
+              }}
             />
             <motion.div
-              className="md:hidden fixed top-0 right-0 h-full w-72 bg-white shadow-xl z-50"
+              className="md:hidden fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-[101] overflow-hidden"
               variants={menuVariants}
               initial="closed"
               animate="open"
               exit="closed"
+              style={{ 
+                position: 'fixed', 
+                top: 0, 
+                right: 0, 
+                height: '100vh',
+                maxHeight: '100vh'
+              }}
             >
               <div className="flex flex-col h-full p-6">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-center mb-8">
                   {logo && (
-                    <Link href="/">
+                    <Link href="/" onClick={() => setOpen(false)}>
                       <Image
                         src={logo}
                         alt="Logo"
-                        width={200}
-                        height={200}
+                        width={120}
+                        height={120}
                         className="object-contain cursor-pointer"
                       />
                     </Link>
                   )}
-                  <motion.button
-                    onClick={() => setOpen(false)}
-                    whileHover={{ rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-2 rounded-full hover:bg-gray-100"
-                    aria-label="Cerrar menú"
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </motion.button>
                 </div>
 
                 <div className="flex flex-col gap-4 flex-1">

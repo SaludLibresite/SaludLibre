@@ -1,7 +1,7 @@
 # Firebase Security Rules for Reviews Collection
 6
 ## Add these rules to your Firestore Security Rules
-
+a
 ```javascript
 // Reviews - patients can only read/write their own reviews, doctors can read reviews about them
 match /reviews/{document} {
