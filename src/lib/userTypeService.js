@@ -24,17 +24,31 @@ export async function detectUserType(user) {
 
     if (!doctorsSnapshot.empty) {
       const doctorData = doctorsSnapshot.docs[0].data();
+      
+      // Convertir Timestamps de Firebase a Dates para evitar problemas de serialización
+      const processedDoctorData = {
+        ...doctorData,
+        createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
+        updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
+        subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
+        subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
+      };
+      
       console.log('detectUserType: Doctor found:', {
         id: doctorsSnapshot.docs[0].id,
-        isGoogleUser: doctorData.isGoogleUser,
-        profileComplete: doctorData.profileComplete,
-        nombre: doctorData.nombre
+        isGoogleUser: processedDoctorData.isGoogleUser,
+        profileComplete: processedDoctorData.profileComplete,
+        nombre: processedDoctorData.nombre,
+        subscriptionStatus: processedDoctorData.subscriptionStatus,
+        subscriptionPlan: processedDoctorData.subscriptionPlan,
+        subscriptionExpiresAt: processedDoctorData.subscriptionExpiresAt,
       });
+      
       return {
         type: "doctor",
         profile: {
           id: doctorsSnapshot.docs[0].id,
-          ...doctorData,
+          ...processedDoctorData,
         },
       };
     }
@@ -108,9 +122,19 @@ export async function getUserByType(type, userId) {
 
     if (!userSnapshot.empty) {
       const userData = userSnapshot.docs[0].data();
+      
+      // Convertir Timestamps de Firebase a Dates
+      const processedUserData = {
+        ...userData,
+        createdAt: userData.createdAt?.toDate?.() || userData.createdAt,
+        updatedAt: userData.updatedAt?.toDate?.() || userData.updatedAt,
+        subscriptionExpiresAt: userData.subscriptionExpiresAt?.toDate?.() || userData.subscriptionExpiresAt,
+        subscriptionActivatedAt: userData.subscriptionActivatedAt?.toDate?.() || userData.subscriptionActivatedAt,
+      };
+      
       return {
         id: userSnapshot.docs[0].id,
-        ...userData,
+        ...processedUserData,
       };
     }
 

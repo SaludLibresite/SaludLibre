@@ -41,12 +41,23 @@ export async function getAllDoctors() {
 export async function getDoctorById(id) {
   try {
     const docRef = doc(db, DOCTORS_COLLECTION, id);
-    const docSnap = await getDoc(docRef);
+    const docSnap = await getDoc(docSnap);
 
     if (docSnap.exists()) {
+      const doctorData = docSnap.data();
+      
+      // Convertir Timestamps de Firebase a Dates
+      const processedDoctorData = {
+        ...doctorData,
+        createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
+        updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
+        subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
+        subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
+      };
+      
       return {
         id: docSnap.id,
-        ...docSnap.data(),
+        ...processedDoctorData,
       };
     } else {
       throw new Error("Doctor no encontrado");
@@ -66,9 +77,20 @@ export async function getDoctorBySlug(slug) {
 
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
+      const doctorData = doc.data();
+      
+      // Convertir Timestamps de Firebase a Dates
+      const processedDoctorData = {
+        ...doctorData,
+        createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
+        updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
+        subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
+        subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
+      };
+      
       return {
         id: doc.id,
-        ...doc.data(),
+        ...processedDoctorData,
       };
     } else {
       throw new Error("Doctor no encontrado");
@@ -92,10 +114,28 @@ export async function getDoctorByUserId(userId) {
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
       const doctorData = doc.data();
-      console.log('Doctor found:', { id: doc.id, email: doctorData.email, userId: doctorData.userId });
+      
+      // Convertir Timestamps de Firebase a Dates
+      const processedDoctorData = {
+        ...doctorData,
+        createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
+        updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
+        subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
+        subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
+      };
+      
+      console.log('Doctor found:', { 
+        id: doc.id, 
+        email: processedDoctorData.email, 
+        userId: processedDoctorData.userId,
+        subscriptionStatus: processedDoctorData.subscriptionStatus,
+        subscriptionPlan: processedDoctorData.subscriptionPlan,
+        subscriptionExpiresAt: processedDoctorData.subscriptionExpiresAt,
+      });
+      
       return {
         id: doc.id,
-        ...doctorData,
+        ...processedDoctorData,
       };
     } else {
       console.log('No doctor profile found for userId:', userId);
@@ -140,10 +180,27 @@ export async function getDoctorByEmail(email) {
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
       const doctorData = doc.data();
-      console.log('Doctor found by email:', { id: doc.id, email: doctorData.email, userId: doctorData.userId });
+      
+      // Convertir Timestamps de Firebase a Dates
+      const processedDoctorData = {
+        ...doctorData,
+        createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
+        updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
+        subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
+        subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
+      };
+      
+      console.log('Doctor found by email:', { 
+        id: doc.id, 
+        email: processedDoctorData.email, 
+        userId: processedDoctorData.userId,
+        subscriptionStatus: processedDoctorData.subscriptionStatus,
+        subscriptionExpiresAt: processedDoctorData.subscriptionExpiresAt,
+      });
+      
       return {
         id: doc.id,
-        ...doctorData,
+        ...processedDoctorData,
       };
     } else {
       console.log('No doctor profile found for email:', email);
@@ -292,6 +349,38 @@ export async function getDoctorsNearLocation(
     return nearbyDoctors;
   } catch (error) {
     console.error("Error getting nearby doctors:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get doctors with pagination and search (via API)
+ * @param {Object} params - Query parameters
+ * @param {number} params.page - Page number
+ * @param {number} params.limit - Items per page
+ * @param {string} params.search - Search term
+ * @param {string} params.filter - Filter (all, pending, verified)
+ * @returns {Promise<Object>} - Paginated doctors data
+ */
+export async function getDoctorsPaginated({ page = 1, limit = 20, search = "", filter = "all" } = {}) {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search,
+      filter,
+    });
+
+    const response = await fetch(`/api/superadmin/doctors?${params}`);
+    
+    if (!response.ok) {
+      throw new Error('Error fetching doctors');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error getting paginated doctors:", error);
     throw error;
   }
 }

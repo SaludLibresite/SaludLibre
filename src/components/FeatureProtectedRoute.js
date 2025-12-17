@@ -14,26 +14,55 @@ export default function FeatureProtectedRoute({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     async function checkFeatureAccess() {
       if (!currentUser) {
-        setLoading(false);
+        if (isMounted) setLoading(false);
         return;
       }
 
       try {
-        console.log(`🔍 Checking feature access for feature: ${feature}, user: ${currentUser.uid}`);
+        console.log(`🔍 FeatureProtectedRoute: Checking access for feature "${feature}"`);
+        console.log(`👤 User ID: ${currentUser.uid}`);
+        console.log(`📧 User email: ${currentUser.email}`);
+        console.log(`📅 Check time: ${new Date().toISOString()}`);
+        
+        // Obtener datos frescos directamente desde Firebase cada vez
+        const { getDoctorByUserId } = await import('../lib/doctorsService');
+        const freshDoctor = await getDoctorByUserId(currentUser.uid);
+        
+        if (freshDoctor) {
+          console.log(`👨‍⚕️ Fresh doctor data obtained:`, {
+            subscriptionStatus: freshDoctor.subscriptionStatus,
+            subscriptionPlan: freshDoctor.subscriptionPlan,
+            subscriptionExpiresAt: freshDoctor.subscriptionExpiresAt,
+            subscriptionExpiresAtType: typeof freshDoctor.subscriptionExpiresAt,
+            isExpired: freshDoctor.subscriptionExpiresAt 
+              ? freshDoctor.subscriptionExpiresAt <= new Date()
+              : 'N/A'
+          });
+        }
+        
         const access = await hasFeatureAccess(currentUser.uid, feature);
-        console.log(`✅ Feature access result for ${feature}:`, access);
-        setHasAccess(access);
+        
+        console.log(`${access ? '✅ ACCESS GRANTED' : '❌ ACCESS DENIED'} for feature "${feature}"`);
+        console.log(`─────────────────────────────────────────`);
+        
+        if (isMounted) setHasAccess(access);
       } catch (error) {
         console.error("Error checking feature access:", error);
-        setHasAccess(false);
+        if (isMounted) setHasAccess(false);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     checkFeatureAccess();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser, feature]);
 
   if (loading) {

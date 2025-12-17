@@ -50,6 +50,9 @@ const DoctorsList = ({
                 Estado
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Suscripción
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Documentos
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -159,28 +162,84 @@ const DoctorsList = ({
                   </span>
                 </td>
                 <td className="px-6 py-6">
-                  <div className="flex flex-col space-y-1">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  <span
+                    className={`inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full border ${
+                      doctor.verified
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                        : "bg-amber-100 text-amber-800 border-amber-200"
+                    }`}
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full mr-2 ${
                         doctor.verified
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
+                          ? "bg-emerald-500"
+                          : "bg-amber-500"
                       }`}
-                    >
-                      {doctor.verified ? "Verificado" : "Pendiente"}
-                    </span>
-                    {doctor.subscriptionStatus && (
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          doctor.subscriptionStatus === "active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {doctor.subscriptionPlan || "Sin plan"}
-                      </span>
-                    )}
-                  </div>
+                    ></div>
+                    {doctor.verified ? "Verificado" : "Pendiente"}
+                  </span>
+                </td>
+                <td className="px-6 py-6">
+                  {doctor.subscriptionInfo ? (
+                    <div className="flex flex-col space-y-2">
+                      {/* Plan name and status */}
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            doctor.subscriptionInfo.status === "active"
+                              ? "bg-green-100 text-green-800 border border-green-200"
+                              : doctor.subscriptionInfo.status === "expired"
+                              ? "bg-red-100 text-red-800 border border-red-200"
+                              : "bg-gray-100 text-gray-800 border border-gray-200"
+                          }`}
+                        >
+                          {doctor.subscriptionInfo.planName}
+                        </span>
+                        {doctor.subscriptionInfo.isExpired && (
+                          <span className="text-xs text-red-600 font-medium">
+                            ⚠️ Vencida
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Days remaining or expiration info */}
+                      {doctor.subscriptionInfo.hasActiveSubscription ? (
+                        <div className="text-xs text-gray-600">
+                          <div className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className={doctor.subscriptionInfo.daysRemaining <= 7 ? "text-orange-600 font-semibold" : ""}>
+                              {doctor.subscriptionInfo.daysRemaining} días restantes
+                            </span>
+                          </div>
+                          {doctor.subscriptionInfo.nextPaymentDate && (
+                            <div className="flex items-center mt-1">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              Vence: {new Date(doctor.subscriptionInfo.nextPaymentDate).toLocaleDateString('es-AR')}
+                            </div>
+                          )}
+                        </div>
+                      ) : doctor.subscriptionInfo.isExpired ? (
+                        <div className="text-xs text-red-600 font-medium">
+                          <div className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Expiró hace {Math.abs(doctor.subscriptionInfo.daysRemaining)} días
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 italic">
+                          Sin suscripción activa
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">Plan Free</span>
+                  )}
                 </td>
                 <td className="px-6 py-6">
                   <div className="flex flex-wrap gap-1">

@@ -2,6 +2,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import PatientsList from "@/components/admin/PatientsList";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import FeatureProtectedRoute from "@/components/FeatureProtectedRoute";
+import SubscriptionDebugInfo from "@/components/admin/SubscriptionDebugInfo";
 
 export default function PatientsPage() {
   return (
@@ -13,6 +14,9 @@ export default function PatientsPage() {
           </div>
         </AdminLayout>
       </FeatureProtectedRoute>
+      
+      {/* Componente temporal de debug - ELIMINAR después de resolver el problema */}
+      <SubscriptionDebugInfo />
     </ProtectedRoute>
   );
 }

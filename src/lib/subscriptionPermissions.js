@@ -65,10 +65,23 @@ export const hasFeatureAccess = async (userId, feature) => {
         const doctor = await getDoctorByUserId(userId);
         
         if (doctor) {
+          // Asegurar que subscriptionExpiresAt esté en formato Date
+          if (doctor.subscriptionExpiresAt) {
+            if (doctor.subscriptionExpiresAt.toDate) {
+              doctor.subscriptionExpiresAt = doctor.subscriptionExpiresAt.toDate();
+            } else if (typeof doctor.subscriptionExpiresAt === 'string') {
+              doctor.subscriptionExpiresAt = new Date(doctor.subscriptionExpiresAt);
+            }
+          }
+          
           console.log(`👨‍⚕️ Doctor data found:`, {
             subscriptionStatus: doctor.subscriptionStatus,
             subscriptionPlan: doctor.subscriptionPlan,
-            subscriptionExpiresAt: doctor.subscriptionExpiresAt
+            subscriptionExpiresAt: doctor.subscriptionExpiresAt,
+            subscriptionExpiresAtType: typeof doctor.subscriptionExpiresAt,
+            subscriptionExpiresAtValue: doctor.subscriptionExpiresAt?.toString(),
+            now: new Date().toString(),
+            isExpired: doctor.subscriptionExpiresAt ? doctor.subscriptionExpiresAt <= new Date() : 'N/A'
           });
           
           // Usar la función específica para verificar acceso desde datos del doctor
@@ -85,13 +98,47 @@ export const hasFeatureAccess = async (userId, feature) => {
       }
     }
     
-    // Si hay suscripción en la colección, usar la lógica original
+    // Si hay suscripción en la colección, verificar si está activa
     const isActive = isSubscriptionActive(subscription);
     console.log(`🔄 Subscription active check:`, isActive);
     
+    // Si la suscripción en la colección NO está activa, verificar datos del doctor como fallback
     if (!isActive) {
-      console.log(`❌ Subscription not active, using free plan`);
-      return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+      console.log(`⚠️ Subscription in collection not active (status: ${subscription.status}), checking doctor data as fallback...`);
+      
+      try {
+        const { getDoctorByUserId } = await import('./doctorsService');
+        const doctor = await getDoctorByUserId(userId);
+        
+        if (doctor) {
+          // Asegurar que subscriptionExpiresAt esté en formato Date
+          if (doctor.subscriptionExpiresAt) {
+            if (doctor.subscriptionExpiresAt.toDate) {
+              doctor.subscriptionExpiresAt = doctor.subscriptionExpiresAt.toDate();
+            } else if (typeof doctor.subscriptionExpiresAt === 'string') {
+              doctor.subscriptionExpiresAt = new Date(doctor.subscriptionExpiresAt);
+            }
+          }
+          
+          console.log(`👨‍⚕️ Doctor data found (fallback):`, {
+            subscriptionStatus: doctor.subscriptionStatus,
+            subscriptionPlan: doctor.subscriptionPlan,
+            subscriptionExpiresAt: doctor.subscriptionExpiresAt,
+            isExpired: doctor.subscriptionExpiresAt ? doctor.subscriptionExpiresAt <= new Date() : 'N/A'
+          });
+          
+          // Usar la función específica para verificar acceso desde datos del doctor
+          const hasAccess = hasFeatureAccessFromDoctor(doctor, feature);
+          console.log(`✅ Final access result from doctor data (fallback):`, hasAccess);
+          return hasAccess;
+        } else {
+          console.log(`❌ No doctor data found, using free plan`);
+          return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+        }
+      } catch (doctorError) {
+        console.error('Error getting doctor data:', doctorError);
+        return SUBSCRIPTION_PERMISSIONS.free.includes(feature);
+      }
     }
     
     // Determinar el plan del usuario

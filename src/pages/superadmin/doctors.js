@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/router";
 import {
-  getAllDoctors,
+  getDoctorsPaginated,
   updateDoctor,
   deleteDoctor,
 } from "../../lib/doctorsService";
@@ -26,11 +26,29 @@ export default function DoctorsManagement() {
   
   // States
   const [doctors, setDoctors] = useState([]);
+  const [allDoctors, setAllDoctors] = useState([]); // For bulk operations
   const [specialties, setSpecialties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
   const [filter, setFilter] = useState("all");
   const [showBulkSubscriptionModal, setShowBulkSubscriptionModal] = useState(false);
+  
+  // Pagination and search states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
+  const [counts, setCounts] = useState({
+    total: 0,
+    pending: 0,
+    verified: 0,
+  });
   
   // Modal states (if you have other modals)
   const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
@@ -57,12 +75,32 @@ export default function DoctorsManagement() {
     }
   }, [currentUser, authLoading, router]);
 
+  // Load doctors when page, search or filter changes
+  useEffect(() => {
+    if (!authLoading && currentUser && SUPERADMIN_EMAILS.includes(currentUser.email)) {
+      loadDoctors();
+    }
+  }, [currentPage, searchTerm, filter]);
+
   // Data loading functions
   const loadDoctors = async () => {
     try {
       setLoading(true);
-      const allDoctors = await getAllDoctors();
-      setDoctors(allDoctors);
+      const data = await getDoctorsPaginated({
+        page: currentPage,
+        limit: 20,
+        search: searchTerm,
+        filter: filter,
+      });
+      
+      setDoctors(data.doctors);
+      setPagination(data.pagination);
+      setCounts(data.counts);
+      
+      // Store all doctors for bulk operations if needed
+      if (!allDoctors.length) {
+        setAllDoctors(data.doctors);
+      }
     } catch (error) {
       console.error("Error loading doctors:", error);
     } finally {
@@ -125,17 +163,22 @@ export default function DoctorsManagement() {
     setShowEditModal(true);
   };
 
-  // Filter doctors
-  const filteredDoctors = doctors.filter((doctor) => {
-    if (filter === "pending") return !doctor.verified;
-    if (filter === "verified") return doctor.verified;
-    return true;
-  });
+  // Handle search
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset to first page on search
+  };
 
-  // Calculate counts
-  const pendingCount = doctors.filter((d) => !d.verified).length;
-  const verifiedCount = doctors.filter((d) => d.verified).length;
-  const totalCount = doctors.length;
+  // Handle filter change
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   // Loading state
   if (authLoading || loading) {
@@ -149,17 +192,48 @@ export default function DoctorsManagement() {
           onOpenBulkSubscription={() => setShowBulkSubscriptionModal(true)}
         />
 
+        {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar por nombre, email, especialidad o DNI..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <svg
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          {searchTerm && (
+            <div className="mt-2 text-sm text-gray-600">
+              {pagination.total} resultado{pagination.total !== 1 ? 's' : ''} encontrado{pagination.total !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+
         <DoctorsNavigation
           filter={filter}
-          setFilter={setFilter}
-          pendingCount={pendingCount}
-          verifiedCount={verifiedCount}
-          totalCount={totalCount}
+          setFilter={handleFilterChange}
+          pendingCount={counts.pending}
+          verifiedCount={counts.verified}
+          totalCount={counts.total}
         />
 
         <div className="mt-6">
           <DoctorsList
-            doctors={filteredDoctors}
+            doctors={doctors}
             updating={updating}
             onVerifyDoctor={handleVerifyDoctor}
             onEditDoctor={handleEditDoctor}
@@ -167,6 +241,66 @@ export default function DoctorsManagement() {
             onDoctorUpdated={loadDoctors}
           />
         </div>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="bg-white rounded-xl shadow-sm p-4 mt-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Mostrando {(currentPage - 1) * pagination.limit + 1} -{" "}
+                {Math.min(currentPage * pagination.limit, pagination.total)} de{" "}
+                {pagination.total} doctores
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={!pagination.hasPreviousPage}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                
+                {/* Page numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                          pageNum === currentPage
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modals */}
         <BulkSubscriptionModal
