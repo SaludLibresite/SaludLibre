@@ -20,7 +20,7 @@ const supportLinks = [
 const contactInfo = [
   { label: "Teléfono", value: "1124765705" },
   { label: "Email", value: "saludlibre2025@gmail.com" },
-  { label: "Dirección", value: "Av. Principal 1234, CABA" },
+  { label: "Dirección", value: "Juan José Paso 749" },
 ];
 
 export default function Footer() {

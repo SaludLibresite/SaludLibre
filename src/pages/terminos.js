@@ -203,8 +203,7 @@ export default function TerminosYCondiciones() {
                     <strong>Teléfono:</strong> 1124765705
                   </p>
                   <p>
-                    <strong>Dirección:</strong> Av. Principal 1234, CABA,
-                    Argentina
+                    <strong>Dirección:</strong> Juan José Paso 749
                   </p>
                 </div>
               </div>
