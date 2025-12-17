@@ -211,7 +211,7 @@ export default function NavBar() {
               }}
             />
             <motion.div
-              className="md:hidden fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-[101] overflow-hidden"
+              className="md:hidden fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-[101] overflow-y-auto"
               variants={menuVariants}
               initial="closed"
               animate="open"
@@ -224,7 +224,7 @@ export default function NavBar() {
                 maxHeight: '100vh'
               }}
             >
-              <div className="flex flex-col h-full p-6">
+              <div className="flex flex-col min-h-full p-6 pb-8">
                 <div className="flex items-center justify-center mb-8">
                   {logo && (
                     <Link href="/" onClick={() => setOpen(false)}>
@@ -261,7 +261,7 @@ export default function NavBar() {
                 </div>
 
                 {/* Mobile LoginButton with proper styling */}
-                <div className="border-t border-gray-200 pt-4 mt-4">
+                <div className="border-t border-gray-200 pt-4 mt-4 pb-2">
                   <LoginButton isMobile={true} />
                 </div>
               </div>
