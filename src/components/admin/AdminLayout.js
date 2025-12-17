@@ -326,27 +326,6 @@ export default function AdminLayout({ children }) {
           })}
         </nav>
 
-        {/* User info section */}
-        <div className="px-2 py-4">
-          {!isCollapsed && doctorData && (
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-amber-200">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center shadow-md">
-                  <UserIcon className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {doctorData.nombre}
-                  </p>
-                  <p className="text-xs text-amber-600 truncate">
-                    {doctorData.especialidad}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Logout button */}
         <div className="px-2 pb-4">
           <button
