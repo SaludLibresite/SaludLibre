@@ -26,21 +26,13 @@ const PointCard = ({ point, index }) => {
   return (
     <motion.div
       variants={fadeInUp}
-      className="relative pl-12 py-4 group"
-      whileHover={{ x: 10 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="relative pl-12 py-4"
     >
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-xl shadow-lg">
         {point.icon}
       </div>
       <dt className="text-lg font-semibold text-gray-900 mb-1">{point.name}</dt>
       <dd className="text-gray-600 leading-relaxed">{point.description}</dd>
-      <motion.div
-        className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-cyan-100 -z-10"
-        initial={{ scale: 0.8, opacity: 0 }}
-        whileHover={{ scale: 1.5, opacity: 0.5 }}
-        transition={{ duration: 0.3 }}
-      />
     </motion.div>
   );
 };
@@ -94,8 +86,6 @@ export default function InfoSection({
         >
           <motion.h2
             className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-800 mb-4"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
             {firstTitle}
           </motion.h2>
@@ -121,8 +111,6 @@ export default function InfoSection({
             <div className="lg:max-w-lg m-4">
               <motion.h2
                 className="font-semibold text-3xl bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent mb-8"
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
                 {title}
               </motion.h2>
@@ -147,52 +135,42 @@ export default function InfoSection({
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="relative"
-            >
+            <div className="relative">
               <Image
                 alt="Product screenshot"
                 src={image}
                 width={2432}
                 height={1442}
-                className="w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem] transform hover:shadow-2xl transition-all duration-300"
+                className="w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]"
               />
-              <motion.div
-                className="absolute inset-0 rounded-xl bg-gradient-to-t from-cyan-900/20 to-transparent"
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-            </motion.div>
+            </div>
           </motion.div>
         </div>
 
-        <motion.div
-          className="mt-20 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <motion.h2
-            className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-          >
-            {lastTitle}
-          </motion.h2>
-          <motion.p
-            className="text-lg text-slate-600 max-w-3xl mx-auto"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+        {lastTitle && lastDescription && (
+          <motion.div
+            className="mt-20 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
+            transition={{ duration: 0.6 }}
           >
-            {lastDescription}
-          </motion.p>
-        </motion.div>
+            <motion.h2
+              className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-600 to-cyan-800 bg-clip-text text-transparent"
+            >
+              {lastTitle}
+            </motion.h2>
+            <motion.p
+              className="text-lg text-slate-600 max-w-3xl mx-auto"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              {lastDescription}
+            </motion.p>
+          </motion.div>
+        )}
       </div>
     </div>
   );

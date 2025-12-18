@@ -1,6 +1,7 @@
 import { motion, useAnimation } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useEffect, useState } from "react";
+import { getDoctorsCount } from "../lib/doctorsService";
 
 // Custom hook for animated counter
 const useAnimatedCounter = (end, duration = 2000, start = 0) => {
@@ -31,7 +32,8 @@ const useAnimatedCounter = (end, duration = 2000, start = 0) => {
 };
 
 export default function StatsSection() {
-  const [patientsCount, setPatientsVisible] = useAnimatedCounter(250000);
+  const [doctorsTotal, setDoctorsTotal] = useState(0);
+  const [doctorsCount, setDoctorsVisible] = useAnimatedCounter(doctorsTotal);
   const [satisfactionCount, setSatisfactionVisible] = useAnimatedCounter(98);
   const [specialtiesCount, setSpecialtiesVisible] = useAnimatedCounter(50);
 
@@ -40,16 +42,31 @@ export default function StatsSection() {
     triggerOnce: true,
   });
 
+  // Fetch doctors count from database
+  useEffect(() => {
+    const fetchDoctorsCount = async () => {
+      try {
+        const count = await getDoctorsCount();
+        setDoctorsTotal(count);
+      } catch (error) {
+        console.error("Error fetching doctors count:", error);
+        setDoctorsTotal(0);
+      }
+    };
+
+    fetchDoctorsCount();
+  }, []);
+
   useEffect(() => {
     if (inView) {
-      setPatientsVisible(true);
+      setDoctorsVisible(true);
       setSatisfactionVisible(true);
       setSpecialtiesVisible(true);
     }
-  }, [inView, setPatientsVisible, setSatisfactionVisible, setSpecialtiesVisible]);
+  }, [inView, setDoctorsVisible, setSatisfactionVisible, setSpecialtiesVisible]);
 
   return (
-    <div ref={ref} className="py-24 sm:py-32 bg-gradient-to-br from-[#4dbad9]/5 via-white via-white to-[#e8ad0f]/5">
+    <div ref={ref} className="py-24 sm:py-32 bg-gradient-to-br from-[#4dbad9]/5 via-white to-[#e8ad0f]/5">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div
           className="mx-auto max-w-2xl lg:mx-0 text-center lg:text-left"
@@ -81,7 +98,7 @@ export default function StatsSection() {
         </motion.div>
 
         <div className="mx-auto mt-16 flex max-w-2xl flex-col gap-8 lg:mx-0 lg:mt-20 lg:max-w-none lg:flex-row lg:items-end">
-          {/* Patients Card */}
+          {/* Doctors Card */}
           <motion.div
             className="group flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-white p-8 sm:w-3/4 sm:max-w-md sm:flex-row-reverse sm:items-end lg:w-72 lg:max-w-none lg:flex-none lg:flex-col lg:items-start hover:shadow-xl transition-all duration-300 border border-[#4dbad9]/30 hover:border-[#4dbad9]/60 relative overflow-hidden"
             initial={{ opacity: 0, y: 50 }}
@@ -105,7 +122,7 @@ export default function StatsSection() {
               transition={{ duration: 0.6, delay: 0.5 }}
             >
               <motion.p className="flex-none text-4xl font-bold tracking-tight text-[#4dbad9]">
-                {patientsCount.toLocaleString()}+
+                {doctorsCount > 0 ? doctorsCount.toLocaleString() : "Cargando..."}
               </motion.p>
               <motion.div
                 className="w-2 h-2 bg-[#e8ad0f] rounded-full"
@@ -115,11 +132,10 @@ export default function StatsSection() {
             </motion.div>
             <div className="sm:w-80 sm:shrink lg:w-auto lg:flex-none relative z-10">
               <p className="text-lg font-semibold tracking-tight text-gray-900 group-hover:text-[#4dbad9] transition-colors">
-                Pacientes atendidos
+                Médicos registrados
               </p>
               <p className="mt-2 text-base/7 text-gray-600 group-hover:text-gray-700 transition-colors">
-                Más de 250,000 pacientes han confiado en nuestra atención médica
-                de calidad.
+                Profesionales de la salud verificados y disponibles en nuestra plataforma.
               </p>
             </div>
           </motion.div>

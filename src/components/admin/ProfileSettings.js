@@ -1229,8 +1229,8 @@ export default function ProfileSettings() {
                 </h3>
                 <div className="space-y-4">
                   {Object.entries(profile.workingHours).map(([day, hours]) => (
-                    <div key={day} className="flex items-center space-x-4">
-                      <div className="w-24">
+                    <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="sm:w-24 flex-shrink-0">
                         <label className="flex items-center">
                           <input
                             type="checkbox"
@@ -1242,7 +1242,7 @@ export default function ProfileSettings() {
                                 e.target.checked
                               )
                             }
-                            className="mr-2"
+                            className="mr-2 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
                           />
                           <span className="text-sm font-medium text-gray-700">
                             {dayNames[day]}
@@ -1250,7 +1250,7 @@ export default function ProfileSettings() {
                         </label>
                       </div>
                       {hours.enabled && (
-                        <>
+                        <div className="flex items-center gap-2 sm:gap-4 flex-1">
                           <input
                             type="time"
                             value={hours.start}
@@ -1261,9 +1261,9 @@ export default function ProfileSettings() {
                                 e.target.value
                               )
                             }
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                           />
-                          <span className="text-gray-500">a</span>
+                          <span className="text-gray-500 text-sm">a</span>
                           <input
                             type="time"
                             value={hours.end}
@@ -1274,9 +1274,9 @@ export default function ProfileSettings() {
                                 e.target.value
                               )
                             }
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                           />
-                        </>
+                        </div>
                       )}
                     </div>
                   ))}

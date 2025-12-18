@@ -263,12 +263,12 @@ export default function Calendar() {
     const appointment = event.resource;
     return (
       <div
-        className={`p-1 rounded text-xs ${getStatusColor(
+        className={`p-1 sm:p-1.5 rounded text-xs ${getStatusColor(
           appointment.status
-        )} border-l-2`}
+        )} border-l-4 h-full`}
       >
-        <div className="font-medium truncate">{appointment.patientName}</div>
-        <div className="truncate">{appointment.reason}</div>
+        <div className="font-semibold truncate text-[10px] sm:text-xs leading-tight">{appointment.patientName}</div>
+        <div className="truncate text-[9px] sm:text-[11px] leading-tight mt-0.5">{appointment.reason}</div>
       </div>
     );
   };
@@ -469,8 +469,8 @@ export default function Calendar() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <div style={{ height: view === "month" ? "400px" : "600px", minWidth: view === "month" ? "320px" : "600px" }}>
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <div style={{ height: view === "month" ? "600px" : "700px", minWidth: view === "month" ? "320px" : "600px" }} className="px-3 sm:px-0">
                 <BigCalendar
                   localizer={localizer}
                   events={events}
@@ -806,27 +806,36 @@ export default function Calendar() {
         @media (min-width: 640px) {
           .rbc-header {
             font-size: 0.875rem;
+            padding: 0.75rem;
           }
         }
         .rbc-date-cell {
           padding: 0.25rem;
         }
         .rbc-today {
-          background-color: #eff6ff;
+          background-color: #fef3c7;
         }
         .rbc-event {
           border-radius: 0.25rem;
-          padding: 0.125rem 0.25rem;
+          padding: 0;
           font-size: 0.6rem;
+          background: transparent !important;
+          border: none !important;
         }
         @media (min-width: 640px) {
           .rbc-event {
             font-size: 0.75rem;
           }
         }
+        .rbc-event-content {
+          padding: 0;
+          overflow: visible;
+        }
         .rbc-show-more {
-          color: #3b82f6;
-          font-size: 0.6rem;
+          color: #d97706;
+          font-size: 0.65rem;
+          font-weight: 600;
+          margin-top: 2px;
         }
         @media (min-width: 640px) {
           .rbc-show-more {
@@ -834,14 +843,26 @@ export default function Calendar() {
           }
         }
         .rbc-month-view .rbc-date-cell {
-          min-height: 80px;
+          min-height: 90px;
+        }
+        @media (min-width: 640px) {
+          .rbc-month-view .rbc-date-cell {
+            min-height: 100px;
+          }
+        }
+        .rbc-month-view .rbc-event {
+          margin-bottom: 2px;
+        }
+        .rbc-month-row {
+          overflow: visible;
         }
         @media (max-width: 640px) {
           .rbc-month-view .rbc-date-cell {
-            min-height: 60px;
+            min-height: 70px;
           }
           .rbc-header {
             padding: 0.25rem;
+            font-size: 0.65rem;
           }
           .rbc-time-view .rbc-time-gutter {
             width: 40px;
@@ -851,6 +872,12 @@ export default function Calendar() {
           }
           .rbc-time-content {
             min-height: 400px;
+          }
+          .rbc-date-cell {
+            padding: 2px;
+          }
+          .rbc-date-cell button {
+            font-size: 0.7rem;
           }
         }
       `}</style>

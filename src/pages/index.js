@@ -1,5 +1,6 @@
 import HeroCarousel from "../components/HeroCarousel";
 import InfoSection from "../components/InfoSection";
+import LearnPlatformSection from "../components/LearnPlatformSection";
 import StatsSection from "../components/StatsSection";
 import GallerySection from "../components/GallerySection";
 import FAQSection from "../components/FAQSection";
@@ -167,8 +168,6 @@ export default function Home() {
           <motion.div
             variants={fadeInUp}
             className="px-4 sm:px-6 lg:px-8 relative z-10"
-            whileHover={{ scale: 1.005 }}
-            transition={{ duration: 0.3 }}
           >
             <HeroCarousel
               images={[
@@ -176,10 +175,73 @@ export default function Home() {
                 "/img/doctor-2.jpg",
                 "/img/doctor-3.jpg",
               ]}
-              className="relative overflow-hidden rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-300"
+              className="relative overflow-hidden rounded-3xl shadow-2xl"
             />
           </motion.div>
         </motion.div>
+
+        {/* Medical Professionals Section */}
+        <motion.section
+          className="py-16 bg-gradient-to-br from-[#011d2f]/5 via-white to-[#4dbad9]/5"
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={staggerContainer}
+        >
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <motion.div
+              variants={fadeInUp}
+              className="bg-white rounded-2xl p-8 shadow-lg border border-[#4dbad9]/20"
+            >
+              <motion.div
+                className="flex items-center justify-center mb-6"
+                variants={fadeInUp}
+              >
+                <div className="w-12 h-12 rounded-full bg-[#4dbad9] flex items-center justify-center mr-4">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6"
+                    />
+                  </svg>
+                </div>
+                <motion.h3
+                  className="text-2xl md:text-3xl font-bold text-gray-900"
+                  variants={fadeInUp}
+                >
+                  ¿Deseas crecer tu práctica médica?
+                </motion.h3>
+              </motion.div>
+              <motion.p
+                className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed"
+                variants={fadeInUp}
+              >
+                Únete a nuestra plataforma y conecta con más pacientes. 
+                Ofrecemos herramientas profesionales para expandir tu consulta y 
+                mejorar la gestión de tu práctica médica.
+              </motion.p>
+              <motion.button
+                onClick={() => (window.location.href = "/beneficios#planes")}
+                className="bg-[#e8ad0f] text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#e8ad0f] focus:ring-offset-2"
+                variants={fadeInUp}
+                whileHover={{
+                  scale: 1.05,
+                  transition: { duration: 0.2 },
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Ver Planes para Médicos
+              </motion.button>
+            </motion.div>
+          </div>
+        </motion.section>
 
         {/* New Services Section */}
         <motion.section
@@ -214,40 +276,21 @@ export default function Home() {
                 <motion.div
                   key={service.title}
                   variants={slideInFromBottom}
-                  className="group relative"
-                  whileHover={{ y: -10 }}
-                  transition={{ duration: 0.3 }}
+                  className="relative"
                 >
-                  <motion.div
-                    className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 h-full"
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    <motion.div
+                  <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 h-full transition-shadow duration-300 hover:shadow-xl">
+                    <div
                       className={`w-16 h-16 rounded-2xl ${service.color} flex items-center justify-center mb-6 text-3xl`}
-                      whileHover={{ rotate: 5, scale: 1.1 }}
-                      transition={{ duration: 0.2 }}
                     >
                       {service.icon}
-                    </motion.div>
-                    <motion.h3
-                      className="text-xl font-bold text-gray-900 mb-4 group-hover:text-[#4dbad9] transition-colors"
-                      whileHover={{ scale: 1.05 }}
-                    >
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">
                       {service.title}
-                    </motion.h3>
-                    <motion.p
-                      className="text-gray-600 leading-relaxed"
-                      whileHover={{ scale: 1.02 }}
-                    >
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed">
                       {service.description}
-                    </motion.p>
-                    <motion.div
-                      className="absolute bottom-0 left-0 h-1 bg-[#4dbad9] rounded-b-2xl"
-                      initial={{ width: 0 }}
-                      whileHover={{ width: "100%" }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </motion.div>
+                    </p>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -292,22 +335,20 @@ export default function Home() {
                 icon: "💡",
               },
             ]}
-            lastTitle="Compromiso con la salud"
-            lastDescription="Se esfuerza por ofrecer servicios médicos de alta calidad y ambientes cómodos para los pacientes, combinando la mejor tecnología con un trato humano excepcional."
           />
         </motion.div>
 
-        {/* Enhanced Stats Section */}
+        {/* Learn Platform Section */}
         <motion.div
-          variants={scaleUp}
-          whileInView={{ opacity: 1, scale: 1 }}
+          variants={fadeInLeft}
+          whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          className="max-w-7xl mx-auto my-20 overflow-hidden transform hover:scale-[1.01] transition-all duration-500"
-          style={{ y }}
+          className="mb-20 max-w-7xl mx-auto px-6"
         >
-          <StatsSection />
+          <LearnPlatformSection />
         </motion.div>
 
+        
         {/* Enhanced Gallery Section */}
         <motion.div
           variants={fadeInRight}
@@ -318,16 +359,23 @@ export default function Home() {
           <GallerySection />
         </motion.div>
 
+        {/* Enhanced Stats Section */}
+        <motion.div
+          variants={scaleUp}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="max-w-7xl mx-auto my-20 overflow-hidden"
+          style={{ y }}
+        >
+          <StatsSection />
+        </motion.div>
+
         {/* Enhanced Call to Action Section */}
         <motion.div
           variants={scaleUp}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="relative max-w-7xl mx-auto mb-20 overflow-hidden rounded-3xl bg-gradient-to-br from-[#011d2f] via-[#011d2f]/90 to-[#4dbad9]/80 text-white p-12 sm:p-16 lg:p-20 text-center shadow-2xl transform hover:scale-[1.01] transition-all duration-500"
-          whileHover={{
-            scale: 1.01,
-            transition: { duration: 0.3 },
-          }}
+          className="relative max-w-7xl mx-auto mb-20 overflow-hidden rounded-3xl bg-gradient-to-br from-[#011d2f] via-[#011d2f]/90 to-[#4dbad9]/80 text-white p-12 sm:p-16 lg:p-20 text-center shadow-2xl"
         >
           {/* Dark subtle background overlay */}
           <motion.div
@@ -396,8 +444,6 @@ export default function Home() {
           >
             <motion.h2
               className="text-4xl lg:text-5xl font-bold mb-6 tracking-tight text-white drop-shadow-lg"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
             >
               ¿Listo para cuidar tu salud?
             </motion.h2>

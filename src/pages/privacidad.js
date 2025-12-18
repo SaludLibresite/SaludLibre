@@ -286,14 +286,13 @@ export default function PoliticaPrivacidad() {
                 <div className="space-y-2 text-gray-700">
                   <p>
                     <strong>Oficial de Protección de Datos:</strong>{" "}
-                    privacidad@saludlibre.com.ar
+                    saludlibre2025@gmail.com
                   </p>
                   <p>
-                    <strong>Teléfono:</strong> +54 11 4444-5555 (opción 2)
+                    <strong>Teléfono:</strong> 1124765705
                   </p>
                   <p>
-                    <strong>Dirección:</strong> Av. Principal 1234, CABA,
-                    Argentina
+                    <strong>Dirección:</strong> Juan José Paso 749
                   </p>
                   <p>
                     <strong>Horario de atención:</strong> Lunes a viernes, 9:00

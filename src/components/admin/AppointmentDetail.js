@@ -188,57 +188,60 @@ export default function AppointmentDetail({ appointmentId }) {
     <div className="bg-white rounded-lg shadow">
       {/* Header */}
       <div className="px-3 sm:px-6 py-4 border-b border-gray-200">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+        <div className="flex flex-col space-y-3">
+          {/* Patient Info */}
+          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
               <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+              <h2 className="text-base sm:text-xl font-semibold text-gray-900 truncate">
                 {patient ? patient.name : "Cargando paciente..."}
               </h2>
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-gray-500 mt-0.5">
                 <span>{appointmentDate.toLocaleDateString("es-ES")}</span>
                 <span className="hidden sm:inline">•</span>
                 <span>{appointment.time}</span>
-                <span className="hidden sm:inline">•</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${getStatusColor(
-                    appointment.status
-                  )}`}
-                >
-                  {appointment.status === "confirmed"
-                    ? "Confirmada"
-                    : appointment.status === "pending"
-                    ? "Pendiente"
-                    : appointment.status === "cancelled"
-                    ? "Cancelada"
-                    : appointment.status === "completed"
-                    ? "Completada"
-                    : appointment.status}
-                </span>
               </div>
+            </div>
+            <div className="flex-shrink-0">
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
+                  appointment.status
+                )}`}
+              >
+                {appointment.status === "confirmed"
+                  ? "Confirmada"
+                  : appointment.status === "pending"
+                  ? "Pendiente"
+                  : appointment.status === "cancelled"
+                  ? "Cancelada"
+                  : appointment.status === "completed"
+                  ? "Completada"
+                  : appointment.status}
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:space-x-2 w-full sm:w-auto">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2">
             {appointment.status === "pending" && (
               <button
                 onClick={handleConfirm}
-                className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex-1 sm:flex-none min-w-0"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex-1 sm:flex-none"
               >
-                <CalendarIcon className="h-4 w-4" />
-                <span>Confirmar</span>
+                <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Confirmar</span>
               </button>
             )}
 
             {patient?.phone && (
               <button
                 onClick={() => window.open(`tel:${patient.phone}`)}
-                className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm flex-1 sm:flex-none min-w-0"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm flex-1 sm:flex-none"
               >
-                <PhoneIcon className="h-4 w-4" />
-                <span>Llamar</span>
+                <PhoneIcon className="h-4 w-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Llamar</span>
               </button>
             )}
 
@@ -249,10 +252,10 @@ export default function AppointmentDetail({ appointmentId }) {
                     `https://wa.me/${patient.phone.replace(/\D/g, "")}`
                   )
                 }
-                className="flex items-center justify-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm flex-1 sm:flex-none min-w-0"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm flex-1 sm:flex-none"
               >
-                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                <span>WhatsApp</span>
+                <ChatBubbleLeftRightIcon className="h-4 w-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">WhatsApp</span>
               </button>
             )}
 
@@ -260,19 +263,19 @@ export default function AppointmentDetail({ appointmentId }) {
               appointment.status !== "completed" && (
                 <button
                   onClick={handleCancel}
-                  className="flex items-center justify-center space-x-2 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm flex-1 sm:flex-none min-w-0"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm flex-1 sm:flex-none"
                 >
-                  <XMarkIcon className="h-4 w-4" />
-                  <span>Cancelar</span>
+                  <XMarkIcon className="h-4 w-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Cancelar</span>
                 </button>
               )}
 
             {appointment.status === "confirmed" && (
               <button
                 onClick={handleCompleteVisit}
-                className="bg-amber-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-700 text-sm flex-1 sm:flex-none min-w-0"
+                className="flex items-center justify-center bg-amber-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-700 text-sm flex-1 sm:flex-none"
               >
-                Completar Visita
+                <span className="whitespace-nowrap">Completar Visita</span>
               </button>
             )}
           </div>

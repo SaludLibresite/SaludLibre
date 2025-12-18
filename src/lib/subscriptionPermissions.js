@@ -55,9 +55,13 @@ export const hasFeatureAccess = async (userId, feature) => {
     const subscription = await getUserSubscription(userId);
     console.log(`📋 User subscription from subscriptions collection:`, subscription);
     
-    // Si no hay suscripción en la colección, verificar los datos del doctor directamente
-    if (!subscription) {
-      console.log(`❌ No subscription found in collection, checking doctor data...`);
+    // Verificar si la suscripción está activa
+    const isActive = subscription ? isSubscriptionActive(subscription) : false;
+    console.log(`🔄 Subscription active check:`, isActive);
+    
+    // Si no hay suscripción activa en la colección, verificar los datos del doctor directamente
+    if (!subscription || !isActive) {
+      console.log(`❌ No active subscription found in collection, checking doctor data as fallback...`);
       
       try {
         // Importar getDoctorByUserId dinámicamente para evitar dependencias circulares

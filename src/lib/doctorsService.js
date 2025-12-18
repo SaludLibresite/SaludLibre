@@ -529,3 +529,15 @@ export async function updateDoctorProfileCompletion(doctorId, profileData) {
     throw error;
   }
 }
+
+// Get total count of registered doctors
+export async function getDoctorsCount() {
+  try {
+    const doctorsRef = collection(db, DOCTORS_COLLECTION);
+    const querySnapshot = await getDocs(doctorsRef);
+    return querySnapshot.size;
+  } catch (error) {
+    console.error("Error getting doctors count:", error);
+    return 0; // Return 0 as fallback
+  }
+}

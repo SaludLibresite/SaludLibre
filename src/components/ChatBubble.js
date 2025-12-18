@@ -1,18 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { ChatBubbleLeftEllipsisIcon, XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftEllipsisIcon, XMarkIcon, PaperAirplaneIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const ChatBubble = () => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      content: '¡Hola! Soy tu asistente virtual de Salud Libre. ¿En qué puedo ayudarte hoy? 🩺\n\nPuedo ayudarte a:\n• Encontrar doctores por especialidad médica\n• Buscar profesionales por barrio o zona\n• Mostrar especialidades disponibles\n• Recomendar doctores mejor calificados\n• Responder preguntas sobre nuestros servicios\n\n¿Qué necesitas?',
-      isBot: true,
-      timestamp: new Date()
-    }
-  ]);
+  
+  const initialMessage = {
+    id: 1,
+    content: '¡Hola! Soy tu asistente virtual de Salud Libre. ¿En qué puedo ayudarte hoy? 🩺\n\nPuedo ayudarte a:\n• Encontrar doctores por especialidad médica\n• Buscar profesionales por barrio o zona\n• Mostrar especialidades disponibles\n• Recomendar doctores mejor calificados\n• Responder preguntas sobre nuestros servicios\n\n¿Qué necesitas?',
+    isBot: true,
+    timestamp: new Date()
+  };
+  
+  const [messages, setMessages] = useState([initialMessage]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +26,17 @@ const ChatBubble = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const resetChat = () => {
+    setMessages([{
+      ...initialMessage,
+      id: Date.now(),
+      timestamp: new Date()
+    }]);
+    setInputValue('');
+    setIsTyping(false);
+    setIsLoading(false);
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -177,7 +189,7 @@ const ChatBubble = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 sm:bottom-24 right-4 sm:right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          className="fixed bottom-20 sm:bottom-24 right-4 sm:right-8 z-[9999] bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
           aria-label="Abrir chat de asistencia"
         >
           <ChatBubbleLeftEllipsisIcon className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -191,11 +203,11 @@ const ChatBubble = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-end p-4 sm:p-6 pointer-events-none">
-          <div className="w-full max-w-sm sm:max-w-md lg:w-96 h-[500px] max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden pointer-events-auto">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-8 z-[9999] w-[calc(100%-2rem)] sm:w-96 max-w-md">
+          <div className="h-[500px] max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 sm:px-6 py-4 flex items-center justify-between rounded-t-2xl">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                 <ChatBubbleLeftEllipsisIcon className="h-5 w-5" />
@@ -205,13 +217,25 @@ const ChatBubble = () => {
                 <p className="text-xs text-blue-100">En línea</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
-              aria-label="Cerrar chat"
-            >
-              <XMarkIcon className="h-5 w-5" />
-            </button>
+            <div className="flex items-center space-x-2">
+              {messages.length > 1 && (
+                <button
+                  onClick={resetChat}
+                  className="text-white hover:text-white transition-all p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Reiniciar conversación"
+                  title="Volver al menú principal"
+                >
+                  <ArrowPathIcon className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:text-white transition-all p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+                aria-label="Cerrar chat"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -282,7 +306,7 @@ const ChatBubble = () => {
             
             {/* Quick suggestions */}
             <div className="mt-3 flex flex-wrap gap-2">
-              {messages.length === 1 && (
+              {messages.length === 1 ? (
                 <>
                   <button
                     onClick={() => setInputValue('¿Qué especialidades médicas tienen disponibles?')}
@@ -316,6 +340,28 @@ const ChatBubble = () => {
                   </button>
                   <button
                     onClick={() => setInputValue('¿Qué barrios tienen doctores?')}
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
+                  >
+                    Ver zonas
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={resetChat}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 sm:px-3 py-1 rounded-full transition-colors font-medium flex items-center gap-1"
+                  >
+                    <ArrowPathIcon className="h-3 w-3" />
+                    Volver al menú
+                  </button>
+                  <button
+                    onClick={() => setInputValue('¿Qué especialidades tienen?')}
+                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
+                  >
+                    Especialidades
+                  </button>
+                  <button
+                    onClick={() => setInputValue('Ver zonas disponibles')}
                     className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 sm:px-3 py-1 rounded-full transition-colors"
                   >
                     Ver zonas

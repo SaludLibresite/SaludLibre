@@ -555,7 +555,7 @@ export default function PreguntasFrecuentes() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
                   <a
-                    href="mailto:soporte@saludlibre.com.ar"
+                    href="mailto:saludlibre2025@gmail.com"
                     className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105"
                   >
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-all duration-300">
@@ -575,11 +575,11 @@ export default function PreguntasFrecuentes() {
                     </div>
                     <h4 className="font-semibold mb-2">Email</h4>
                     <p className="text-blue-100 text-sm">
-                      soporte@saludlibre.com.ar
+                      saludlibre2025@gmail.com
                     </p>
                   </a>
                   <a
-                    href="tel:+541144445555"
+                    href="tel:1124765705"
                     className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105"
                   >
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-all duration-300">
@@ -598,7 +598,7 @@ export default function PreguntasFrecuentes() {
                       </svg>
                     </div>
                     <h4 className="font-semibold mb-2">Teléfono</h4>
-                    <p className="text-blue-100 text-sm">+54 11 4444-5555</p>
+                    <p className="text-blue-100 text-sm">1124765705</p>
                   </a>
                   <div className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 cursor-pointer">
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-all duration-300">

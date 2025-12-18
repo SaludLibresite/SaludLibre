@@ -187,28 +187,20 @@ export default function HeroCarousel({ images }) {
           </motion.button>
         </motion.form>
 
-        {/* Quick action buttons */}
+        {/* Quick action button */}
         <motion.div
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center w-full max-w-md sm:max-w-none"
+          className="flex justify-center mt-6 sm:mt-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1 }}
         >
           <motion.button
-            className="bg-black/30 backdrop-blur-md text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-black/50 transition-all duration-300 border border-white/20 shadow-lg text-sm sm:text-base"
+            className="bg-black/30 backdrop-blur-md text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:bg-black/50 transition-all duration-300 border border-white/20 shadow-lg text-base sm:text-lg"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => window.location.href = "/doctores"}
           >
             Ver Doctores
-          </motion.button>
-          <motion.button
-            className="bg-white/10 backdrop-blur-md text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium hover:bg-white/20 transition-all duration-300 border border-white/30 shadow-lg text-sm sm:text-base"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.href = "/beneficios"}
-          >
-            Planes para médicos
           </motion.button>
         </motion.div>
       </motion.div>
