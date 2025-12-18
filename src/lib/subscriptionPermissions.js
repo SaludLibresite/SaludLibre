@@ -102,10 +102,6 @@ export const hasFeatureAccess = async (userId, feature) => {
       }
     }
     
-    // Si hay suscripción en la colección, verificar si está activa
-    const isActive = isSubscriptionActive(subscription);
-    console.log(`🔄 Subscription active check:`, isActive);
-    
     // Si la suscripción en la colección NO está activa, verificar datos del doctor como fallback
     if (!isActive) {
       console.log(`⚠️ Subscription in collection not active (status: ${subscription.status}), checking doctor data as fallback...`);

@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import Image from "next/image";
 import ManualSubscriptionActivator from '../admin/ManualSubscriptionActivator';
 
 const DoctorsList = ({ 
@@ -67,10 +68,12 @@ const DoctorsList = ({
                   <div className="flex items-center">
                     <div className="relative">
                       {(doctor.photoURL || doctor.imagen) ? (
-                        <img
+                        <Image
                           className="h-16 w-16 rounded-xl object-cover ring-2 ring-white shadow-lg"
                           src={doctor.photoURL || doctor.imagen}
                           alt={doctor.nombre || "Doctor"}
+                          width={64}
+                          height={64}
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
