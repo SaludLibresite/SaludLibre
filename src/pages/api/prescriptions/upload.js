@@ -47,6 +47,7 @@ export default async function handler(req, res) {
       doctorInfo: prescriptionData.doctorInfo,
       patientInfo: prescriptionData.patientInfo,
       medications: prescriptionData.medications,
+      diagnosis: prescriptionData.diagnosis || "",
       notes: prescriptionData.notes || "",
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

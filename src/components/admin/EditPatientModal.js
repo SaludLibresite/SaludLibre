@@ -25,6 +25,7 @@ export default function EditPatientModal({
     phone: "",
     dateOfBirth: "",
     gender: "",
+    dni: "",
     address: "",
     emergencyContact: "",
     emergencyPhone: "",
@@ -32,6 +33,7 @@ export default function EditPatientModal({
     currentMedications: "",
     insuranceProvider: "",
     insuranceNumber: "",
+    obraSocial: "",
   });
 
   // Update form data when patient changes
@@ -43,6 +45,7 @@ export default function EditPatientModal({
         phone: patient.phone || "",
         dateOfBirth: patient.dateOfBirth || "",
         gender: patient.gender || "",
+        dni: patient.dni || "",
         address: patient.address || "",
         emergencyContact: patient.emergencyContact || "",
         emergencyPhone: patient.emergencyPhone || "",
@@ -50,6 +53,7 @@ export default function EditPatientModal({
         currentMedications: patient.currentMedications || "",
         insuranceProvider: patient.insuranceProvider || "",
         insuranceNumber: patient.insuranceNumber || "",
+        obraSocial: patient.obraSocial || patient.insuranceProvider || "",
       });
       setError("");
     }
@@ -99,6 +103,7 @@ export default function EditPatientModal({
         phone: formData.phone.trim(),
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
+        dni: formData.dni.trim(),
         address: formData.address.trim(),
         emergencyContact: formData.emergencyContact.trim(),
         emergencyPhone: formData.emergencyPhone.trim(),
@@ -106,6 +111,7 @@ export default function EditPatientModal({
         currentMedications: formData.currentMedications.trim(),
         insuranceProvider: formData.insuranceProvider.trim(),
         insuranceNumber: formData.insuranceNumber.trim(),
+        obraSocial: formData.obraSocial.trim() || formData.insuranceProvider.trim(),
       };
 
       await updatePatient(patient.id, updateData);
@@ -256,6 +262,21 @@ export default function EditPatientModal({
                   <option value="Otro">Otro</option>
                   <option value="Prefiero no decir">Prefiero no decir</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  DNI
+                </label>
+                <input
+                  type="text"
+                  value={formData.dni}
+                  onChange={(e) => handleInputChange("dni", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                  placeholder="12345678"
+                  maxLength="8"
+                  disabled={loading}
+                />
               </div>
 
               <div>

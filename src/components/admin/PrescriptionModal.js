@@ -33,6 +33,7 @@ export default function PrescriptionModal({
     },
   ]);
   const [notes, setNotes] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -152,7 +153,9 @@ export default function PrescriptionModal({
           userId: doctorData.userId,
           nombre: doctorData.nombre || "No especificado",
           especialidad: doctorData.especialidad || "No especificado",
+          profesion: "Médico",
           telefono: doctorData.telefono || "No especificado",
+          domicilio: doctorData.formattedAddress || doctorData.ubicacion || "No especificado",
           matricula: doctorData.matricula || doctorData.referralCode || "N/A",
           signatureURL: doctorData.signatureURL || null,
           stampURL: doctorData.stampURL || null,
@@ -161,8 +164,13 @@ export default function PrescriptionModal({
           id: patientData.id,
           name: patientData.name,
           age: calculateAge(patientData.dateOfBirth),
+          dateOfBirth: patientData.dateOfBirth,
+          gender: patientData.gender || "No especificado",
+          dni: patientData.dni || "No especificado",
+          obraSocial: patientData.obraSocial || patientData.insuranceProvider || "Particular",
         },
         medications: validMedications,
+        diagnosis: diagnosis.trim(),
         notes: notes.trim(),
         createdAt: new Date(),
       };
@@ -193,6 +201,7 @@ export default function PrescriptionModal({
       },
     ]);
     setNotes("");
+    setDiagnosis("");
     setMessage("");
     onClose();
   };
@@ -409,6 +418,20 @@ export default function PrescriptionModal({
                 </div>
               </div>
 
+              {/* Diagnosis */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Diagnóstico
+                </label>
+                <textarea
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  rows={3}
+                  placeholder="Diagnóstico médico del paciente..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+              </div>
+
               {/* Additional Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -417,7 +440,7 @@ export default function PrescriptionModal({
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
+                  rows={3}
                   placeholder="Observaciones, recomendaciones o instrucciones adicionales..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />

@@ -149,9 +149,11 @@ export default async function handler(req, res) {
     // Ensure we have minimum required data with fallbacks
     prescriptionData.doctorInfo = {
       nombre: prescriptionData.doctorInfo?.nombre || "Doctor",
+      profesion: prescriptionData.doctorInfo?.profesion || "Médico",
       especialidad:
         prescriptionData.doctorInfo?.especialidad || "Medicina General",
       telefono: prescriptionData.doctorInfo?.telefono || "No especificado",
+      domicilio: prescriptionData.doctorInfo?.domicilio || "No especificado",
       matricula: prescriptionData.doctorInfo?.matricula || "N/A",
       signatureURL: prescriptionData.doctorInfo?.signatureURL || null,
       stampURL: prescriptionData.doctorInfo?.stampURL || null,
@@ -161,6 +163,10 @@ export default async function handler(req, res) {
     prescriptionData.patientInfo = {
       name: prescriptionData.patientInfo?.name || "Paciente",
       age: prescriptionData.patientInfo?.age || "N/A",
+      dateOfBirth: prescriptionData.patientInfo?.dateOfBirth || null,
+      dni: prescriptionData.patientInfo?.dni || "No especificado",
+      gender: prescriptionData.patientInfo?.gender || "No especificado",
+      obraSocial: prescriptionData.patientInfo?.obraSocial || "Particular",
       ...prescriptionData.patientInfo,
     };
 
@@ -172,130 +178,205 @@ export default async function handler(req, res) {
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 20;
-    let yPosition = 25;
+    const margin = 15;
+    let yPosition = 15;
 
     // Set default font
     pdf.setFont("helvetica");
 
-    // Simple header
-    // Platform name
-    pdf.setFontSize(14);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(0, 0, 0); // Black
-    pdf.text("SALUD LIBRE", pageWidth / 2, yPosition, { align: "center" });
-
-    yPosition += 8;
-    // Title with yellow accent
+    // Header - Simple black and white design
     pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(255, 193, 7); // Yellow
-    pdf.text("RECETA MEDICA", pageWidth / 2, yPosition, { align: "center" });
-
-    yPosition += 6;
-    // Subtitle
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("SALUD LIBRE", margin, 15);
+    
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("RECETA MEDICA", margin, 23);
+    
+    // Line separator
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, 28, pageWidth - margin, 28);
+    
+    // Date in top right
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(102, 102, 102); // Gray
-    pdf.text("Plataforma de Salud Digital", pageWidth / 2, yPosition, {
-      align: "center",
-    });
-
-    yPosition += 10;
-    // Simple line separator
-    pdf.setDrawColor(255, 193, 7); // Yellow
-    pdf.setLineWidth(1);
-    pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-
-    yPosition += 15;
-
-    // Simple doctor information section
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(0, 0, 0); // Black
-    pdf.text("INFORMACION DEL MEDICO", margin, yPosition);
-
-    yPosition += 8;
-    pdf.setFontSize(11);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(0, 0, 0); // Black
+    pdf.setTextColor(0, 0, 0);
     pdf.text(
-      `${prescriptionData.doctorInfo.nombre || "No especificado"}`,
-      margin,
-      yPosition
+      `Fecha de emision: ${new Date(prescriptionData.createdAt).toLocaleDateString("es-ES")}`,
+      pageWidth - margin,
+      15,
+      { align: "right" }
     );
-
-    yPosition += 6;
-    pdf.setFontSize(10);
+    
+    // Prescription number
+    const headerPrescId = prescriptionData.id
+      ? `IF-2024-${prescriptionData.id.slice(-8).toUpperCase()}-APN-MS`
+      : `IF-2024-${Date.now().toString().slice(-8)}-APN-MS`;
+    
+    pdf.setFontSize(8);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(102, 102, 102); // Gray
+    pdf.text(`Numero: ${headerPrescId}`, pageWidth - margin, 21, { align: "right" });
+    
+    yPosition = 38;
 
-    const rightColumnX = pageWidth / 2 + 10;
-    pdf.text(
-      `Especialidad: ${
-        prescriptionData.doctorInfo.especialidad || "No especificado"
-      }`,
-      margin,
-      yPosition
-    );
-    pdf.text(
-      `Telefono: ${prescriptionData.doctorInfo.telefono || "No especificado"}`,
-      rightColumnX,
-      yPosition
-    );
-
-    yPosition += 6;
-    pdf.text(
-      `Matricula: ${prescriptionData.doctorInfo.matricula || "N/A"}`,
-      margin,
-      yPosition
-    );
-
-    yPosition += 15;
-
-    // Simple patient information section
-    pdf.setFontSize(12);
+    // Professional information section
+    pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(0, 0, 0); // Black
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("INFORMACION DEL PROFESIONAL", margin, yPosition);
+    
+    // Line under title
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
+    
+    yPosition += 7;
+    
+    // Doctor data
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(
+      prescriptionData.doctorInfo.nombre || "No especificado",
+      margin,
+      yPosition
+    );
+    
+    yPosition += 6;
+    const rightColumnX = pageWidth / 2 + 5;
+    
+    // Two columns
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(0, 0, 0);
+    
+    pdf.text(`Profesion: ${prescriptionData.doctorInfo.profesion || "Médico"}`, margin, yPosition);
+    pdf.text(`Matricula: ${prescriptionData.doctorInfo.matricula || "N/A"}`, rightColumnX, yPosition);
+    
+    yPosition += 5;
+    pdf.text(`Domicilio: ${prescriptionData.doctorInfo.domicilio || "No especificado"}`, margin, yPosition);
+
+    yPosition += 12;
+
+    // Patient information section
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(0, 0, 0);
     pdf.text("DATOS DEL PACIENTE", margin, yPosition);
-
-    yPosition += 8;
-    pdf.setFontSize(11);
+    
+    // Line under title
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
+    
+    yPosition += 7;
+    
+    // Patient data in structured format
+    pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(0, 0, 0); // Black
+    pdf.setTextColor(0, 0, 0);
+    
     pdf.text(
-      `${prescriptionData.patientInfo.name || "No especificado"}`,
+      prescriptionData.patientInfo.name || "No especificado",
       margin,
       yPosition
     );
-
+    
     yPosition += 6;
-    pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(102, 102, 102); // Gray
+    pdf.setFontSize(8);
+    
+    // Row 1
     pdf.text(
-      `Edad: ${prescriptionData.patientInfo.age || "N/A"} años`,
+      `DNI: ${prescriptionData.patientInfo.dni || "No especificado"}`,
       margin,
       yPosition
     );
     pdf.text(
-      `Fecha: ${new Date(prescriptionData.createdAt).toLocaleDateString(
-        "es-ES"
-      )}`,
+      `Sexo: ${prescriptionData.patientInfo.gender || "No especificado"}`,
       rightColumnX,
       yPosition
     );
+    
+    yPosition += 5;
+    pdf.text(
+      `Fecha Nac: ${prescriptionData.patientInfo.dateOfBirth
+        ? new Date(prescriptionData.patientInfo.dateOfBirth).toLocaleDateString("es-ES")
+        : "N/A"}`,
+      margin,
+      yPosition
+    );
+    
+    yPosition += 5;
+    pdf.setTextColor(68, 68, 68);
+    pdf.text(`OOSS/Plan Medico:`, margin + 3, yPosition);
+    
+    yPosition += 4;
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(
+      prescriptionData.patientInfo.obraSocial || "Particular",
+      margin + 3,
+      yPosition
+    );
 
-    yPosition += 20;
+    yPosition += 12;
 
-    // Simple medications section
-    pdf.setFontSize(12);
+    // Diagnosis section (if exists)
+    if (prescriptionData.diagnosis && prescriptionData.diagnosis.trim()) {
+      if (yPosition > pageHeight - 60) {
+        pdf.addPage();
+        yPosition = 30;
+      }
+
+      // Diagnosis box
+      const diagnosisLines = pdf.splitTextToSize(
+        prescriptionData.diagnosis,
+        pageWidth - 2 * margin - 6
+      );
+      const diagnosisHeight = Math.max(15, diagnosisLines.length * 5 + 10);
+      
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("DIAGNOSTICO", margin, yPosition);
+      
+      // Line under title
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.3);
+      pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
+
+      yPosition += 7;
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(diagnosisLines, margin, yPosition);
+      yPosition += diagnosisLines.length * 5 + 5;
+    }
+
+    // Medications section with RP format
+    pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(0, 0, 0); // Black
+    pdf.setTextColor(0, 0, 0);
     pdf.text("MEDICACION PRESCRITA", margin, yPosition);
-    yPosition += 15;
+    
+    // Line under title
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
+    
+    yPosition += 7;
+    
+    // RP: label
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("RP:", margin, yPosition);
+    
+    yPosition += 8;
 
-    // Simple medications list
+    // Medications list with cleaner format
     prescriptionData.medications.forEach((medication, index) => {
       // Check if we need a new page
       if (yPosition > pageHeight - 80) {
@@ -303,38 +384,42 @@ export default async function handler(req, res) {
         yPosition = 30;
       }
 
-      // Simple medication entry
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(0, 0, 0); // Black
-      pdf.text(`${index + 1}. ${medication.name}`, margin, yPosition);
-
-      yPosition += 6;
+      // Medication number and name
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(102, 102, 102); // Gray
-
-      // Dosage and frequency
-      pdf.text(`Dosis: ${medication.dosage}`, margin + 5, yPosition);
-      pdf.text(`Frecuencia: ${medication.frequency}`, rightColumnX, yPosition);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`${index + 1}. ${medication.name}`, margin + 3, yPosition);
 
       yPosition += 5;
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+
+      // Dosage and frequency
+      pdf.text(`Dosis: ${medication.dosage}`, margin + 6, yPosition);
+      pdf.text(`Frecuencia: ${medication.frequency}`, rightColumnX, yPosition);
+
+      yPosition += 4;
       if (medication.duration) {
-        pdf.text(`Duracion: ${medication.duration}`, margin + 5, yPosition);
-        yPosition += 5;
+        pdf.text(`Duracion: ${medication.duration}`, margin + 6, yPosition);
+        yPosition += 4;
       }
 
       // Instructions
       if (medication.instructions) {
         const instructions = pdf.splitTextToSize(
-          `Instrucciones: ${medication.instructions}`,
-          pageWidth - 2 * margin - 10
+          medication.instructions,
+          pageWidth - 2 * margin - 12
         );
-        pdf.text(instructions, margin + 5, yPosition);
+        pdf.text(instructions, margin + 6, yPosition);
         yPosition += instructions.length * 4;
       }
 
-      yPosition += 8;
+      // Separator line
+      yPosition += 3;
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.2);
+      pdf.line(margin + 3, yPosition, pageWidth - margin - 3, yPosition);
+      yPosition += 5;
     });
 
     // Simple notes section
@@ -344,47 +429,41 @@ export default async function handler(req, res) {
         yPosition = 30;
       }
 
-      yPosition += 10;
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(0, 0, 0); // Black
-      pdf.text("OBSERVACIONES", margin, yPosition);
-
       yPosition += 8;
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(0, 0, 0); // Black
-
-      const notes = pdf.splitTextToSize(
+      
+      const notesLines = pdf.splitTextToSize(
         prescriptionData.notes,
-        pageWidth - 2 * margin
+        pageWidth - 2 * margin - 6
       );
-      pdf.text(notes, margin, yPosition);
-      yPosition += notes.length * 5 + 10;
+      
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text("OBSERVACIONES", margin, yPosition);
+      
+      // Line under title
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.3);
+      pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
+
+      yPosition += 7;
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(notesLines, margin, yPosition);
+      yPosition += notesLines.length * 5 + 5;
     }
 
-    // Simple footer section
-    const footerY = pageHeight - 50;
+    // Footer section with signatures
+    const footerY = pageHeight - 60;
 
     // Simple line separator
-    pdf.setDrawColor(255, 193, 7); // Yellow
-    pdf.setLineWidth(1);
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.3);
     pdf.line(margin, footerY, pageWidth - margin, footerY);
 
-    // Date
-    pdf.setFontSize(9);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(102, 102, 102); // Gray
-    pdf.text(
-      `Fecha de emision: ${new Date(
-        prescriptionData.createdAt
-      ).toLocaleDateString("es-ES")}`,
-      margin,
-      footerY + 10
-    );
-
     // Signature and stamp area
-    const signatureAreaY = footerY + 5;
+    const signatureAreaY = footerY + 8;
     let signatureX = pageWidth - margin - 120;
 
     // Add signature image if available
@@ -468,14 +547,74 @@ export default async function handler(req, res) {
       }
     }
 
-    // Simple footer disclaimer
-    pdf.setFontSize(8);
+    // Barcode section - positioned in bottom left corner
+    const barcodeWidth = 50;
+    const barcodeHeight = 10;
+    const barcodeX = margin;
+    const barcodeY = pageHeight - 28;
+    
+    // Draw barcode background
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(barcodeX, barcodeY, barcodeWidth, barcodeHeight, "F");
+    
+    // Draw barcode border
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.3);
+    pdf.rect(barcodeX, barcodeY, barcodeWidth, barcodeHeight);
+    
+    // Generate barcode pattern (simplified)
+    const barcodeId = prescriptionData.id || Date.now().toString();
+    const numBars = 25;
+    
+    // Draw barcode lines with better spacing
+    pdf.setDrawColor(0, 0, 0);
+    const barSpacing = (barcodeWidth - 4) / numBars;
+    
+    for (let i = 0; i < numBars; i++) {
+      const seed = barcodeId.charCodeAt(i % barcodeId.length);
+      const barHeight = (seed % 3) + 1;
+      const lineWidth = barHeight === 1 ? 0.4 : barHeight === 2 ? 0.8 : 1.2;
+      
+      pdf.setLineWidth(lineWidth);
+      const xPos = barcodeX + 2 + (i * barSpacing);
+      pdf.line(xPos, barcodeY + 1, xPos, barcodeY + barcodeHeight - 1);
+    }
+    
+    // Prescription number below barcode
+    const prescId = prescriptionData.id
+      ? `IF-2024-${prescriptionData.id.slice(-8).toUpperCase()}-APN-MS`
+      : `IF-2024-${Date.now().toString().slice(-8)}-APN-MS`;
+    
+    pdf.setFontSize(5);
     pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(prescId, barcodeX, barcodeY + barcodeHeight + 3);
+
+    // Legal text from Ministry of Health
+    pdf.setFontSize(5.5);
+    pdf.setFont("helvetica", "italic");
     pdf.setTextColor(102, 102, 102);
     pdf.text(
-      "Receta generada digitalmente por Salud Libre",
+      "Esta receta fue creada por un emisor inscripto y validado",
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 15,
+      { align: "center" }
+    );
+    pdf.text(
+      "en el Registro de Recetarios Electronicos del Ministerio de Salud de la Nacion",
+      pageWidth / 2,
+      pageHeight - 11,
+      { align: "center" }
+    );
+
+    // Footer
+    pdf.setFontSize(6.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(
+      "Receta Digital - Salud Libre",
+      pageWidth / 2,
+      pageHeight - 6,
       { align: "center" }
     );
 

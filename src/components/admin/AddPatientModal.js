@@ -16,6 +16,7 @@ export default function AddPatientModal({
     phone: "",
     dateOfBirth: "",
     gender: "",
+    dni: "",
     address: "",
     emergencyContact: "",
     emergencyPhone: "",
@@ -24,6 +25,7 @@ export default function AddPatientModal({
     currentMedications: "",
     insuranceProvider: "",
     insuranceNumber: "",
+    obraSocial: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -66,6 +68,12 @@ export default function AddPatientModal({
 
     if (!formData.gender) {
       newErrors.gender = "El género es requerido";
+    }
+
+    if (!formData.dni.trim()) {
+      newErrors.dni = "El DNI es requerido";
+    } else if (!/^\d{7,8}$/.test(formData.dni.trim())) {
+      newErrors.dni = "El DNI debe tener 7 u 8 dígitos";
     }
 
     setErrors(newErrors);
@@ -111,6 +119,7 @@ export default function AddPatientModal({
         phone: "",
         dateOfBirth: "",
         gender: "",
+        dni: "",
         address: "",
         emergencyContact: "",
         emergencyPhone: "",
@@ -119,6 +128,7 @@ export default function AddPatientModal({
         currentMedications: "",
         insuranceProvider: "",
         insuranceNumber: "",
+        obraSocial: "",
       });
       setErrors({});
     } catch (error) {
@@ -256,6 +266,26 @@ export default function AddPatientModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  DNI *
+                </label>
+                <input
+                  type="text"
+                  value={formData.dni}
+                  onChange={(e) => handleInputChange("dni", e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 ${
+                    errors.dni ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="12345678"
+                  maxLength="8"
+                  disabled={loading}
+                />
+                {errors.dni && (
+                  <p className="text-red-500 text-sm mt-1">{errors.dni}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Dirección
                 </label>
                 <input
@@ -369,7 +399,7 @@ export default function AddPatientModal({
           {/* Insurance Information */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Información del Seguro
+              Información del Seguro / Obra Social
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -383,7 +413,7 @@ export default function AddPatientModal({
                     handleInputChange("insuranceProvider", e.target.value)
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  placeholder="OSDE, Swiss Medical, etc."
+                  placeholder="OSDE, Swiss Medical, PAMI, etc."
                   disabled={loading}
                 />
               </div>
