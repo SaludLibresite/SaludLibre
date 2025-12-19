@@ -153,11 +153,11 @@ const SearchFilters = ({ filters, isVisible }) => (
     initial={{ height: 0, opacity: 0 }}
     animate={{ height: isVisible ? "auto" : 0, opacity: isVisible ? 1 : 0 }}
     transition={{ duration: 0.3, ease: "easeInOut" }}
-    className="flex flex-wrap gap-4 mt-6 overflow-hidden"
+    className="flex flex-wrap gap-3 md:gap-4 mt-4 md:mt-6 overflow-hidden"
   >
     {filters.map((filter) => (
-      <div key={filter.id} className="space-y-2 xl:flex-1">
-        <label className="flex items-center text-sm font-medium text-gray-700">
+      <div key={filter.id} className="space-y-1.5 md:space-y-2 w-full sm:w-auto xl:flex-1">
+        <label className="flex items-center text-xs md:text-sm font-medium text-gray-700">
           <FilterIcon
             path={
               filter.iconPath ||
@@ -169,7 +169,7 @@ const SearchFilters = ({ filters, isVisible }) => (
         <select
           value={filter.value}
           onChange={(e) => filter.setter(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 py-2.5 pl-3 pr-8 text-gray-700 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+          className="w-full rounded-lg border border-gray-200 py-2 md:py-2.5 pl-2 md:pl-3 pr-6 md:pr-8 text-sm md:text-base text-gray-700 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
         >
           <option value="">Todos</option>
           {filter.options.map((opt) => (
@@ -411,10 +411,25 @@ const FloatingSearch = ({ search, setSearch, filters }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchBarRect, setSearchBarRect] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si estamos en móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
+      // Solo aplicar el comportamiento de scroll en desktop
+      if (isMobile) return;
+      
       if (!isScrolled && scrollPosition > 600) {
         const searchBar = document.querySelector("#searchBar");
         if (searchBar) {
@@ -428,13 +443,13 @@ const FloatingSearch = ({ search, setSearch, filters }) => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [isScrolled]);
+  }, [isScrolled, isMobile]);
 
   return (
     <>
       <motion.div layout className="z-50 relative">
-        <motion.div layout id="searchBar" className="container mx-auto mb-12">
-          <div className="p-6  bg-white shadow-2xl rounded-xl ring-1 ring-slate-200/50">
+        <motion.div layout id="searchBar" className="container mx-auto mb-12 px-6 lg:px-8">
+          <div className="p-4 md:p-6 bg-white shadow-2xl rounded-xl ring-1 ring-slate-200/50">
             <div className="relative">
               <input
                 type="text"
@@ -448,30 +463,32 @@ const FloatingSearch = ({ search, setSearch, filters }) => {
               </div>
             </div>
 
-            <SearchFilters filters={filters} isVisible={!isScrolled} />
+            <SearchFilters filters={filters} isVisible={isMobile ? true : !isScrolled} />
           </div>
         </motion.div>
 
-        {/* Floating bubble */}
-        <motion.button
-          layout
-          onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-8 right-8 bg-amber-500 text-white p-4 rounded-full shadow-lg hover:bg-amber-600"
-          initial={{ scale: 0, y: 100 }}
-          animate={{
-            scale: isScrolled ? 1 : 0,
-            y: isScrolled ? 0 : 100,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 30,
-          }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <SearchIcon />
-        </motion.button>
+        {/* Floating bubble - solo en desktop */}
+        {!isMobile && (
+          <motion.button
+            layout
+            onClick={() => setIsModalOpen(true)}
+            className="fixed bottom-8 right-8 bg-amber-500 text-white p-4 rounded-full shadow-lg hover:bg-amber-600 z-40"
+            initial={{ scale: 0, y: 100 }}
+            animate={{
+              scale: isScrolled ? 1 : 0,
+              y: isScrolled ? 0 : 100,
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <SearchIcon />
+          </motion.button>
+        )}
       </motion.div>
 
       <SearchModal

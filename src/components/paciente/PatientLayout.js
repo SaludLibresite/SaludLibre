@@ -189,14 +189,14 @@ export default function PatientLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Top header - Positioned after sidebar */}
-      <header className={`fixed top-0 z-30 bg-white shadow-sm border-b border-gray-200 transition-all duration-300 ${
-        isCollapsed ? 'lg:left-16 lg:right-0' : 'lg:left-64 lg:right-0'
+      <header className={`fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b border-gray-200 transition-all duration-300 ${
+        isCollapsed ? 'lg:left-16' : 'lg:left-64'
       }`}>
-        <div className="flex h-16 items-center px-4 sm:px-6">
+        <div className="flex h-16 items-center px-2 sm:px-4 lg:px-6">
           {/* Mobile menu button */}
           <button
             type="button"
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 lg:hidden mr-2"
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 lg:hidden mr-1 flex-shrink-0"
             onClick={() => setIsMobileMenuOpen(true)}
           >
             <Bars3Icon className="h-5 w-5" />
@@ -205,7 +205,7 @@ export default function PatientLayout({ children }) {
           {/* Sidebar toggle for desktop */}
           <button
             onClick={toggleSidebar}
-            className="hidden lg:flex p-2 text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 hover:scale-105 hover:shadow-sm mr-4"
+            className="hidden lg:flex p-2 text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 hover:scale-105 hover:shadow-sm mr-2 lg:mr-4 flex-shrink-0"
             title={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
           >
             {isCollapsed ? (
@@ -216,20 +216,22 @@ export default function PatientLayout({ children }) {
           </button>
 
           {/* Header content */}
-          <div className="flex flex-1 items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-gray-900">
+          <div className="flex flex-1 items-center justify-between min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+              <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
                 Dashboard
               </h1>
               {/* Patient Selector */}
-              <PatientSelector />
+              <div className="flex-shrink-0">
+                <PatientSelector />
+              </div>
             </div>
 
             {/* Active Patient Context Info */}
             {activePatient && !activePatient.isPrimary && (
-              <div className="hidden md:flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="hidden lg:flex items-center px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg ml-2 flex-shrink-0">
                 <UserIcon className="h-4 w-4 text-blue-600 mr-2" />
-                <span className="text-sm font-medium text-blue-700">
+                <span className="text-sm font-medium text-blue-700 whitespace-nowrap">
                   Viendo como: {getActivePatientDisplayName()}
                 </span>
               </div>
@@ -238,7 +240,7 @@ export default function PatientLayout({ children }) {
         </div>
 
         {/* Breadcrumbs */}
-        <div className="px-4 sm:px-6 py-2 border-t border-gray-100">
+        <div className="px-2 sm:px-4 lg:px-6 py-2 border-t border-gray-100 overflow-x-auto">
           <Breadcrumbs breadcrumbs={generateBreadcrumbs()} />
         </div>
       </header>
@@ -247,7 +249,7 @@ export default function PatientLayout({ children }) {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            className="fixed inset-0 z-40 lg:hidden h-full"
+            className="fixed inset-0 z-40 lg:hidden h-screen"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -259,9 +261,10 @@ export default function PatientLayout({ children }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
+              onClick={() => setIsMobileMenuOpen(false)}
             />
             <motion.div
-              className="relative flex w-full max-w-xs flex-1 flex-col bg-white"
+              className="relative flex w-full max-w-xs h-screen flex-col bg-gradient-to-b from-amber-50 to-yellow-50"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
@@ -299,7 +302,7 @@ export default function PatientLayout({ children }) {
       </AnimatePresence>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-shrink-0 lg:z-20">
         <div className={`flex flex-col transition-all duration-300 ${
           isCollapsed ? 'w-16' : 'w-64'
         }`}>
@@ -314,12 +317,12 @@ export default function PatientLayout({ children }) {
       </div>
 
       {/* Main content */}
-      <div className={`flex flex-1 flex-col transition-all duration-300 pt-20 ${
-        isCollapsed ? 'lg:ml-16' : ''
+      <div className={`flex flex-1 flex-col transition-all duration-300 pt-24 sm:pt-28 ${
+        isCollapsed ? 'lg:ml-16' : 'lg:ml-64'
       }`}>
         {/* Content container with proper padding */}
         <div className="flex-1 flex flex-col min-h-0">
-          <main className="flex-1 p-6 overflow-y-auto focus:outline-none">
+          <main className="flex-1 p-3 sm:p-4 md:p-5 lg:p-8 overflow-y-auto focus:outline-none">
             {children}
           </main>
         </div>
@@ -397,7 +400,7 @@ function SidebarContent({
 
       {/* Navigation */}
       <motion.nav
-        className="flex-1 px-2 py-4 space-y-2"
+        className="flex-1 px-2 py-4 space-y-2 overflow-y-auto"
         variants={containerVariants}
         initial={isMobile ? "hidden" : false}
         animate={isMobile ? "visible" : {}}
@@ -408,24 +411,26 @@ function SidebarContent({
             <motion.div key={item.name} variants={itemVariants}>
               <Link
                 href={item.href}
-                className={`group flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                   isActive
-                    ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg transform scale-105"
-                    : "text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+                    ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md"
+                    : "text-amber-900 hover:bg-white/60 hover:shadow-sm"
                 }`}
                 title={isCollapsed ? item.name : ""}
               >
                 <item.icon
                   className={`flex-shrink-0 h-5 w-5 ${
-                    isActive ? "text-white" : "text-amber-600"
+                    isActive ? "text-white" : "text-amber-600 group-hover:text-amber-700"
                   }`}
                 />
                 {!isCollapsed && (
-                  <div className="ml-3 flex-1">
-                    <div className="font-medium">{item.name}</div>
+                  <div className="ml-3 flex-1 min-w-0">
+                    <div className={`font-medium truncate ${isActive ? "text-white" : "text-gray-900"}`}>
+                      {item.name}
+                    </div>
                     <div
-                      className={`text-xs ${
-                        isActive ? "text-amber-100" : "text-amber-600"
+                      className={`text-xs truncate ${
+                        isActive ? "text-amber-100" : "text-gray-600"
                       }`}
                     >
                       {item.description}

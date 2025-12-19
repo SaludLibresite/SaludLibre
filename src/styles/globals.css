@@ -20,6 +20,17 @@
 body {
   font-family: Arial, Helvetica, sans-serif;
   background-color: var(--background);
+  /* Support for iOS safe areas */
+  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+}
+
+/* iOS Mobile Safari viewport units fix */
+@supports (-webkit-touch-callout: none) {
+  .h-full,
+  .min-h-full {
+    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
+  }
 }
 
 /* React Big Calendar Styles */

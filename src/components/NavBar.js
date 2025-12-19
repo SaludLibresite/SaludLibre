@@ -211,7 +211,7 @@ export default function NavBar() {
               }}
             />
             <motion.div
-              className="md:hidden fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-[101] overflow-y-auto"
+              className="md:hidden fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-[101] overflow-y-auto overscroll-contain"
               variants={menuVariants}
               initial="closed"
               animate="open"
@@ -220,11 +220,12 @@ export default function NavBar() {
                 position: 'fixed', 
                 top: 0, 
                 right: 0, 
-                height: '100vh',
-                maxHeight: '100vh'
+                height: '100dvh',
+                maxHeight: '100dvh',
+                WebkitOverflowScrolling: 'touch'
               }}
             >
-              <div className="flex flex-col min-h-full p-6 pb-8">
+              <div className="flex flex-col min-h-full p-6" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 20px))' }}>
                 <div className="flex items-center justify-center mb-8">
                   {logo && (
                     <Link href="/" onClick={() => setOpen(false)}>
@@ -261,7 +262,7 @@ export default function NavBar() {
                 </div>
 
                 {/* Mobile LoginButton with proper styling */}
-                <div className="border-t border-gray-200 pt-4 mt-4 pb-2">
+                <div className="border-t border-gray-200 pt-4 mt-4" style={{ marginBottom: 'env(safe-area-inset-bottom, 1rem)' }}>
                   <LoginButton isMobile={true} />
                 </div>
               </div>

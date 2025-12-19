@@ -240,7 +240,7 @@ export function LoginButton({ isMobile = false }) {
         {/* Patient Login */}
         <Link href="/paciente/login">
           <motion.div
-            className="flex items-center gap-3 p-4 text-green-600 bg-green-50 border border-green-200 rounded-xl cursor-pointer transition-all duration-200"
+            className="flex items-center gap-3 p-4 text-green-600 bg-green-50 border border-green-200 rounded-xl cursor-pointer transition-all duration-200 mb-3"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
