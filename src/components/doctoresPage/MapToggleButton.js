@@ -4,13 +4,13 @@ export default function MapToggleButton({ onClick, isMapOpen, doctorsCount }) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div className="fixed bottom-6 left-6 z-40">
+    <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-50">
       <button
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`
-          group relative flex items-center gap-3 px-6 py-4 rounded-2xl shadow-xl 
+          group relative flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl shadow-xl 
           transition-all duration-300 transform hover:scale-105 active:scale-95
           ${isMapOpen 
             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
@@ -23,7 +23,7 @@ export default function MapToggleButton({ onClick, isMapOpen, doctorsCount }) {
         <div className="relative">
           {isMapOpen ? (
             <svg 
-              className="w-6 h-6 transition-transform duration-300" 
+              className="w-5 h-5 md:w-6 md:h-6 transition-transform duration-300" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -32,7 +32,7 @@ export default function MapToggleButton({ onClick, isMapOpen, doctorsCount }) {
             </svg>
           ) : (
             <svg 
-              className={`w-6 h-6 transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`} 
+              className={`w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`} 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -54,11 +54,11 @@ export default function MapToggleButton({ onClick, isMapOpen, doctorsCount }) {
 
         {/* Text */}
         <div className="flex flex-col items-start">
-          <span className="font-semibold text-sm">
+          <span className="font-semibold text-xs md:text-sm">
             {isMapOpen ? 'Cerrar Mapa' : 'Ver en Mapa'}
           </span>
           {!isMapOpen && doctorsCount > 0 && (
-            <span className="text-xs opacity-90">
+            <span className="text-[10px] md:text-xs opacity-90">
               {doctorsCount} doctores
             </span>
           )}
