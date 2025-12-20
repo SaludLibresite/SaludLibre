@@ -76,87 +76,6 @@ export default function DoctoresPage() {
     loadDoctors();
   }, []);
 
-  // Create filters from loaded data
-  const categorias = [
-    ...new Set(doctoresData.map((d) => d.especialidad)),
-  ].sort();
-  
-  // Use utility function to normalize gender values
-  const generos = normalizeGenderArray(doctoresData.map((d) => d.genero));
-  const rangos = [
-    { value: "VIP", label: "Plan Plus (Premium)" },
-    { value: "Intermedio", label: "Plan Medium" }, 
-    { value: "Normal", label: "Plan Free (Básico)" }
-  ];
-  // Get barrio filter options instead of individual locations
-  const barrioOptions = getBarrioFilterOptions(doctoresData);
-  const prepagas = [
-    ...new Set(doctoresData.flatMap((d) => d.prepagas || [])),
-  ].sort();
-
-  const filters = [
-    {
-      id: "categoria",
-      label: "Especialidad",
-      value: categoria,
-      setter: setCategoria,
-      options: categorias,
-    },
-    {
-      id: "genero",
-      label: "Género",
-      value: selectedGenero,
-      setter: setSelectedGenero,
-      options: generos,
-    },
-    {
-      id: "consultaOnline",
-      label: "Consulta Online",
-      value: selectedConsultaOnline,
-      setter: setSelectedConsultaOnline,
-      options: [
-        { value: "true", label: "Sí" },
-        { value: "false", label: "No" },
-      ],
-    },
-    {
-      id: "ageGroup",
-      label: "Grupo de Edad",
-      value: selectedAgeGroup,
-      setter: setSelectedAgeGroup,
-      options: [
-        { value: "menores", label: "Solo Menores (0-18)" },
-        { value: "adultos", label: "Solo Adultos (18-65+)" },
-        { value: "ambos", label: "Menores y Adultos" },
-      ],
-      iconPath:
-        "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
-    },
-    {
-      id: "rango",
-      label: "Plan de Suscripción",
-      value: selectedRango,
-      setter: setSelectedRango,
-      options: rangos,
-    },
-    {
-      id: "barrio",
-      label: "Zona/Barrio",
-      value: selectedBarrio,
-      setter: setSelectedBarrio,
-      options: barrioOptions,
-    },
-    {
-      id: "prepaga",
-      label: "Prepaga",
-      value: selectedPrepaga,
-      setter: setSelectedPrepaga,
-      options: prepagas,
-      iconPath:
-        "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-    },
-  ];
-
   // Handler for nearby doctors
   const handleNearbyDoctorsFound = (doctors, location) => {
     setNearbyDoctors(doctors);
@@ -192,6 +111,171 @@ export default function DoctoresPage() {
 
   // Use nearby doctors if available, otherwise use filtered doctors
   const doctorsToShow = showingNearby ? nearbyDoctors : doctoresData;
+
+  // Función para obtener doctores filtrados parcialmente (para interdependencia de filtros)
+  const getPartiallyFilteredDoctors = (excludeFilter = null) => {
+    let result = doctorsToShow;
+
+    // Aplicar búsqueda de texto
+    if (search) {
+      result = result.filter((d) =>
+        d.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+        d.especialidad?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // Aplicar filtro de especialidad (si no es el filtro excluido)
+    if (excludeFilter !== 'categoria' && categoria) {
+      result = result.filter((d) => d.especialidad === categoria);
+    }
+
+    // Aplicar filtro de género (si no es el filtro excluido)
+    if (excludeFilter !== 'genero' && selectedGenero) {
+      result = result.filter((d) => normalizeGenero(d.genero) === selectedGenero);
+    }
+
+    // Aplicar filtro de consulta online (si no es el filtro excluido)
+    if (excludeFilter !== 'consultaOnline' && selectedConsultaOnline) {
+      result = result.filter((d) =>
+        (selectedConsultaOnline === "true" && d.consultaOnline) ||
+        (selectedConsultaOnline === "false" && !d.consultaOnline)
+      );
+    }
+
+    // Aplicar filtro de grupo de edad (si no es el filtro excluido)
+    if (excludeFilter !== 'ageGroup' && selectedAgeGroup) {
+      result = result.filter((d) =>
+        d.ageGroup === selectedAgeGroup || (!d.ageGroup && selectedAgeGroup === "ambos")
+      );
+    }
+
+    // Aplicar filtro de plan (si no es el filtro excluido)
+    if (excludeFilter !== 'rango' && selectedRango) {
+      result = result.filter((d) => getDoctorRank(d) === selectedRango);
+    }
+
+    // Aplicar filtro de barrio (si no es el filtro excluido)
+    if (excludeFilter !== 'barrio' && selectedBarrio) {
+      result = filterDoctorsByBarrio(result, selectedBarrio);
+    }
+
+    // Aplicar filtro de prepaga (si no es el filtro excluido)
+    if (excludeFilter !== 'prepaga' && selectedPrepaga) {
+      result = result.filter((d) => d.prepagas && d.prepagas.includes(selectedPrepaga));
+    }
+
+    return result;
+  };
+
+  // Obtener opciones disponibles para cada filtro basado en las selecciones actuales
+  const getAvailableCategories = () => {
+    const doctors = getPartiallyFilteredDoctors('categoria');
+    return [...new Set(doctors.map((d) => d.especialidad))].sort();
+  };
+
+  const getAvailableGeneros = () => {
+    const doctors = getPartiallyFilteredDoctors('genero');
+    return normalizeGenderArray(doctors.map((d) => d.genero));
+  };
+
+  const getAvailableConsultaOnlineOptions = () => {
+    const doctors = getPartiallyFilteredDoctors('consultaOnline');
+    const hasOnline = doctors.some(d => d.consultaOnline);
+    const hasOffline = doctors.some(d => !d.consultaOnline);
+    const options = [];
+    if (hasOnline) options.push({ value: "true", label: "Sí" });
+    if (hasOffline) options.push({ value: "false", label: "No" });
+    return options;
+  };
+
+  const getAvailableAgeGroups = () => {
+    const doctors = getPartiallyFilteredDoctors('ageGroup');
+    const ageGroups = [...new Set(doctors.map(d => d.ageGroup || 'ambos'))];
+    const optionsMap = {
+      "menores": { value: "menores", label: "Solo Menores (0-18)" },
+      "adultos": { value: "adultos", label: "Solo Adultos (18-65+)" },
+      "ambos": { value: "ambos", label: "Menores y Adultos" }
+    };
+    return ageGroups.filter(ag => optionsMap[ag]).map(ag => optionsMap[ag]);
+  };
+
+  const getAvailableRangos = () => {
+    const doctors = getPartiallyFilteredDoctors('rango');
+    const ranks = [...new Set(doctors.map(d => getDoctorRank(d)))];
+    const rangosMap = {
+      "VIP": { value: "VIP", label: "Plan Plus (Premium)" },
+      "Intermedio": { value: "Intermedio", label: "Plan Medium" },
+      "Normal": { value: "Normal", label: "Plan Free (Básico)" }
+    };
+    return ranks.filter(r => rangosMap[r]).map(r => rangosMap[r]);
+  };
+
+  const getAvailableBarrios = () => {
+    const doctors = getPartiallyFilteredDoctors('barrio');
+    return getBarrioFilterOptions(doctors);
+  };
+
+  const getAvailablePrepagas = () => {
+    const doctors = getPartiallyFilteredDoctors('prepaga');
+    return [...new Set(doctors.flatMap((d) => d.prepagas || []))].sort();
+  };
+
+  // Crear filtros con opciones dinámicas basadas en las selecciones actuales
+  const filters = [
+    {
+      id: "categoria",
+      label: "Especialidad",
+      value: categoria,
+      setter: setCategoria,
+      options: getAvailableCategories(),
+    },
+    {
+      id: "genero",
+      label: "Género",
+      value: selectedGenero,
+      setter: setSelectedGenero,
+      options: getAvailableGeneros(),
+    },
+    {
+      id: "consultaOnline",
+      label: "Consulta Online",
+      value: selectedConsultaOnline,
+      setter: setSelectedConsultaOnline,
+      options: getAvailableConsultaOnlineOptions(),
+    },
+    {
+      id: "ageGroup",
+      label: "Grupo de Edad",
+      value: selectedAgeGroup,
+      setter: setSelectedAgeGroup,
+      options: getAvailableAgeGroups(),
+      iconPath:
+        "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+    },
+    {
+      id: "rango",
+      label: "Plan de Suscripción",
+      value: selectedRango,
+      setter: setSelectedRango,
+      options: getAvailableRangos(),
+    },
+    {
+      id: "barrio",
+      label: "Zona/Barrio",
+      value: selectedBarrio,
+      setter: setSelectedBarrio,
+      options: getAvailableBarrios(),
+    },
+    {
+      id: "prepaga",
+      label: "Prepaga",
+      value: selectedPrepaga,
+      setter: setSelectedPrepaga,
+      options: getAvailablePrepagas(),
+      iconPath:
+        "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+    },
+  ];
 
   // Filter by barrio if selected
   let doctorsFilteredByBarrio = doctorsToShow;
