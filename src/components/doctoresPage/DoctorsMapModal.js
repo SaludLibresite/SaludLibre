@@ -3,6 +3,40 @@ import { useLoadScript, GoogleMap, Marker, InfoWindow } from '@react-google-maps
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Estilos CSS para InfoWindow transparente
+const infoWindowStyle = `
+  .gm-style .gm-style-iw-c {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 24px !important;
+    overflow: visible !important;
+  }
+  .gm-style .gm-style-iw-d {
+    overflow: visible !important;
+    max-width: none !important;
+  }
+  .gm-style .gm-style-iw-t::after {
+    background: linear-gradient(45deg, rgba(30, 87, 87, 0.95) 50%, transparent 51%, transparent) !important;
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.2) !important;
+  }
+  .gm-ui-hover-effect {
+    opacity: 1 !important;
+    top: 8px !important;
+    right: 8px !important;
+    width: 32px !important;
+    height: 32px !important;
+    background: white !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .gm-ui-hover-effect img {
+    margin: 0 !important;
+  }
+`;
+
 // Google Maps libraries
 const libraries = ['places'];
 
@@ -76,13 +110,45 @@ const getMarkerIcon = (doctor) => {
 const getUserLocationIcon = () => {
   return {
     url: 'data:image/svg+xml,' + encodeURIComponent(`
-      <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="15" cy="15" r="12" fill="#10b981" stroke="white" stroke-width="3"/>
-        <circle cx="15" cy="15" r="6" fill="white"/>
+      <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <style>
+            @keyframes pulse {
+              0% {
+                opacity: 1;
+                transform: scale(1);
+              }
+              50% {
+                opacity: 0.3;
+                transform: scale(1.8);
+              }
+              100% {
+                opacity: 0;
+                transform: scale(2.2);
+              }
+            }
+            .pulse-ring {
+              animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+              transform-origin: center;
+            }
+          </style>
+        </defs>
+        <!-- Pulse rings -->
+        <circle class="pulse-ring" cx="20" cy="20" r="10" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.8"/>
+        <circle class="pulse-ring" cx="20" cy="20" r="10" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.6" style="animation-delay: 0.5s"/>
+        
+        <!-- Outer circle with shadow -->
+        <circle cx="20" cy="20" r="10" fill="#3b82f6" opacity="0.2"/>
+        
+        <!-- Main dot -->
+        <circle cx="20" cy="20" r="6" fill="#3b82f6" stroke="white" stroke-width="2.5"/>
+        
+        <!-- Center highlight -->
+        <circle cx="20" cy="20" r="3" fill="#60a5fa"/>
       </svg>
     `),
-    scaledSize: window.google?.maps ? new window.google.maps.Size(30, 30) : undefined,
-    anchor: window.google?.maps ? new window.google.maps.Point(15, 15) : undefined
+    scaledSize: window.google?.maps ? new window.google.maps.Size(40, 40) : undefined,
+    anchor: window.google?.maps ? new window.google.maps.Point(20, 20) : undefined
   };
 };
 
@@ -92,8 +158,10 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  // Filtros abiertos por defecto en desktop
-  const [showFilters, setShowFilters] = useState(typeof window !== 'undefined' && window.innerWidth >= 768);
+  // Filtros cerrados por defecto
+  const [showFilters, setShowFilters] = useState(false);
+  // Estado local para la ubicación actual del usuario (puede venir de props o ser obtenida)
+  const [currentUserLocation, setCurrentUserLocation] = useState(userLocation);
   const mapRef = useRef(null);
 
   // Load Google Maps
@@ -109,34 +177,28 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
     return !isNaN(lat) && !isNaN(lng);
   });
 
-  // Map load handler with auto-fit to show all points
+  // Calculate center with most doctors density
+  const getDoctorsDensityCenter = () => {
+    if (doctorsWithLocation.length === 0) return defaultCenter;
+    
+    // Calculate average position (geographic center)
+    const sum = doctorsWithLocation.reduce((acc, doctor) => ({
+      lat: acc.lat + parseFloat(doctor.latitude),
+      lng: acc.lng + parseFloat(doctor.longitude)
+    }), { lat: 0, lng: 0 });
+    
+    return {
+      lat: sum.lat / doctorsWithLocation.length,
+      lng: sum.lng / doctorsWithLocation.length
+    };
+  };
+
+  // Initial center based on doctor density
+  const initialCenter = getDoctorsDensityCenter();
+
+  // Map load handler - no auto-fit, just set initial position
   const handleMapLoad = (mapInstance) => {
     setMap(mapInstance);
-    
-    // Auto-adjust view to show all available points
-    if (doctorsWithLocation.length > 0) {
-      const bounds = new window.google.maps.LatLngBounds();
-      
-      // Add all doctor locations to bounds
-      doctorsWithLocation.forEach(doctor => {
-        bounds.extend(new window.google.maps.LatLng(
-          parseFloat(doctor.latitude), 
-          parseFloat(doctor.longitude)
-        ));
-      });
-      
-      // Add user location if available
-      if (userLocation) {
-        const userLat = userLocation.latitude || userLocation.lat;
-        const userLng = userLocation.longitude || userLocation.lng;
-        if (userLat && userLng) {
-          bounds.extend(new window.google.maps.LatLng(userLat, userLng));
-        }
-      }
-      
-      // Fit map to show all points with padding
-      mapInstance.fitBounds(bounds, { padding: 50 });
-    }
   };
 
   // Block body scroll when modal is open
@@ -148,12 +210,24 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
       
+      // Inject custom styles for InfoWindow
+      const styleEl = document.createElement('style');
+      styleEl.id = 'custom-infowindow-styles';
+      styleEl.textContent = infoWindowStyle;
+      document.head.appendChild(styleEl);
+      
       return () => {
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.width = '';
         document.body.style.overflow = '';
         window.scrollTo(0, scrollY);
+        
+        // Remove custom styles
+        const existingStyle = document.getElementById('custom-infowindow-styles');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
       };
     }
   }, [isOpen]);
@@ -211,6 +285,42 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
       setIsSearching(false);
     }
   }, [isOpen]);
+
+  // Function to center map on user location or request it
+  const centerOnUserLocation = () => {
+    if (map) {
+      if (userLocation || currentUserLocation) {
+        // If we already have location, center on it
+        const location = currentUserLocation || userLocation;
+        const userLat = location.latitude || location.lat;
+        const userLng = location.longitude || location.lng;
+        if (userLat && userLng) {
+          map.panTo({ lat: userLat, lng: userLng });
+          map.setZoom(14);
+        }
+      } else {
+        // Request user location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+              // Save location in state
+              setCurrentUserLocation({ lat, lng });
+              map.panTo({ lat, lng });
+              map.setZoom(14);
+            },
+            (error) => {
+              console.error('Error obteniendo ubicación:', error);
+              alert('No se pudo obtener tu ubicación. Por favor, verifica los permisos del navegador.');
+            }
+          );
+        } else {
+          alert('Tu navegador no soporta geolocalización.');
+        }
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -318,7 +428,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 top-16 md:top-20 rounded-t-3xl overflow-hidden shadow-2xl"
+            className="fixed inset-x-0 bottom-0 top-0 md:top-0 rounded-t-3xl overflow-hidden shadow-2xl"
             style={{ zIndex: 9999 }}
           >
             <div className="w-full h-full bg-white rounded-t-3xl overflow-hidden flex flex-col">
@@ -327,20 +437,17 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                 <GoogleMap
                   ref={mapRef}
                   mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={userLocation ? {
-                      lat: userLocation.latitude || userLocation.lat,
-                      lng: userLocation.longitude || userLocation.lng
-                    } : defaultCenter}
-                  zoom={12}
+                  center={initialCenter}
+                  zoom={10}
                   options={mapOptions}
                   onLoad={handleMapLoad}
                 >
             {/* User location marker */}
-            {userLocation && (
+            {(userLocation || currentUserLocation) && (
               <Marker
                 position={{
-                  lat: userLocation.latitude || userLocation.lat,
-                  lng: userLocation.longitude || userLocation.lng
+                  lat: (currentUserLocation?.lat || currentUserLocation?.latitude || userLocation?.latitude || userLocation?.lat),
+                  lng: (currentUserLocation?.lng || currentUserLocation?.longitude || userLocation?.longitude || userLocation?.lng)
                 }}
                 icon={getUserLocationIcon()}
                 title="Tu ubicación"
@@ -369,105 +476,151 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                   lng: parseFloat(selectedDoctor.longitude) 
                 }}
                 onCloseClick={() => setSelectedDoctor(null)}
+                options={{
+                  pixelOffset: new window.google.maps.Size(0, -10)
+                }}
               >
-                <div className="p-4 max-w-sm bg-white rounded-lg shadow-lg">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {getDoctorRank(selectedDoctor) === 'VIP' && (
-                        <span className="px-2 py-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white text-xs font-bold rounded-full shadow-sm">
-                          ⭐ PREMIUM
-                        </span>
-                      )}
-                      {getDoctorRank(selectedDoctor) === 'Intermedio' && (
-                        <span className="px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-sm">
-                          💎 PLUS
-                        </span>
-                      )}
-                      {getDoctorRank(selectedDoctor) === 'Normal' && (
-                        <span className="px-2 py-1 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-xs font-bold rounded-full shadow-sm">
-                          ✓ BÁSICO
-                        </span>
-                      )}
-                    </div>
-                    {selectedDoctor.verified && (
-                      <span className="text-blue-500 text-sm">✓</span>
+                <div className="relative overflow-hidden rounded-3xl shadow-2xl" style={{ 
+                  background: 'rgba(20, 20, 30, 0.65)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  width: '260px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1)'
+                }}>
+                  {/* Badge Superior */}
+                  <div className="absolute top-3 left-3 z-10">
+                    {getDoctorRank(selectedDoctor) === 'VIP' && (
+                      <div className="px-2.5 py-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 text-white text-xs font-bold rounded-lg shadow-lg">
+                         PREMIUM
+                      </div>
+                    )}
+                    {getDoctorRank(selectedDoctor) === 'Intermedio' && (
+                      <div className="px-2.5 py-1 bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg">
+                         PLUS
+                      </div>
+                    )}
+                    {getDoctorRank(selectedDoctor) === 'Normal' && (
+                      <div className="px-2.5 py-1 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-xs font-bold rounded-lg shadow-lg">
+                         BÁSICO
+                      </div>
                     )}
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0">
-                      <img
-                        src={selectedDoctor.photoURL || selectedDoctor.imagen || "/img/doctor-1.jpg"}
-                        alt={selectedDoctor.nombre}
-                        className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
-                        onError={(e) => {
-                          e.target.src = "/img/doctor-1.jpg";
-                        }}
-                      />
+                  {/* Verificado badge */}
+                  {selectedDoctor.verified && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                        <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Content Container */}
+                  <div className="p-5 pt-12 flex flex-col items-center text-center">
+                    {/* Imagen del doctor - estilo cuadrado redondeado centrado */}
+                    <div className="mb-4 relative">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20" style={{
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
+                      }}>
+                        <img
+                          src={selectedDoctor.photoURL || selectedDoctor.imagen || "/img/doctor-1.jpg"}
+                          alt={selectedDoctor.nombre}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = "/img/doctor-1.jpg";
+                          }}
+                        />
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 mb-1 text-sm leading-tight">
-                        {cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}
-                      </h3>
+                    {/* Nombre del doctor - estilo elegante */}
+                    <h3 className="font-bold mb-1 text-base leading-tight tracking-wide" style={{ 
+                      color: '#fff',
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      letterSpacing: '0.5px'
+                    }}>
+                      {cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}
+                    </h3>
+                    
+                    {/* Especialidad */}
+                    <p className="text-xs mb-4" style={{ 
+                      color: 'rgba(255, 255, 255, 0.75)',
+                      fontWeight: '500'
+                    }}>
+                      {selectedDoctor.especialidad}
+                    </p>
+
+                    {/* Info directa sin caja verde */}
+                    <div className="w-full mb-4 space-y-2">
+                      {selectedDoctor.experiencia && (
+                        <div className="flex items-center justify-center gap-2 text-xs" style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" style={{ color: '#d4a574' }}>
+                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span className="font-medium">{selectedDoctor.experiencia} años de experiencia</span>
+                        </div>
+                      )}
                       
-                      <div className="space-y-1 mb-3">
-                        <p className="text-sm text-orange-600 font-medium">
-                          {selectedDoctor.especialidad}
-                        </p>
-                        
-                        {selectedDoctor.experiencia && (
-                          <p className="text-xs text-gray-600 flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {selectedDoctor.experiencia} años
-                          </p>
-                        )}
-
-                        {selectedDoctor.rating && (
-                          <div className="flex items-center gap-1">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <svg 
-                                  key={i} 
-                                  className={`w-3 h-3 ${i < Math.floor(selectedDoctor.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
-                                  fill="currentColor" 
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.784-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                              ))}
-                            </div>
-                            <span className="text-xs text-gray-600">({selectedDoctor.rating})</span>
+                      {selectedDoctor.rating && (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <svg 
+                                key={i} 
+                                className={`w-3.5 h-3.5 ${i < Math.floor(selectedDoctor.rating) ? 'text-yellow-400' : 'text-gray-500'}`} 
+                                fill="currentColor" 
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.784-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
                           </div>
-                        )}
+                          <span className="text-xs font-bold text-white">{selectedDoctor.rating}</span>
+                        </div>
+                      )}
 
-                        {selectedDoctor.precio && (
-                          <p className="text-xs text-green-600 font-semibold">
-                            💰 Consulta desde ${selectedDoctor.precio}
-                          </p>
-                        )}
-                      </div>
+                      {selectedDoctor.precio && (
+                        <div className="font-bold text-sm" style={{ color: '#a3e6c7' }}>
+                          Desde ${selectedDoctor.precio}
+                        </div>
+                      )}
+                    </div>
 
-                      <div className="flex gap-2 flex-wrap">
+                    {/* Botones de acción */}
+                    <div className="w-full flex gap-2">
+                      <a
+                        href={`/doctores/${selectedDoctor.slug}`}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                        style={{ 
+                          background: '#ff8c42',
+                          color: 'white'
+                        }}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Ver perfil
+                      </a>
+                      {selectedDoctor.telefono && (
                         <a
-                          href={`/doctores/${selectedDoctor.slug}`}
-                          className="text-xs bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1.5 rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm font-medium"
+                          href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}, quisiera agendar una consulta`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                          style={{ 
+                            background: '#49c04bff',
+                            color: 'white'
+                          }}
                         >
-                          Ver perfil
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                          </svg>
                         </a>
-                        {selectedDoctor.telefono && (
-                          <a
-                            href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}, quisiera agendar una consulta`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-full hover:bg-green-600 transition-colors duration-200 shadow-sm font-medium"
-                          >
-                            WhatsApp
-                          </a>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -538,6 +691,17 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </button>
+
+                {/* Location button */}
+                <button
+                  onClick={centerOnUserLocation}
+                  className="flex-shrink-0 p-2.5 bg-orange-500 text-white rounded-full transition-all duration-200 hover:bg-orange-600 hover:shadow-lg hover:scale-105"
+                  title={(userLocation || currentUserLocation) ? "Mi ubicación" : "Obtener mi ubicación"}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                   </svg>
                 </button>
               </div>
