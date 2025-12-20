@@ -190,7 +190,7 @@ export default function Register() {
         subscriptionStatus: 'inactive',
         subscriptionPlan: 'Plan Free',
         subscriptionPlanId: 'plan-free',
-        imagen: "img/doctor-1.jpg", // Default image
+        imagen: "/img/doctor-1.jpg", // Default image
         descripcion:
           formData.descripcion || `${formData.especialidad} especialista`,
         especialidad: formData.especialidad,

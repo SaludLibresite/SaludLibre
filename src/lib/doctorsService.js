@@ -446,7 +446,7 @@ export async function createDoctorFromGoogle(user, referralCode = null) {
       userId: user.uid,
       email: user.email,
       nombre: baseName,
-      imagen: user.photoURL || "img/doctor-1.jpg", // Use standard field name
+      imagen: user.photoURL || "/img/doctor-1.jpg", // Use standard field name
       // Mark as incomplete profile that needs to be filled
       profileCompleted: false, // Use consistent field name
       isGoogleUser: true,

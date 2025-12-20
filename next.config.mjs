@@ -54,6 +54,13 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      // Google User Profile Images
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
     // Permitir optimización de imágenes externas
     unoptimized: false,

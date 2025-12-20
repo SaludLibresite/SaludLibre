@@ -70,7 +70,14 @@ const DoctorsList = ({
                       {(doctor.photoURL || doctor.imagen) ? (
                         <Image
                           className="h-16 w-16 rounded-xl object-cover ring-2 ring-white shadow-lg"
-                          src={doctor.photoURL || doctor.imagen}
+                          src={
+                            doctor.photoURL || 
+                            (doctor.imagen?.startsWith('http') 
+                              ? doctor.imagen 
+                              : doctor.imagen?.startsWith('/') 
+                              ? doctor.imagen 
+                              : `/${doctor.imagen}`)
+                          }
                           alt={doctor.nombre || "Doctor"}
                           width={64}
                           height={64}

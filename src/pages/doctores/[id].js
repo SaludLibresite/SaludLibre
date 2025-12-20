@@ -200,7 +200,7 @@ export default function DoctorDetailPage({
         doctor?.photoURL ||
         (doctor?.imagen?.startsWith("http")
           ? doctor?.imagen
-          : `https://saludlibre.com/${doctor?.imagen || "img/doctor-1.jpg"}`)
+          : `https://saludlibre.com/${doctor?.imagen || "/img/doctor-1.jpg"}`)
       }
       url={`https://saludlibre.com/doctores/${doctor?.slug}`}
       pinColor="#3B82F6"
@@ -291,6 +291,8 @@ export default function DoctorDetailPage({
                   src={
                     doctor.photoURL ||
                     (doctor.imagen?.startsWith("http")
+                      ? doctor.imagen
+                      : doctor.imagen?.startsWith("/")
                       ? doctor.imagen
                       : `/${doctor.imagen || "img/doctor-1.jpg"}`)
                   }
@@ -434,6 +436,8 @@ export default function DoctorDetailPage({
                         src={
                           doctor.photoURL ||
                           (doctor.imagen?.startsWith("http")
+                            ? doctor.imagen
+                            : doctor.imagen?.startsWith("/")
                             ? doctor.imagen
                             : `/${doctor.imagen || "img/doctor-1.jpg"}`)
                         }
