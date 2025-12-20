@@ -307,8 +307,11 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
               const lng = position.coords.longitude;
               // Save location in state
               setCurrentUserLocation({ lat, lng });
-              map.panTo({ lat, lng });
-              map.setZoom(14);
+              // Use setTimeout to ensure the map is ready and state is updated
+              setTimeout(() => {
+                map.panTo({ lat, lng });
+                map.setZoom(14);
+              }, 100);
             },
             (error) => {
               console.error('Error obteniendo ubicación:', error);
