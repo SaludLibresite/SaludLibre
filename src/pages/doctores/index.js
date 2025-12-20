@@ -405,7 +405,7 @@ export default function DoctoresPage() {
         {/* Compact Hero Section */}
         <div className="relative bg-gradient-to-br from-cyan-50/30 via-white to-blue-50/20">
           {/* Content */}
-          <div className="mx-auto max-w-7xl px-6 pt-8 pb-6 lg:px-8">
+          <div className="container mx-auto px-6 pt-8 pb-6 lg:px-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               {/* Title and main info - more compact */}
               <div className="flex-1">
@@ -569,6 +569,7 @@ export default function DoctoresPage() {
         onClose={handleCloseMap}
         doctors={sortedFilteredDoctors}
         userLocation={userLocation}
+        filters={filters}
       />
 
       {/* Map Toggle Button */}
