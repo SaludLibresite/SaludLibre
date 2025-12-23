@@ -7,6 +7,7 @@ import PaginationControls from "../../components/doctoresPage/PaginationControls
 import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButton";
 import DoctorsMapModal from "../../components/doctoresPage/DoctorsMapModal";
 import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
+import ShareFiltersButton from "../../components/doctoresPage/ShareFiltersButton";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
@@ -14,90 +15,55 @@ import Link from "next/link";
 import Footer from "../../components/Footer";
 import { useRouter } from "next/router";
 import { getBarrioFilterOptions, filterDoctorsByBarrio } from "../../lib/barriosUtils";
+import { useDoctorsFilterStore } from "../../store/doctorsFilterStore";
+import { useDoctorsFilterSync } from "../../hooks/useDoctorsFilterSync";
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
 
-export default function DoctoresPage() {
+export default function DoctoresPage({ initialDoctors }) {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [categoria, setCategoria] = useState("");
-  const [selectedGenero, setSelectedGenero] = useState("");
-  const [selectedConsultaOnline, setSelectedConsultaOnline] = useState("");
-  const [selectedRango, setSelectedRango] = useState("");
-  const [selectedBarrio, setSelectedBarrio] = useState("");
-  const [selectedPrepaga, setSelectedPrepaga] = useState("");
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Sync filters with URL
+  useDoctorsFilterSync();
+  
+  // Zustand store for filters
+  const {
+    search, setSearch,
+    categoria, setCategoria,
+    selectedGenero, setSelectedGenero,
+    selectedConsultaOnline, setSelectedConsultaOnline,
+    selectedRango, setSelectedRango,
+    selectedBarrio, setSelectedBarrio,
+    selectedPrepaga, setSelectedPrepaga,
+    selectedAgeGroup, setSelectedAgeGroup,
+    currentPage, setCurrentPage,
+    isMapOpen, setIsMapOpen,
+    nearbyDoctors, userLocation, showingNearby,
+    setNearbyDoctors, resetNearbyDoctors,
+    resetFiltersExceptNearby
+  } = useDoctorsFilterStore();
+  
   const [isLoading, setIsLoading] = useState(false);
-  const [doctoresData, setDoctoresData] = useState([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [nearbyDoctors, setNearbyDoctors] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [showingNearby, setShowingNearby] = useState(false);
-  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [doctoresData, setDoctoresData] = useState(initialDoctors || []);
+  const [initialLoading, setInitialLoading] = useState(false);
 
-  // Read search parameter from URL
+  // Initialize doctors data from SSG props
   useEffect(() => {
-    if (router.isReady && router.query.search) {
-      setSearch(router.query.search);
+    if (initialDoctors && initialDoctors.length > 0) {
+      setDoctoresData(initialDoctors);
     }
-  }, [router.isReady, router.query.search]);
-
-  // Load doctors from Firebase
-  useEffect(() => {
-    async function loadDoctors() {
-      try {
-        setInitialLoading(true);
-        const doctors = await getAllDoctors();
-        // Only show verified doctors
-        const verifiedDoctors = doctors.filter(
-          (doctor) => doctor.verified === true
-        );
-        
-        // Debug logging for location data
-        console.log('Doctors loaded:', {
-          total: doctors.length,
-          verified: verifiedDoctors.length,
-          withLocation: verifiedDoctors.filter(d => d.latitude && d.longitude).length,
-          sampleDoctorWithLocation: verifiedDoctors.find(d => d.latitude && d.longitude),
-          sampleDoctorWithoutLocation: verifiedDoctors.find(d => !d.latitude || !d.longitude)
-        });
-        
-        setDoctoresData(verifiedDoctors);
-      } catch (error) {
-        console.error("Error loading doctors:", error);
-        setDoctoresData([]);
-      } finally {
-        setInitialLoading(false);
-      }
-    }
-
-    loadDoctors();
-  }, []);
+  }, [initialDoctors]);
 
   // Handler for nearby doctors
   const handleNearbyDoctorsFound = (doctors, location) => {
-    setNearbyDoctors(doctors);
-    setUserLocation(location);
-    setShowingNearby(true);
+    setNearbyDoctors(doctors, location);
     // Reset filters when showing nearby results
-    setSearch("");
-    setCategoria("");
-    setSelectedGenero("");
-    setSelectedConsultaOnline("");
-    setSelectedAgeGroup("");
-    setSelectedRango("");
-    setSelectedUbicacion("");
-    setSelectedPrepaga("");
-    setCurrentPage(1);
+    resetFiltersExceptNearby();
   };
 
   const handleResetToAllDoctors = () => {
-    setNearbyDoctors(null);
-    setUserLocation(null);
-    setShowingNearby(false);
-    setCurrentPage(1);
+    resetNearbyDoctors();
   };
 
   // Map functionality
@@ -431,6 +397,9 @@ export default function DoctoresPage() {
 
               {/* Action buttons - more prominent */}
               <div className="flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
+                {/* Share button - always visible */}
+                <ShareFiltersButton />
+                
                 {showingNearby && nearbyDoctors ? (
                   <div className="flex flex-col sm:flex-row gap-3 items-center">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-cyan-100 text-cyan-800 rounded-lg text-sm font-medium">
@@ -567,9 +536,8 @@ export default function DoctoresPage() {
       <DoctorsMapModal
         isOpen={isMapOpen}
         onClose={handleCloseMap}
-        doctors={sortedFilteredDoctors}
+        doctors={doctoresData}
         userLocation={userLocation}
-        filters={filters}
       />
 
       {/* Map Toggle Button */}
@@ -584,4 +552,75 @@ export default function DoctoresPage() {
       {/* Chat Bubble - Asistente Virtual */}
     </div>
   );
+}
+
+// Server-side generation with revalidation
+export async function getStaticProps() {
+  try {
+    const doctors = await getAllDoctors();
+    
+    // Only show verified doctors
+    const verifiedDoctors = doctors.filter(
+      (doctor) => doctor.verified === true
+    );
+    
+    // Serialize doctors data - convert Firebase Timestamps to strings
+    const serializedDoctors = verifiedDoctors.map(doctor => {
+      const serialized = { ...doctor };
+      
+      // List of all possible date fields
+      const dateFields = [
+        'subscriptionExpiresAt',
+        'subscriptionActivatedAt',
+        'createdAt',
+        'updatedAt',
+        'lastLogin',
+        'birthDate',
+        'registeredAt'
+      ];
+      
+      // Convert all date fields to ISO strings
+      dateFields.forEach(field => {
+        if (serialized[field]) {
+          serialized[field] = serialized[field].toDate 
+            ? serialized[field].toDate().toISOString()
+            : serialized[field];
+        }
+      });
+      
+      return serialized;
+    });
+    
+    console.log('SSG: Doctors loaded:', {
+      total: doctors.length,
+      verified: verifiedDoctors.length,
+      withLocation: verifiedDoctors.filter(d => d.latitude && d.longitude).length,
+      timestamp: new Date().toISOString()
+    });
+    
+    return {
+      props: {
+        initialDoctors: serializedDoctors,
+        // Add timestamp to track when data was generated
+        generatedAt: new Date().toISOString()
+      },
+      // ISR: Incremental Static Regeneration
+      // - Page is generated once at build time
+      // - Served from CDN to all users (shared cache)
+      // - Revalidates every 10 minutes in the background
+      // - Users always get cached version (fast)
+      // - No Firebase calls from client
+      revalidate: 600 // 10 minutes
+    };
+  } catch (error) {
+    console.error("Error loading doctors in SSG:", error);
+    return {
+      props: {
+        initialDoctors: [],
+        generatedAt: new Date().toISOString()
+      },
+      // Even on error, try to revalidate after 60 seconds
+      revalidate: 60
+    };
+  }
 }

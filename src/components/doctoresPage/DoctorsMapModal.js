@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLoadScript, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
+import { normalizeGenero, normalizeGenderArray } from '../../lib/dataUtils';
+import { filterDoctorsByBarrio, getBarrioFilterOptions } from '../../lib/barriosUtils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDoctorsFilterStore } from '../../store/doctorsFilterStore';
 
 // Estilos CSS para InfoWindow transparente
 const infoWindowStyle = `
@@ -48,6 +51,62 @@ const mapContainerStyle = {
 const defaultCenter = {
   lat: -34.6037,
   lng: -58.3816 // Buenos Aires, Argentina
+};
+
+// Coordenadas centrales de los barrios/zonas principales
+const BARRIO_COORDINATES = {
+  // Capital Federal - Norte
+  'Palermo': { lat: -34.5847, lng: -58.4248 },
+  'Recoleta': { lat: -34.5875, lng: -58.3975 },
+  'Belgrano': { lat: -34.5628, lng: -58.4578 },
+  'Núñez': { lat: -34.5453, lng: -58.4639 },
+  'Villa Urquiza': { lat: -34.5729, lng: -58.4823 },
+  'Coghlan': { lat: -34.5592, lng: -58.4791 },
+  'Saavedra': { lat: -34.5469, lng: -58.4832 },
+  
+  // Capital Federal - Centro
+  'Centro / Microcentro': { lat: -34.6037, lng: -58.3816 },
+  'Puerto Madero': { lat: -34.6118, lng: -58.3632 },
+  'Retiro': { lat: -34.5939, lng: -58.3747 },
+  'San Nicolás': { lat: -34.6033, lng: -58.3838 },
+  
+  // Capital Federal - Sur
+  'San Telmo': { lat: -34.6214, lng: -58.3724 },
+  'La Boca': { lat: -34.6345, lng: -58.3631 },
+  'Barracas': { lat: -34.6454, lng: -58.3831 },
+  'Constitución': { lat: -34.6276, lng: -58.3817 },
+  'Montserrat': { lat: -34.6128, lng: -58.3764 },
+  
+  // Capital Federal - Oeste
+  'Caballito': { lat: -34.6189, lng: -58.4367 },
+  'Almagro': { lat: -34.6089, lng: -58.4186 },
+  'Balvanera': { lat: -34.6093, lng: -58.4030 },
+  'Villa Crespo': { lat: -34.6002, lng: -58.4368 },
+  'Flores': { lat: -34.6328, lng: -58.4650 },
+  'Floresta': { lat: -34.6308, lng: -58.4846 },
+  'Villa Luro': { lat: -34.6426, lng: -58.4988 },
+  
+  // Zona Norte - GBA
+  'Vicente López': { lat: -34.5297, lng: -58.4763 },
+  'San Isidro': { lat: -34.4713, lng: -58.5270 },
+  'Tigre': { lat: -34.4261, lng: -58.5797 },
+  'San Fernando': { lat: -34.4417, lng: -58.5597 },
+  'Escobar': { lat: -34.3491, lng: -58.7951 },
+  
+  // Zona Oeste - GBA
+  'Morón': { lat: -34.6534, lng: -58.6198 },
+  'Tres de Febrero': { lat: -34.6045, lng: -58.5645 },
+  'Hurlingham': { lat: -34.5897, lng: -58.6362 },
+  'San Miguel': { lat: -34.5436, lng: -58.7105 },
+  'Malvinas Argentinas': { lat: -34.4695, lng: -58.6975 },
+  
+  // Zona Sur - GBA
+  'Avellaneda': { lat: -34.6613, lng: -58.3647 },
+  'Quilmes': { lat: -34.7206, lng: -58.2636 },
+  'Berazategui': { lat: -34.7639, lng: -58.2097 },
+  'Florencio Varela': { lat: -34.7954, lng: -58.2759 },
+  'Lanús': { lat: -34.7002, lng: -58.3907 },
+  'Lomas de Zamora': { lat: -34.7521, lng: -58.3983 }
 };
 
 const mapOptions = {
@@ -152,15 +211,25 @@ const getUserLocationIcon = () => {
   };
 };
 
-export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation, filters }) {
+export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation }) {
+  // Get all filters from Zustand store
+  const { 
+    categoria, setCategoria,
+    selectedGenero, setSelectedGenero,
+    selectedConsultaOnline, setSelectedConsultaOnline,
+    selectedAgeGroup, setSelectedAgeGroup,
+    selectedRango, setSelectedRango,
+    selectedBarrio, setSelectedBarrio,
+    selectedPrepaga, setSelectedPrepaga
+  } = useDoctorsFilterStore();
+  
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [map, setMap] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  // Filtros cerrados por defecto
   const [showFilters, setShowFilters] = useState(false);
-  // Estado local para la ubicación actual del usuario (puede venir de props o ser obtenida)
+  // Estado local para la ubicación actual del usuario
   const [currentUserLocation, setCurrentUserLocation] = useState(userLocation);
   const mapRef = useRef(null);
 
@@ -170,8 +239,97 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
     libraries,
   });
 
+  // Apply filters from Zustand store to doctors (same logic as main page, except barrio)
+  const filteredDoctors = useMemo(() => {
+    let result = doctors;
+
+    // Filtro de especialidad
+    if (categoria) {
+      result = result.filter((d) => d.especialidad === categoria);
+    }
+
+    // Filtro de género
+    if (selectedGenero) {
+      result = result.filter((d) => normalizeGenero(d.genero) === selectedGenero);
+    }
+
+    // Filtro de consulta online
+    if (selectedConsultaOnline) {
+      result = result.filter((d) =>
+        (selectedConsultaOnline === "true" && d.consultaOnline) ||
+        (selectedConsultaOnline === "false" && !d.consultaOnline)
+      );
+    }
+
+    // Filtro de grupo de edad
+    if (selectedAgeGroup) {
+      result = result.filter((d) =>
+        d.ageGroup === selectedAgeGroup || (!d.ageGroup && selectedAgeGroup === "ambos")
+      );
+    }
+
+    // Filtro de plan
+    if (selectedRango) {
+      result = result.filter((d) => getDoctorRank(d) === selectedRango);
+    }
+
+    // NO filtramos por barrio en el mapa - el filtro de barrio solo centra el mapa
+    // El usuario puede ver todos los doctores de otras zonas también
+
+    // Filtro de prepaga
+    if (selectedPrepaga) {
+      result = result.filter((d) => d.prepagas && d.prepagas.includes(selectedPrepaga));
+    }
+
+    return result;
+  }, [doctors, categoria, selectedGenero, selectedConsultaOnline, selectedAgeGroup, selectedRango, selectedPrepaga]);
+
+  // Generate filter options dynamically
+  const availableEspecialidades = useMemo(() => 
+    [...new Set(filteredDoctors.map(d => d.especialidad).filter(Boolean))].sort(),
+    [filteredDoctors]
+  );
+  const availableGeneros = useMemo(() => 
+    normalizeGenderArray(filteredDoctors.map((d) => d.genero)),
+    [filteredDoctors]
+  );
+  const availableConsultaOnline = useMemo(() => {
+    const hasOnline = filteredDoctors.some(d => d.consultaOnline);
+    const hasOffline = filteredDoctors.some(d => !d.consultaOnline);
+    const options = [];
+    if (hasOnline) options.push({ value: "true", label: "Sí" });
+    if (hasOffline) options.push({ value: "false", label: "No" });
+    return options;
+  }, [filteredDoctors]);
+  const availableAgeGroups = useMemo(() => {
+    const ageGroups = [...new Set(filteredDoctors.map(d => d.ageGroup || 'ambos'))];
+    const optionsMap = {
+      "menores": { value: "menores", label: "Solo Menores (0-18)" },
+      "adultos": { value: "adultos", label: "Solo Adultos (18-65+)" },
+      "ambos": { value: "ambos", label: "Menores y Adultos" }
+    };
+    return ageGroups.filter(ag => optionsMap[ag]).map(ag => optionsMap[ag]);
+  }, [filteredDoctors]);
+  const availablePlans = useMemo(() => {
+    const ranks = [...new Set(filteredDoctors.map(d => getDoctorRank(d)))];
+    const rangosMap = {
+      "VIP": { value: "VIP", label: "Plan Plus (Premium)" },
+      "Intermedio": { value: "Intermedio", label: "Plan Medium" },
+      "Normal": { value: "Normal", label: "Plan Free (Básico)" }
+    };
+    return ranks.filter(r => rangosMap[r]).map(r => rangosMap[r]);
+  }, [filteredDoctors]);
+  const availableBarrios = useMemo(() => 
+    getBarrioFilterOptions(filteredDoctors),
+    [filteredDoctors]
+  );
+  const availablePrepagas = useMemo(() => 
+    [...new Set(filteredDoctors.flatMap((d) => d.prepagas || []))].sort(),
+    [filteredDoctors]
+  );
+
   // Simple filter for doctors with valid coordinates
-  const doctorsWithLocation = doctors.filter(doctor => {
+  const doctorsWithLocation = filteredDoctors.filter(doctor => {
     const lat = parseFloat(doctor.latitude);
     const lng = parseFloat(doctor.longitude);
     return !isNaN(lat) && !isNaN(lng);
@@ -193,8 +351,19 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
     };
   };
 
-  // Initial center based on doctor density
-  const initialCenter = getDoctorsDensityCenter();
+  // Get initial center based on global filter or doctor density
+  const getInitialCenter = () => {
+    // Check if there's a zona/barrio filter active from Zustand store (for centering)
+    if (selectedBarrio && BARRIO_COORDINATES[selectedBarrio]) {
+      return BARRIO_COORDINATES[selectedBarrio];
+    }
+    
+    // Otherwise use doctors density center
+    return getDoctorsDensityCenter();
+  };
+
+  // Initial center based on filters or doctor density
+  const initialCenter = getInitialCenter();
 
   // Map load handler - no auto-fit, just set initial position
   const handleMapLoad = (mapInstance) => {
@@ -285,6 +454,18 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
       setIsSearching(false);
     }
   }, [isOpen]);
+
+  // Center map when barrio filter changes (from global store)
+  useEffect(() => {
+    if (map && isOpen && selectedBarrio) {
+      if (BARRIO_COORDINATES[selectedBarrio]) {
+        const coords = BARRIO_COORDINATES[selectedBarrio];
+        map.panTo({ lat: coords.lat, lng: coords.lng });
+        // Hacer zoom más cercano cuando se selecciona una zona
+        map.setZoom(14);
+      }
+    }
+  }, [map, isOpen, selectedBarrio]);
 
   // Function to center map on user location or request it
   const centerOnUserLocation = () => {
@@ -441,7 +622,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                   ref={mapRef}
                   mapContainerStyle={{ width: '100%', height: '100%' }}
                   center={initialCenter}
-                  zoom={10}
+                  zoom={12}
                   options={mapOptions}
                   onLoad={handleMapLoad}
                 >
@@ -630,6 +811,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
               </InfoWindow>
             )}
           </GoogleMap>
+          </div>
 
           {/* Top Bar - Inside the card */}
           <div className="absolute top-0 left-0 right-0 z-10 pt-4 px-4">
@@ -685,33 +867,37 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                   )}
                 </div>
 
-                {/* Filter toggle button */}
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex-shrink-0 p-2.5 rounded-full transition-colors ${
-                    showFilters ? 'bg-orange-500 text-white' : 'bg-white hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
-                </button>
-
                 {/* Location button */}
                 <button
                   onClick={centerOnUserLocation}
                   className="flex-shrink-0 p-2.5 bg-orange-500 text-white rounded-full transition-all duration-200 hover:bg-orange-600 hover:shadow-lg hover:scale-105"
                   title={(userLocation || currentUserLocation) ? "Mi ubicación" : "Obtener mi ubicación"}
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+
+                {/* Filters toggle button */}
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex-shrink-0 p-2.5 rounded-full transition-all duration-200 hover:shadow-lg hover:scale-105 ${
+                    showFilters || categoria || selectedGenero || selectedConsultaOnline || selectedAgeGroup || selectedRango || selectedBarrio || selectedPrepaga
+                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                  title="Filtros"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                 </button>
               </div>
             </motion.div>
           </div>
 
-          {/* Bottom Drawer - Airbnb Style */}
+          {/* Bottom Drawer - Airbnb Style with Filters */}
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: showFilters ? '0%' : 'calc(100% - 125px)' }}
@@ -719,7 +905,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
             className="absolute bottom-0 left-0 right-0 z-20"
           >
           <div className="bg-white rounded-t-3xl shadow-2xl border-t-4 border-orange-500">
-            {/* Drag Handle - More prominent */}
+            {/* Drag Handle */}
             <div className="flex justify-center pt-4 pb-2">
               <motion.div 
                 className="w-16 h-1.5 bg-gray-400 rounded-full cursor-pointer"
@@ -728,85 +914,73 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
               />
             </div>
 
-            {/* Summary Header - Always visible with better UX */}
+            {/* Summary Header */}
             <div 
-              className="px-6 pb-4 cursor-pointer hover:bg-gray-50 transition-colors rounded-t-3xl"
+              className="px-6 pb-4 cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() => setShowFilters(!showFilters)}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {doctorsWithLocation.length} doctores
-                    </h3>
-                    {!showFilters && (
-                      <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full animate-pulse">
-                        Toca para filtrar
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Leyenda más visible */}
-                  <div className="flex items-center gap-4 text-xs text-gray-600">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 shadow-sm"></div>
-                      <span className="font-medium">Premium</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-sm"></div>
-                      <span className="font-medium">Plus</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 shadow-sm"></div>
-                      <span className="font-medium">Básico</span>
-                    </div>
-                  </div>
-
-                  {/* Indicador de filtros activos */}
-                  {filters && (
-                    <div className="mt-2 flex items-center gap-2 text-xs">
-                      {filters.some(f => f.value) ? (
-                        <>
-                          <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-orange-600 font-semibold">
-                            {filters.filter(f => f.value).length} filtro{filters.filter(f => f.value).length > 1 ? 's' : ''} activo{filters.filter(f => f.value).length > 1 ? 's' : ''}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                          </svg>
-                          <span className="text-gray-500">Sin filtros aplicados</span>
-                        </>
-                      )}
-                    </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {doctorsWithLocation.length} doctores
+                  </h3>
+                  {!showFilters && (
+                    <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                      Toca para filtrar
+                    </span>
                   )}
                 </div>
-
-                {/* Botón de expandir más visible */}
-                <div className="flex flex-col items-center gap-1">
-                  <motion.div
-                    animate={{ rotate: showFilters ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-2 bg-orange-100 rounded-full"
-                  >
-                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </motion.div>
-                  <span className="text-xs text-gray-500 font-medium">
-                    {showFilters ? 'Ocultar' : 'Mostrar'}
-                  </span>
+                
+                {/* Leyenda */}
+                <div className="flex items-center gap-4 text-xs text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 shadow-sm"></div>
+                    <span className="font-medium">Premium</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-sm"></div>
+                    <span className="font-medium">Plus</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-orange-600 shadow-sm"></div>
+                    <span className="font-medium">Básico</span>
+                  </div>
                 </div>
+
+                {(categoria || selectedGenero || selectedConsultaOnline || selectedAgeGroup || selectedRango || selectedBarrio || selectedPrepaga) && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-orange-600 font-semibold">
+                      Filtros activos
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Expand button */}
+              <div className="flex flex-col items-center gap-1">
+                <motion.div
+                  animate={{ rotate: showFilters ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="p-2 bg-orange-100 rounded-full"
+                >
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </motion.div>
+                <span className="text-xs text-gray-500 font-medium">
+                  {showFilters ? 'Ocultar' : 'Mostrar'}
+                </span>
               </div>
             </div>
+            </div> {/* Cierre del div px-6 pb-4 */}
 
             {/* Filters Section - Expandable */}
             <AnimatePresence>
-              {showFilters && filters && (
+              {showFilters && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
@@ -814,77 +988,136 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-6 pb-6 max-h-[60vh] overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
-                    <div className="border-t border-gray-200 pt-6">
+                  <div className="px-6 pb-6 bg-gray-50">
+                    <div className="border-t border-gray-200 pt-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-base font-bold text-gray-800 flex items-center gap-2">
-                          <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
-                          </svg>
-                          Filtrar resultados en el mapa
-                        </h4>
-                        {filters.some(f => f.value) && (
+                        <h4 className="text-sm font-bold text-gray-800">Filtros (sincronizados con la página)</h4>
+                        {(categoria || selectedGenero || selectedConsultaOnline || selectedAgeGroup || selectedRango || selectedBarrio || selectedPrepaga) && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              filters.forEach(f => f.setter(''));
+                            onClick={() => {
+                              setCategoria('');
+                              setSelectedGenero('');
+                              setSelectedConsultaOnline('');
+                              setSelectedAgeGroup('');
+                              setSelectedRango('');
+                              setSelectedBarrio('');
+                              setSelectedPrepaga('');
                             }}
-                            className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1"
+                            className="text-xs text-orange-600 hover:text-orange-700 font-semibold"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Limpiar filtros
+                            Limpiar
                           </button>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                        {filters.map((filter) => (
-                          <div key={filter.id} className="space-y-1.5">
-                            <label className="flex items-center text-xs font-semibold text-gray-700 truncate">
-                              {filter.iconPath && (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                  className="w-3.5 h-3.5 mr-1.5 text-orange-500 flex-shrink-0"
-                                >
-                                  <path d={filter.iconPath} />
-                                </svg>
-                              )}
-                              <span className="truncate">{filter.label}</span>
-                            </label>
-                            <select
-                              value={filter.value}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                filter.setter(e.target.value);
-                              }}
-                              className="w-full rounded-lg border-2 border-gray-300 py-2 px-2.5 text-xs text-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white hover:border-orange-300 transition-colors"
-                            >
-                              <option value="">Todos</option>
-                              {filter.options.map((opt) => (
-                                <option
-                                  key={typeof opt === "string" ? opt : opt.value}
-                                  value={typeof opt === "string" ? opt : opt.value}
-                                >
-                                  {typeof opt === "string" ? opt : opt.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+                        {/* Especialidad */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Especialidad</label>
+                          <select
+                            value={categoria}
+                            onChange={(e) => setCategoria(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todas</option>
+                            {availableEspecialidades.map(esp => (
+                              <option key={esp} value={esp}>{esp}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Género */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Género</label>
+                          <select
+                            value={selectedGenero}
+                            onChange={(e) => setSelectedGenero(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todos</option>
+                            {availableGeneros.map(gen => (
+                              <option key={gen} value={gen}>{gen}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Consulta Online */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Consulta Online</label>
+                          <select
+                            value={selectedConsultaOnline}
+                            onChange={(e) => setSelectedConsultaOnline(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todos</option>
+                            {availableConsultaOnline.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Grupo de Edad */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Grupo de Edad</label>
+                          <select
+                            value={selectedAgeGroup}
+                            onChange={(e) => setSelectedAgeGroup(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todos</option>
+                            {availableAgeGroups.map(age => (
+                              <option key={age.value} value={age.value}>{age.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Plan */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Plan</label>
+                          <select
+                            value={selectedRango}
+                            onChange={(e) => setSelectedRango(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todos</option>
+                            {availablePlans.map(plan => (
+                              <option key={plan.value} value={plan.value}>{plan.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Zona/Barrio */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Zona/Barrio</label>
+                          <select
+                            value={selectedBarrio}
+                            onChange={(e) => setSelectedBarrio(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todas</option>
+                            {availableBarrios.map(barrio => (
+                              <option key={barrio.value} value={barrio.value}>{barrio.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Prepaga */}
+                        <div>
+                          <label className="text-xs font-semibold text-gray-700 mb-1 block">Prepaga</label>
+                          <select
+                            value={selectedPrepaga}
+                            onChange={(e) => setSelectedPrepaga(e.target.value)}
+                            className="w-full rounded-lg border-2 border-gray-300 py-2 px-2 text-xs focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                          >
+                            <option value="">Todas</option>
+                            {availablePrepagas.map(prep => (
+                              <option key={prep} value={prep}>{prep}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </motion.div>
-      </div>
-              </div>
-    </motion.div>
+          </div> {/* Cierre del contenedor bg-white rounded-t-3xl */}
+          </motion.div> {/* Cierre del Bottom Drawer motion.div */}
+          </div> {/* Cierre del contenedor principal con bg-white */}
+        </motion.div> {/* Cierre del Map Card Container */}
         </>
       )}
     </AnimatePresence>
