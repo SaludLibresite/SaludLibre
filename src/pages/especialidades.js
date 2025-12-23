@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
+import SEO from "../components/SEO";
+import Head from "next/head";
 import { getActiveSpecialties } from "../lib/specialtiesService";
 
 
@@ -182,8 +184,17 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
   }, [specialties, searchTerm, selectedCategory]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
-      <NavBar />
+    <>
+      <Head>
+        <title>Especialidades Médicas - Salud Libre</title>
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
+        <SEO 
+          title="Especialidades Médicas - Salud Libre"
+          description="Explora nuestras especialidades médicas. Encuentra especialistas en cardiología, pediatría, dermatología, traumatología y más. Atención médica de calidad en Argentina."
+          url="/especialidades"
+        />
+        <NavBar />
 
       {/* Hero Section */}
       <motion.div
@@ -761,7 +772,8 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
       <Footer />
 
       
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -770,9 +782,27 @@ export async function getStaticProps() {
   try {
     const specialties = await getActiveSpecialties();
     
+    // Serialize specialties - convert Firebase Timestamps to strings
+    const serializedSpecialties = specialties.map(specialty => {
+      const serialized = { ...specialty };
+      
+      // List of possible date fields
+      const dateFields = ['createdAt', 'updatedAt'];
+      
+      dateFields.forEach(field => {
+        if (serialized[field]) {
+          serialized[field] = serialized[field].toDate 
+            ? serialized[field].toDate().toISOString()
+            : serialized[field];
+        }
+      });
+      
+      return serialized;
+    });
+    
     return {
       props: {
-        specialties,
+        specialties: serializedSpecialties,
       },
       // Revalidate every 10 minutes (600 seconds)
       revalidate: 600,

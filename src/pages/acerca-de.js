@@ -2,6 +2,8 @@ import React from "react";
 import { motion } from "framer-motion";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
+import SEO from "../components/SEO";
+import Head from "next/head";
 
 // Animation variants
 const fadeInUp = {
@@ -51,8 +53,17 @@ const staggerContainer = {
 
 export default function AcercaDe() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
-      <NavBar />
+    <>
+      <Head>
+        <title>Acerca de Nosotros - Salud Libre</title>
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
+        <SEO 
+          title="Acerca de Nosotros - Salud Libre"
+          description="Conoce más sobre Salud Libre, nuestra misión de conectar pacientes con los mejores especialistas médicos en Argentina y facilitar el acceso a atención de calidad."
+          url="/acerca-de"
+        />
+        <NavBar />
 
       {/* Hero Section */}
       <motion.div
@@ -498,6 +509,7 @@ export default function AcercaDe() {
       </motion.section>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

@@ -6,6 +6,8 @@ import GallerySection from "../components/GallerySection";
 import FAQSection from "../components/FAQSection";
 import Footer from "../components/Footer";
 import NavBar from "../components/NavBar";
+import SEO from "../components/SEO";
+import Head from "next/head";
 import React, { useEffect, useState } from "react";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 
@@ -116,7 +118,16 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
+    <>
+      <Head>
+        <title>Inicio - Salud Libre</title>
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
+        <SEO 
+          title="Inicio - Salud Libre"
+          description="Encuentra los mejores médicos y especialistas en Argentina. Agenda citas médicas en línea, consultas virtuales y accede a atención médica de calidad con Salud Libre."
+          url="/"
+        />
       <motion.div
         className="w-full mx-auto"
         initial={{ opacity: 0 }}
@@ -503,7 +514,8 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
 
     
       </motion.div>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -524,9 +536,27 @@ export async function getStaticProps() {
       (specialty) => specialty.isActive !== false
     );
 
+    // Serialize specialties - convert Firebase Timestamps to strings
+    const serializedSpecialties = activeSpecialties.map(specialty => {
+      const serialized = { ...specialty };
+      
+      // List of possible date fields
+      const dateFields = ['createdAt', 'updatedAt'];
+      
+      dateFields.forEach(field => {
+        if (serialized[field]) {
+          serialized[field] = serialized[field].toDate 
+            ? serialized[field].toDate().toISOString()
+            : serialized[field];
+        }
+      });
+      
+      return serialized;
+    });
+
     return {
       props: {
-        specialties: activeSpecialties,
+        specialties: serializedSpecialties,
         doctorsCount,
       },
       // Revalidate every 10 minutes (600 seconds)

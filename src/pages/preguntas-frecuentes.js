@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
+import SEO from "../components/SEO";
+import Head from "next/head";
 
 // Componentes de iconos SVG
 const HospitalIcon = () => (
@@ -325,8 +327,17 @@ export default function PreguntasFrecuentes() {
   }, [activeCategory, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <NavBar />
+    <>
+      <Head>
+        <title>Preguntas Frecuentes - Salud Libre</title>
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <SEO 
+          title="Preguntas Frecuentes - Salud Libre"
+          description="Encuentra respuestas a las preguntas más comunes sobre cómo agendar citas, consultas online, especialidades médicas y más en Salud Libre."
+          url="/preguntas-frecuentes"
+        />
+        <NavBar />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white">
@@ -627,6 +638,7 @@ export default function PreguntasFrecuentes() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

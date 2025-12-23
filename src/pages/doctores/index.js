@@ -8,6 +8,8 @@ import NearbyDoctorsButton from "../../components/doctoresPage/NearbyDoctorsButt
 import DoctorsMapModal from "../../components/doctoresPage/DoctorsMapModal";
 import MapToggleButton from "../../components/doctoresPage/MapToggleButton";
 import ShareFiltersButton from "../../components/doctoresPage/ShareFiltersButton";
+import SEO from "../../components/SEO";
+import Head from "next/head";
 import { getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { normalizeGenderArray, normalizeGenero } from "../../lib/dataUtils";
@@ -354,18 +356,37 @@ export default function DoctoresPage({ initialDoctors }) {
   // Show initial loading screen
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 to-cyan-100">
-        <NavBar />
+      <>
+        <Head>
+          <title>Doctores y Especialistas - Salud Libre</title>
+        </Head>
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-cyan-100">
+          <SEO 
+            title="Doctores y Especialistas - Salud Libre"
+            description="Encuentra y agenda cita con los mejores doctores y especialistas médicos en Argentina. Consultas online, presenciales y atención de calidad."
+            url="/doctores"
+          />
+          <NavBar />
         <div className="container mx-auto px-6 py-24">
           <LoaderComponent />
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <div>
-      <NavBar />
+    <>
+      <Head>
+        <title>Doctores y Especialistas - Salud Libre</title>
+      </Head>
+      <div>
+        <SEO 
+          title="Doctores y Especialistas - Salud Libre"
+          description="Encuentra y agenda cita con los mejores doctores y especialistas médicos en Argentina. Consultas online, presenciales y atención de calidad."
+          url="/doctores"
+        />
+        <NavBar />
 
         <main className="pb-24">
         {/* Compact Hero Section */}
@@ -550,7 +571,8 @@ export default function DoctoresPage({ initialDoctors }) {
       <Footer />
 
       {/* Chat Bubble - Asistente Virtual */}
-    </div>
+      </div>
+    </>
   );
 }
 

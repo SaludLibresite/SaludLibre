@@ -8,6 +8,8 @@ import {
 } from "@heroicons/react/24/outline";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
+import SEO from "../components/SEO";
+import Head from "next/head";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { getActiveSubscriptionPlans } from "../lib/subscriptionsService";
@@ -154,8 +156,17 @@ export default function Beneficios() {
   const displayPlans = plans.length > 0 ? plans : defaultPlans;
 
   return (
-    <div className="min-h-screen bg-white">
-      <NavBar />
+    <>
+      <Head>
+        <title>Beneficios y Planes para Médicos - Salud Libre</title>
+      </Head>
+      <div className="min-h-screen bg-white">
+        <SEO 
+          title="Beneficios y Planes para Médicos - Salud Libre"
+          description="Haz crecer tu práctica médica con Salud Libre. Planes y beneficios exclusivos para profesionales de la salud en Argentina. Conéctate con más pacientes."
+          url="/beneficios"
+        />
+        <NavBar />
 
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 py-24">
@@ -337,6 +348,7 @@ export default function Beneficios() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }
