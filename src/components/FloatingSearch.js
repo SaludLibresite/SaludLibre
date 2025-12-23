@@ -45,12 +45,12 @@ const DoctorSkeleton = () => (
 );
 
 const DoctorResult = ({ doctor }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-white rounded-xl p-4 border border-gray-100 hover:border-amber-200 transition-all cursor-pointer"
-    onClick={() => (window.location.href = `/doctores/${doctor.slug}`)}
-  >
+  <Link href={`/doctores/${doctor.slug}`} passHref legacyBehavior>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-xl p-4 border border-gray-100 hover:border-amber-200 transition-all cursor-pointer"
+    >
     <div className="flex gap-4">
       <img
         src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
@@ -111,7 +111,8 @@ const DoctorResult = ({ doctor }) => (
         )}
       </div>
     </div>
-  </motion.div>
+    </motion.div>
+  </Link>
 );
 
 const SpecialtyResult = ({ specialty }) => (

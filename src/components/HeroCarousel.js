@@ -1,11 +1,13 @@
 import Image from "next/image";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/router";
 
 export default function HeroCarousel({ images }) {
   const [current, setCurrent] = React.useState(0);
   const [query, setQuery] = React.useState("");
   const [direction, setDirection] = React.useState(0);
+  const router = useRouter();
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -17,9 +19,9 @@ export default function HeroCarousel({ images }) {
 
   const handleSearch = (searchQuery) => {
     if (searchQuery.trim()) {
-      window.location.href = `/doctores?search=${encodeURIComponent(
+      router.push(`/doctores?search=${encodeURIComponent(
         searchQuery
-      )}`;
+      )}`);
     }
   };
 
@@ -198,7 +200,7 @@ export default function HeroCarousel({ images }) {
             className="bg-black/30 backdrop-blur-md text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium hover:bg-black/50 transition-all duration-300 border border-white/20 shadow-lg text-base sm:text-lg"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.href = "/doctores"}
+            onClick={() => router.push("/doctores")}
           >
             Ver Doctores
           </motion.button>

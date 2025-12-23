@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
 import { loadGoogleMaps, isGoogleMapsReady } from '../../lib/googleMapsLoader';
 
@@ -812,12 +813,12 @@ export default function DoctorsMapPanel({ isOpen, onClose, doctors, userLocation
 
                           {/* Botones de acción */}
                           <div className="flex gap-2 flex-wrap">
-                            <a
+                            <Link
                               href={`/doctores/${selectedDoctor.slug}`}
                               className="text-xs bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1.5 rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm font-medium"
                             >
                               Ver perfil
-                            </a>
+                            </Link>
                             {selectedDoctor.telefono && (
                               <a
                                 href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}, quisiera agendar una consulta`)}`}

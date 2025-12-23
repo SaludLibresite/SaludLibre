@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLoadScript, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import Link from 'next/link';
 import { getDoctorRank, cleanDoctorName } from '../../lib/subscriptionUtils';
 import { normalizeGenero, normalizeGenderArray } from '../../lib/dataUtils';
 import { filterDoctorsByBarrio, getBarrioFilterOptions } from '../../lib/barriosUtils';
@@ -776,7 +777,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
 
                     {/* Botones de acción */}
                     <div className="w-full flex gap-2">
-                      <a
+                      <Link
                         href={`/doctores/${selectedDoctor.slug}`}
                         className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                         style={{ 
@@ -788,7 +789,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Ver perfil
-                      </a>
+                      </Link>
                       {selectedDoctor.telefono && (
                         <a
                           href={`https://wa.me/${selectedDoctor.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${cleanDoctorName(selectedDoctor.nombre, selectedDoctor.genero)}, quisiera agendar una consulta`)}`}
