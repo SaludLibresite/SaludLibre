@@ -80,63 +80,72 @@ const bounceIn = {
   },
 };
 
-export default function Especialidades() {
-  const [specialties, setSpecialties] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Especialidades({ specialties: initialSpecialties = [] }) {
+  const [specialties, setSpecialties] = useState(initialSpecialties);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [showSpecialtyDropdown, setShowSpecialtyDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Load specialties
+  // Initialize specialties from props
   useEffect(() => {
-    const loadSpecialties = async () => {
-      try {
-        setLoading(true);
-        const data = await getActiveSpecialties();
-        setSpecialties(data);
-      } catch (error) {
-        console.error("Error loading specialties:", error);
-        // Fallback data
-        setSpecialties([
-          {
-            id: "1",
-            title: "Cardiología",
-            description: "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
-            imageUrl: "/img/doctor-1.jpg",
-          },
-          {
-            id: "2",
-            title: "Neurología",
-            description: "Expertos en el sistema nervioso y trastornos cerebrales.",
-            imageUrl: "/img/doctor-2.jpg",
-          },
-          {
-            id: "3",
-            title: "Pediatría",
-            description: "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
-            imageUrl: "/img/doctor-3.jpg",
-          },
-          {
-            id: "4",
-            title: "Dermatología",
-            description: "Especialistas en el diagnóstico y tratamiento de afecciones de la piel.",
-            imageUrl: "/img/doctor-4.jpg",
-          },
-          {
-            id: "5",
-            title: "Traumatología",
-            description: "Tratamiento de lesiones y enfermedades del sistema musculoesquelético.",
-            imageUrl: "/img/doctor-5.jpg",
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (initialSpecialties.length > 0) {
+      setSpecialties(initialSpecialties);
+    }
+  }, [initialSpecialties]);
 
-    loadSpecialties();
-  }, []);
+  // Load specialties (only as fallback if no initial data)
+  useEffect(() => {
+    if (initialSpecialties.length === 0) {
+      const loadSpecialties = async () => {
+        try {
+          setLoading(true);
+          const data = await getActiveSpecialties();
+          setSpecialties(data);
+        } catch (error) {
+          console.error("Error loading specialties:", error);
+          // Fallback data
+          setSpecialties([
+            {
+              id: "1",
+              title: "Cardiología",
+              description: "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
+              imageUrl: "/img/doctor-1.jpg",
+            },
+            {
+              id: "2",
+              title: "Neurología",
+              description: "Expertos en el sistema nervioso y trastornos cerebrales.",
+              imageUrl: "/img/doctor-2.jpg",
+            },
+            {
+              id: "3",
+              title: "Pediatría",
+              description: "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
+              imageUrl: "/img/doctor-3.jpg",
+            },
+            {
+              id: "4",
+              title: "Dermatología",
+              description: "Especialistas en el diagnóstico y tratamiento de afecciones de la piel.",
+              imageUrl: "/img/doctor-4.jpg",
+            },
+            {
+              id: "5",
+              title: "Traumatología",
+              description: "Tratamiento de lesiones y enfermedades del sistema musculoesquelético.",
+              imageUrl: "/img/doctor-5.jpg",
+            },
+          ]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadSpecialties();
+    }
+  }, [initialSpecialties]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -754,4 +763,29 @@ export default function Especialidades() {
       
     </div>
   );
+}
+
+// Server-side data fetching with ISR (Incremental Static Regeneration)
+export async function getStaticProps() {
+  try {
+    const specialties = await getActiveSpecialties();
+    
+    return {
+      props: {
+        specialties,
+      },
+      // Revalidate every 10 minutes (600 seconds)
+      revalidate: 600,
+    };
+  } catch (error) {
+    console.error("Error fetching specialties:", error);
+    
+    // Return fallback data if there's an error
+    return {
+      props: {
+        specialties: [],
+      },
+      revalidate: 600,
+    };
+  }
 }

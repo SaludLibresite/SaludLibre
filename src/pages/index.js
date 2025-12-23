@@ -102,7 +102,7 @@ const services = [
   },
 ];
 
-export default function Home() {
+export default function Home({ specialties = [], doctorsCount = 0 }) {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -356,7 +356,7 @@ export default function Home() {
           viewport={{ once: true }}
           className="mb-20"
         >
-          <GallerySection />
+          <GallerySection specialties={specialties} />
         </motion.div>
 
         {/* Enhanced Stats Section */}
@@ -367,7 +367,7 @@ export default function Home() {
           className="max-w-7xl mx-auto my-20 overflow-hidden"
           style={{ y }}
         >
-          <StatsSection />
+          <StatsSection initialDoctorsCount={doctorsCount} />
         </motion.div>
 
         {/* Enhanced Call to Action Section */}
@@ -505,4 +505,42 @@ export default function Home() {
       </motion.div>
     </div>
   );
+}
+
+// Server-side data fetching with ISR
+export async function getStaticProps() {
+  try {
+    // Dynamic imports to avoid importing Firebase on the client
+    const { getAllSpecialties } = await import("../lib/specialtiesService");
+    const { getDoctorsCount } = await import("../lib/doctorsService");
+
+    const [specialties, doctorsCount] = await Promise.all([
+      getAllSpecialties(),
+      getDoctorsCount()
+    ]);
+
+    // Filter active specialties
+    const activeSpecialties = specialties.filter(
+      (specialty) => specialty.isActive !== false
+    );
+
+    return {
+      props: {
+        specialties: activeSpecialties,
+        doctorsCount,
+      },
+      // Revalidate every 10 minutes (600 seconds)
+      revalidate: 600,
+    };
+  } catch (error) {
+    console.error("Error fetching home data:", error);
+
+    return {
+      props: {
+        specialties: [],
+        doctorsCount: 0,
+      },
+      revalidate: 600,
+    };
+  }
 }

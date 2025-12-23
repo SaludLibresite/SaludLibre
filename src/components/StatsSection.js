@@ -31,8 +31,8 @@ const useAnimatedCounter = (end, duration = 2000, start = 0) => {
   return [count, setIsVisible];
 };
 
-export default function StatsSection() {
-  const [doctorsTotal, setDoctorsTotal] = useState(0);
+export default function StatsSection({ initialDoctorsCount = 0 }) {
+  const [doctorsTotal, setDoctorsTotal] = useState(initialDoctorsCount);
   const [doctorsCount, setDoctorsVisible] = useAnimatedCounter(doctorsTotal);
   const [satisfactionCount, setSatisfactionVisible] = useAnimatedCounter(98);
   const [specialtiesCount, setSpecialtiesVisible] = useAnimatedCounter(50);
@@ -42,20 +42,29 @@ export default function StatsSection() {
     triggerOnce: true,
   });
 
-  // Fetch doctors count from database
+  // Initialize from props
   useEffect(() => {
-    const fetchDoctorsCount = async () => {
-      try {
-        const count = await getDoctorsCount();
-        setDoctorsTotal(count);
-      } catch (error) {
-        console.error("Error fetching doctors count:", error);
-        setDoctorsTotal(0);
-      }
-    };
+    if (initialDoctorsCount > 0) {
+      setDoctorsTotal(initialDoctorsCount);
+    }
+  }, [initialDoctorsCount]);
 
-    fetchDoctorsCount();
-  }, []);
+  // Fetch doctors count from database (only as fallback if no initial data)
+  useEffect(() => {
+    if (initialDoctorsCount === 0) {
+      const fetchDoctorsCount = async () => {
+        try {
+          const count = await getDoctorsCount();
+          setDoctorsTotal(count);
+        } catch (error) {
+          console.error("Error fetching doctors count:", error);
+          setDoctorsTotal(0);
+        }
+      };
+
+      fetchDoctorsCount();
+    }
+  }, [initialDoctorsCount]);
 
   useEffect(() => {
     if (inView) {

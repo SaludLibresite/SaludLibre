@@ -4,9 +4,9 @@ import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
 import { getAllSpecialties } from "../lib/specialtiesService";
 
-export default function GallerySection({ items }) {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function GallerySection({ specialties: initialSpecialties = [] }) {
+  const [categories, setCategories] = useState(initialSpecialties);
+  const [loading, setLoading] = useState(initialSpecialties.length === 0);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
@@ -28,51 +28,61 @@ export default function GallerySection({ items }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState([]);
 
-  // Load specialties from Firebase
+  // Initialize from props
   useEffect(() => {
-    const loadSpecialties = async () => {
-      try {
-        setLoading(true);
-        const specialties = await getAllSpecialties();
-        // Filter only active specialties
-        const activeSpecialties = specialties.filter(
-          (specialty) => specialty.isActive !== false
-        );
-        setCategories(activeSpecialties);
-      } catch (error) {
-        console.error("Error loading specialties:", error);
-        // Fallback to default categories if Firebase fails
-        const defaultCategories = [
-          {
-            id: "default-1",
-            title: "Cardiología",
-            description:
-              "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
-            imageUrl: "/img/doctor-1.jpg",
-          },
-          {
-            id: "default-2",
-            title: "Neurología",
-            description:
-              "Expertos en el sistema nervioso y trastornos cerebrales.",
-            imageUrl: "/img/doctor-2.jpg",
-          },
-          {
-            id: "default-3",
-            title: "Pediatría",
-            description:
-              "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
-            imageUrl: "/img/doctor-3.jpg",
-          },
-        ];
-        setCategories(defaultCategories);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (initialSpecialties.length > 0) {
+      setCategories(initialSpecialties);
+      setLoading(false);
+    }
+  }, [initialSpecialties]);
 
-    loadSpecialties();
-  }, []);
+  // Load specialties from Firebase (only as fallback if no initial data)
+  useEffect(() => {
+    if (initialSpecialties.length === 0) {
+      const loadSpecialties = async () => {
+        try {
+          setLoading(true);
+          const specialties = await getAllSpecialties();
+          // Filter only active specialties
+          const activeSpecialties = specialties.filter(
+            (specialty) => specialty.isActive !== false
+          );
+          setCategories(activeSpecialties);
+        } catch (error) {
+          console.error("Error loading specialties:", error);
+          // Fallback to default categories if Firebase fails
+          const defaultCategories = [
+            {
+              id: "default-1",
+              title: "Cardiología",
+              description:
+                "Especialistas en el diagnóstico y tratamiento de enfermedades del corazón.",
+              imageUrl: "/img/doctor-1.jpg",
+            },
+            {
+              id: "default-2",
+              title: "Neurología",
+              description:
+                "Expertos en el sistema nervioso y trastornos cerebrales.",
+              imageUrl: "/img/doctor-2.jpg",
+            },
+            {
+              id: "default-3",
+              title: "Pediatría",
+              description:
+                "Cuidado especializado para niños, desde recién nacidos hasta adolescentes.",
+              imageUrl: "/img/doctor-3.jpg",
+            },
+          ];
+          setCategories(defaultCategories);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadSpecialties();
+    }
+  }, [initialSpecialties]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
