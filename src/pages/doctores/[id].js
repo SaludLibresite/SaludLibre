@@ -881,9 +881,15 @@ const serializeFirestoreData = (data) => {
   
   const serialized = { ...data };
   
-  // Convert Firestore Timestamps to ISO strings
+  // Convert Firestore Timestamps to ISO strings and undefined to null
   Object.keys(serialized).forEach(key => {
     const value = serialized[key];
+    
+    // Convert undefined to null for JSON serialization
+    if (value === undefined) {
+      serialized[key] = null;
+      return;
+    }
     
     // Check if it's a Firestore Timestamp or Date object
     if (value && typeof value === 'object') {
@@ -903,7 +909,33 @@ const serializeFirestoreData = (data) => {
   return serialized;
 };
 
-export async function getServerSideProps(context) {
+export async function getStaticPaths() {
+  try {
+    // Get all verified doctors
+    const allDoctors = await getAllDoctors();
+    const verifiedDoctors = allDoctors.filter(d => d.verified === true);
+
+    // Generate paths for all verified doctors
+    const paths = verifiedDoctors.map(doctor => ({
+      params: { id: doctor.slug },
+    }));
+
+    // Return paths with fallback 'blocking' to generate pages on-demand
+    // for new doctors that aren't in the build
+    return {
+      paths,
+      fallback: 'blocking', // Generate new pages on-demand and cache them
+    };
+  } catch (error) {
+    console.error('Error generating static paths:', error);
+    return {
+      paths: [],
+      fallback: 'blocking',
+    };
+  }
+}
+
+export async function getStaticProps(context) {
   const { id } = context.params;
 
   try {
@@ -922,9 +954,9 @@ export async function getServerSideProps(context) {
 
     // Log for debugging (only in development)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[SSR] Loading doctor: ${doctorData.nombre} (${doctorData.especialidad})`);
-      console.log(`[SSR] Doctor image: ${doctorData.photoURL || doctorData.imagen}`);
-      console.log(`[SSR] Doctor slug: ${doctorData.slug}`);
+      console.log(`[SSG] Building page for doctor: ${doctorData.nombre} (${doctorData.especialidad})`);
+      console.log(`[SSG] Doctor image: ${doctorData.photoURL || doctorData.imagen}`);
+      console.log(`[SSG] Doctor slug: ${doctorData.slug}`);
     }
 
     // Load reviews for this doctor
@@ -961,6 +993,9 @@ export async function getServerSideProps(context) {
         averageRating: ratingData,
         error: null,
       },
+      // Revalidate every 10 minutes (600 seconds)
+      // This enables ISR - pages are regenerated in the background
+      revalidate: 600,
     };
   } catch (error) {
     console.error("Error loading doctor data:", error);
@@ -973,6 +1008,7 @@ export async function getServerSideProps(context) {
         averageRating: null,
         error: "Error loading doctor data",
       },
+      revalidate: 60, // Retry sooner if there was an error
     };
   }
 }
