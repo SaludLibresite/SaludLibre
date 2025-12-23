@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAllDoctors } from "../lib/doctorsService";
 import { getAllSpecialties } from "../lib/specialtiesService";
@@ -52,10 +54,12 @@ const DoctorResult = ({ doctor }) => (
       className="bg-white rounded-xl p-4 border border-gray-100 hover:border-amber-200 transition-all cursor-pointer"
     >
     <div className="flex gap-4">
-      <img
+      <Image
         src={doctor.photoURL || doctor.imagen || "/img/doctor-1.jpg"}
         alt={doctor.nombre}
         className="w-20 h-20 object-cover rounded-lg"
+        width={80}
+        height={80}
         onError={(e) => {
           e.target.src = "/img/doctor-1.jpg";
         }}
@@ -123,10 +127,12 @@ const SpecialtyResult = ({ specialty }) => (
     onClick={() => (window.location.href = `/especialidades/${specialty.title.toLowerCase().replace(/\s+/g, '-')}`)}
   >
     <div className="flex gap-4">
-      <img
+      <Image
         src={specialty.imageUrl || "/img/doctor-1.jpg"}
         alt={specialty.title}
         className="w-20 h-20 object-cover rounded-lg"
+        width={80}
+        height={80}
         onError={(e) => {
           e.target.src = "/img/doctor-1.jpg";
         }}
