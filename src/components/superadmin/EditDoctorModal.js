@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Autocomplete from "react-google-autocomplete";
 import { updateDoctor } from '../../lib/doctorsService';
 import { getAllSpecialties } from '../../lib/specialtiesService';
 import { loadGoogleMaps } from '../../lib/googleMapsLoader';
@@ -8,7 +9,6 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
     nombre: '',
     email: '',
     especialidad: '',
-    ubicacion: '',
     dni: '',
     telefono: '',
     descripcion: '',
@@ -38,7 +38,6 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
         nombre: doctor.nombre || '',
         email: doctor.email || '',
         especialidad: doctor.especialidad || '',
-        ubicacion: doctor.formattedAddress || doctor.ubicacion || '',
         dni: doctor.dni || '',
         telefono: doctor.telefono || '',
         descripcion: doctor.descripcion || '',
@@ -54,6 +53,11 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
         latitude: doctor.latitude || null,
         longitude: doctor.longitude || null
       });
+
+      // Set the location input value directly (uncontrolled)
+      if (locationInputRef.current) {
+        locationInputRef.current.value = doctor.formattedAddress || doctor.ubicacion || '';
+      }
     }
   }, [doctor]);
 
@@ -99,7 +103,7 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
       geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results, status) => {
         if (status === 'OK' && results[0]) {
           const address = results[0].formatted_address;
-          
+
           setFormData(prev => ({
             ...prev,
             ubicacion: address
@@ -127,12 +131,6 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
     if (!locationInputRef.current || !window.google || autocompleteRef.current) return;
 
     try {
-      // Clear any existing autocomplete first
-      if (autocompleteRef.current) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-        autocompleteRef.current = null;
-      }
-
       const autocomplete = new window.google.maps.places.Autocomplete(
         locationInputRef.current,
         {
@@ -178,9 +176,9 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
 
     try {
       console.log('Initializing map with locationData:', locationData);
-      
+
       const defaultCenter = { lat: -34.6037, lng: -58.3816 }; // Buenos Aires
-      const center = locationData.latitude && locationData.longitude 
+      const center = locationData.latitude && locationData.longitude
         ? { lat: locationData.latitude, lng: locationData.longitude }
         : defaultCenter;
 
@@ -218,7 +216,7 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
           if (status === 'OK' && results[0]) {
             const address = results[0].formatted_address;
-            
+
             setFormData(prev => ({
               ...prev,
               ubicacion: address
@@ -261,7 +259,11 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
     createMarker(mapInstanceRef.current, locationData.latitude, locationData.longitude);
   }, [locationData, createMarker]);
 
-  // Load Google Maps and initialize autocomplete
+  // Load Google Maps for map preview
+  // DISABLED: Conflicts with react-google-autocomplete's internal Google Maps loading
+  // The Autocomplete component loads Google Maps internally, having two separate
+  // Google Maps instances causes DOM manipulation conflicts
+  /*
   useEffect(() => {
     if (isOpen && !mapsLoaded) {
       loadGoogleMaps()
@@ -273,17 +275,13 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
         });
     }
   }, [isOpen, mapsLoaded]);
+  */
 
-  // Initialize autocomplete only once when modal opens and maps are loaded
-  useEffect(() => {
-    if (isOpen && mapsLoaded && !autocompleteRef.current) {
-      setTimeout(() => {
-        initializeAutocomplete();
-      }, 100);
-    }
-  }, [isOpen, mapsLoaded, initializeAutocomplete]);
+
 
   // Initialize map when it becomes visible
+  // DISABLED: Map preview disabled to prevent conflicts with Autocomplete
+  /*
   useEffect(() => {
     if (isOpen && mapsLoaded && mapRef.current && !mapInstanceRef.current) {
       setTimeout(() => {
@@ -291,41 +289,26 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
       }, 200);
     }
   }, [isOpen, mapsLoaded, initializeMap]);
+  */
 
   // Update map when location changes
+  // DISABLED: Map preview disabled to prevent conflicts with Autocomplete
+  /*
   useEffect(() => {
     if (mapsLoaded && locationData.latitude && locationData.longitude) {
       updateMapLocation();
     }
   }, [locationData, mapsLoaded, updateMapLocation]);
+  */
 
   // Cleanup when modal closes
   useEffect(() => {
     if (!isOpen) {
-      // Cleanup autocomplete when modal closes
-      if (autocompleteRef.current && window.google?.maps?.event) {
-        try {
-          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-        } catch (error) {
-          console.warn('Error clearing autocomplete listeners:', error);
-        }
-        autocompleteRef.current = null;
-      }
-      
-      // Cleanup map
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current = null;
-      }
-      
-      // Cleanup marker
-      if (markerRef.current) {
-        try {
-          markerRef.current.setMap(null);
-        } catch (error) {
-          console.warn('Error clearing marker:', error);
-        }
-        markerRef.current = null;
-      }
+      // Simply reset refs without trying to manipulate DOM
+      // Let React handle the cleanup to avoid removeChild errors
+      autocompleteRef.current = null;
+      mapInstanceRef.current = null;
+      markerRef.current = null;
 
       // Reset maps loaded state to force re-initialization next time
       setMapsLoaded(false);
@@ -383,19 +366,25 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
       updateData.email = formData.email.trim();
       updateData.especialidad = formData.especialidad;
 
+      // Get location from the input ref (uncontrolled input)
+      const ubicacionValue = locationInputRef.current?.value || '';
+
       // Add location data properly
       if (locationData.formattedAddress) {
         updateData.formattedAddress = locationData.formattedAddress;
         updateData.ubicacion = locationData.formattedAddress; // For backward compatibility
+      } else if (ubicacionValue.trim()) {
+        // If user typed but didn't select from autocomplete, use the typed value
+        updateData.ubicacion = ubicacionValue.trim();
       }
-      
+
       if (locationData.latitude !== null && locationData.longitude !== null) {
         updateData.latitude = locationData.latitude;
         updateData.longitude = locationData.longitude;
       }
 
       await updateDoctor(doctor.id, updateData);
-      
+
       alert('Doctor actualizado exitosamente');
       onDoctorUpdated();
       onClose();
@@ -533,20 +522,30 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Ubicación
             </label>
-            <input
-              ref={locationInputRef}
-              type="text"
-              name="ubicacion"
-              value={formData.ubicacion}
-              onChange={handleInputChange}
+            <Autocomplete
+              apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+              onPlaceSelected={(place) => {
+                if (place.geometry) {
+                  const newLocationData = {
+                    formattedAddress: place.formatted_address,
+                    latitude: place.geometry.location.lat(),
+                    longitude: place.geometry.location.lng()
+                  };
+                  setLocationData(newLocationData);
+                }
+              }}
+              options={{
+                types: ['address'],
+                componentRestrictions: { country: 'ar' },
+              }}
+              defaultValue={doctor?.formattedAddress || doctor?.ubicacion || ''}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Comenzar a escribir una dirección..."
-              key={`location-${isOpen ? 'open' : 'closed'}`} // Force re-render when modal opens/closes
             />
             <p className="text-xs text-gray-500 mt-1">
               Comienza a escribir para ver sugerencias de ubicación. Usa las flechas ↑↓ para navegar y Enter para seleccionar.
             </p>
-            
+
             {/* Mini Map */}
             {mapsLoaded && (
               <div className="mt-3 border border-gray-200 rounded-lg overflow-hidden">
@@ -562,8 +561,8 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
                     )}
                   </div>
                 </div>
-                <div 
-                  ref={mapRef} 
+                <div
+                  ref={mapRef}
                   className="w-full h-48 bg-gray-100"
                   style={{ minHeight: '192px' }}
                   key={`map-${isOpen ? 'open' : 'closed'}`} // Force re-render when modal opens/closes
@@ -579,7 +578,7 @@ const EditDoctorModal = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
                 </div>
                 <div className="bg-gray-50 px-3 py-2 border-t border-gray-200">
                   <p className="text-xs text-gray-600">
-                    💡 {locationData.latitude && locationData.longitude 
+                    💡 {locationData.latitude && locationData.longitude
                       ? 'Puedes hacer clic en el mapa o arrastrar el marcador para ajustar la ubicación exacta'
                       : 'Escribe una dirección arriba para ver la ubicación en el mapa'
                     }

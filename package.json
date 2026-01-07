@@ -29,6 +29,7 @@
     "react": "^19.0.1",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^19.0.1",
+    "react-google-autocomplete": "^2.7.5",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-intersection-observer": "^9.16.0",
