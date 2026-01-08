@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/router";
 import {
@@ -16,6 +16,7 @@ import DoctorsList from '../../components/superadmin/DoctorsList';
 import DoctorsLoading from '../../components/superadmin/DoctorsLoading';
 import BulkSubscriptionModal from '../../components/admin/BulkSubscriptionModal';
 import EditDoctorModal from '../../components/superadmin/EditDoctorModal';
+import DoctorsSearchInput from '../../components/superadmin/DoctorsSearchInput';
 
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
@@ -24,18 +25,25 @@ export default function DoctorsManagement() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   
-  // States
+  // Leer parámetros de la URL de forma segura
+  const queryParams = useMemo(() => {
+    const pageNum = parseInt(router.query?.page, 10);
+    return {
+      search: router.query?.search || '',
+      page: !isNaN(pageNum) && pageNum > 0 ? pageNum : 1,
+      filter: router.query?.filter || 'all',
+    };
+  }, [router.query?.search, router.query?.page, router.query?.filter]);
+
+  // States para datos
   const [doctors, setDoctors] = useState([]);
-  const [allDoctors, setAllDoctors] = useState([]); // For bulk operations
+  const [allDoctors, setAllDoctors] = useState([]);
   const [specialties, setSpecialties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [updating, setUpdating] = useState({});
-  const [filter, setFilter] = useState("all");
   const [showBulkSubscriptionModal, setShowBulkSubscriptionModal] = useState(false);
   
-  // Pagination and search states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -50,14 +58,32 @@ export default function DoctorsManagement() {
     verified: 0,
   });
   
-  // Modal states (if you have other modals)
-  const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
+  // Modal states
   const [editingDoctor, setEditingDoctor] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Authentication and initial load
+  // Función para actualizar URL sin recargar página
+  const updateURL = useCallback((params) => {
+    if (!router.isReady) return;
+    
+    const newQuery = { ...router.query };
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === '' || value === 'all' || (key === 'page' && value === 1)) {
+        delete newQuery[key];
+      } else {
+        newQuery[key] = String(value);
+      }
+    });
+
+    router.push(
+      { pathname: router.pathname, query: newQuery },
+      undefined,
+      { shallow: true }
+    );
+  }, [router.isReady, router.query, router.pathname]);
+
+  // Authentication check
   useEffect(() => {
     if (!authLoading) {
       if (!currentUser) {
@@ -70,34 +96,34 @@ export default function DoctorsManagement() {
         return;
       }
 
-      loadDoctors();
       loadSpecialties();
     }
-  }, [currentUser, authLoading, router]);
+  }, [currentUser, authLoading]);
 
-  // Load doctors when page, search or filter changes
+  // Cargar doctores cuando cambian los query params
   useEffect(() => {
-    if (!authLoading && currentUser && SUPERADMIN_EMAILS.includes(currentUser.email)) {
+    if (!authLoading && currentUser && SUPERADMIN_EMAILS.includes(currentUser.email) && router.isReady) {
       loadDoctors();
     }
-  }, [currentPage, searchTerm, filter]);
+  }, [queryParams.search, queryParams.page, queryParams.filter, router.isReady, authLoading, currentUser]);
 
   // Data loading functions
   const loadDoctors = async () => {
     try {
       setLoading(true);
+      setIsSearching(true);
+      
       const data = await getDoctorsPaginated({
-        page: currentPage,
+        page: queryParams.page,
         limit: 20,
-        search: searchTerm,
-        filter: filter,
+        search: queryParams.search,
+        filter: queryParams.filter,
       });
       
       setDoctors(data.doctors);
       setPagination(data.pagination);
       setCounts(data.counts);
       
-      // Store all doctors for bulk operations if needed
       if (!allDoctors.length) {
         setAllDoctors(data.doctors);
       }
@@ -105,6 +131,7 @@ export default function DoctorsManagement() {
       console.error("Error loading doctors:", error);
     } finally {
       setLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -163,27 +190,25 @@ export default function DoctorsManagement() {
     setShowEditModal(true);
   };
 
-  // Handle search
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page on search
-  };
+  // Handlers que actualizan la URL
+  const handleSearch = useCallback((term) => {
+    updateURL({ search: term, page: 1 });
+  }, [updateURL]);
 
-  // Handle filter change
-  const handleFilterChange = (newFilter) => {
-    setFilter(newFilter);
-    setCurrentPage(1); // Reset to first page on filter change
-  };
+  const handleFilterChange = useCallback((newFilter) => {
+    updateURL({ filter: newFilter, page: 1 });
+  }, [updateURL]);
 
-  // Handle page change
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  const handlePageChange = useCallback((page) => {
+    updateURL({ page });
+  }, [updateURL]);
 
-  // Loading state
-  if (authLoading || loading) {
+  // Loading state inicial
+  if (authLoading || (loading && !doctors.length)) {
     return <DoctorsLoading />;
   }
+
+  const currentPage = queryParams.page;
 
   return (
     <SuperAdminLayout>
@@ -192,39 +217,16 @@ export default function DoctorsManagement() {
           onOpenBulkSubscription={() => setShowBulkSubscriptionModal(true)}
         />
 
-        {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar por nombre, email, especialidad o DNI..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <svg
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          {searchTerm && (
-            <div className="mt-2 text-sm text-gray-600">
-              {pagination.total} resultado{pagination.total !== 1 ? 's' : ''} encontrado{pagination.total !== 1 ? 's' : ''}
-            </div>
-          )}
-        </div>
+        {/* Search Bar - Componente aislado */}
+        <DoctorsSearchInput
+          initialValue={queryParams.search}
+          onSearch={handleSearch}
+          isSearching={isSearching}
+          resultCount={pagination.total}
+        />
 
         <DoctorsNavigation
-          filter={filter}
+          filter={queryParams.filter}
           setFilter={handleFilterChange}
           pendingCount={counts.pending}
           verifiedCount={counts.verified}
@@ -232,14 +234,23 @@ export default function DoctorsManagement() {
         />
 
         <div className="mt-6">
-          <DoctorsList
-            doctors={doctors}
-            updating={updating}
-            onVerifyDoctor={handleVerifyDoctor}
-            onEditDoctor={handleEditDoctor}
-            onDeleteDoctor={handleDeleteDoctor}
-            onDoctorUpdated={loadDoctors}
-          />
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <svg className="animate-spin h-8 w-8 text-blue-600" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </div>
+          ) : (
+            <DoctorsList
+              doctors={doctors}
+              updating={updating}
+              onVerifyDoctor={handleVerifyDoctor}
+              onEditDoctor={handleEditDoctor}
+              onDeleteDoctor={handleDeleteDoctor}
+              onDoctorUpdated={loadDoctors}
+            />
+          )}
         </div>
 
         {/* Pagination */}
@@ -310,7 +321,6 @@ export default function DoctorsManagement() {
           onDoctorUpdated={loadDoctors}
         />
 
-        {/* Edit Doctor Modal */}
         <EditDoctorModal
           isOpen={showEditModal}
           onClose={() => {
@@ -320,10 +330,6 @@ export default function DoctorsManagement() {
           doctor={editingDoctor}
           onDoctorUpdated={loadDoctors}
         />
-
-        {/* Add other modals here if needed */}
-        {/* {showSpecialtyModal && ...} */}
-        {/* {showDetailsModal && ...} */}
       </div>
     </SuperAdminLayout>
   );
