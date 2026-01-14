@@ -41,7 +41,7 @@ export async function getAllDoctors() {
 export async function getDoctorById(id) {
   try {
     const docRef = doc(db, DOCTORS_COLLECTION, id);
-    const docSnap = await getDoc(docSnap);
+    const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const doctorData = docSnap.data();

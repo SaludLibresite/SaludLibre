@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import { useRouter } from "next/router";
 import {
   getDoctorsPaginated,
   updateDoctor,
   deleteDoctor,
-} from "../../lib/doctorsService";
-import { getAllSpecialties } from "../../lib/specialtiesService";
+} from "../../../lib/doctorsService";
+import { getAllSpecialties } from "../../../lib/specialtiesService";
 
 // Components
-import SuperAdminLayout from '../../components/superadmin/SuperAdminLayout';
-import DoctorsPageHeader from '../../components/superadmin/DoctorsPageHeader';
-import DoctorsNavigation from '../../components/superadmin/DoctorsNavigation';
-import DoctorsList from '../../components/superadmin/DoctorsList';
-import DoctorsLoading from '../../components/superadmin/DoctorsLoading';
-import BulkSubscriptionModal from '../../components/admin/BulkSubscriptionModal';
-import EditDoctorModal from '../../components/superadmin/EditDoctorModal';
-import DoctorsSearchInput from '../../components/superadmin/DoctorsSearchInput';
+import SuperAdminLayout from '../../../components/superadmin/SuperAdminLayout';
+import DoctorsPageHeader from '../../../components/superadmin/DoctorsPageHeader';
+import DoctorsNavigation from '../../../components/superadmin/DoctorsNavigation';
+import DoctorsList from '../../../components/superadmin/DoctorsList';
+import DoctorsLoading from '../../../components/superadmin/DoctorsLoading';
+import BulkSubscriptionModal from '../../../components/admin/BulkSubscriptionModal';
+import DoctorsSearchInput from '../../../components/superadmin/DoctorsSearchInput';
 
 // Lista de emails autorizados como superadmin
 const SUPERADMIN_EMAILS = ["juan@jhernandez.mx"];
@@ -57,10 +56,6 @@ export default function DoctorsManagement() {
     pending: 0,
     verified: 0,
   });
-  
-  // Modal states
-  const [editingDoctor, setEditingDoctor] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
 
   // Función para actualizar URL sin recargar página
   const updateURL = useCallback((params) => {
@@ -167,7 +162,7 @@ export default function DoctorsManagement() {
   };
 
   const handleDeleteDoctor = async (doctorId) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar este doctor?")) {
+    if (!confirm("¿Estás seguro de que querés eliminar este doctor?")) {
       return;
     }
 
@@ -186,8 +181,7 @@ export default function DoctorsManagement() {
   };
 
   const handleEditDoctor = (doctor) => {
-    setEditingDoctor(doctor);
-    setShowEditModal(true);
+    router.push(`/superadmin/doctors/${doctor.id}`);
   };
 
   // Handlers que actualizan la URL
@@ -318,16 +312,6 @@ export default function DoctorsManagement() {
           isOpen={showBulkSubscriptionModal}
           onClose={() => setShowBulkSubscriptionModal(false)}
           doctors={doctors}
-          onDoctorUpdated={loadDoctors}
-        />
-
-        <EditDoctorModal
-          isOpen={showEditModal}
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingDoctor(null);
-          }}
-          doctor={editingDoctor}
           onDoctorUpdated={loadDoctors}
         />
       </div>

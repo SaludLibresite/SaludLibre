@@ -91,7 +91,7 @@ const services = [
   },
   {
     title: "Telemedicina",
-    description: "Consultas virtuales desde la comodidad de tu hogar",
+    description: "Consultas virtuales desde la comodidad de tu casa",
     icon: "💻",
     color: "bg-[#e8ad0f]",
   },
@@ -227,15 +227,15 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
                     className="text-2xl md:text-3xl font-bold text-gray-900"
                     variants={fadeInUp}
                   >
-                    ¿Deseas crecer tu práctica médica?
+                    ¿Querés hacer crecer tu práctica médica?
                   </motion.h3>
                 </motion.div>
                 <motion.p
                   className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed"
                   variants={fadeInUp}
                 >
-                  Únete a nuestra plataforma y conecta con más pacientes.
-                  Ofrecemos herramientas profesionales para expandir tu consulta y
+                  Unite a nuestra plataforma y conectá con más pacientes.
+                  Ofrecemos herramientas profesionales para expandir tu consultorio y
                   mejorar la gestión de tu práctica médica.
                 </motion.p>
                 <motion.button
@@ -317,7 +317,7 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
           >
             <InfoSection
               firstTitle="El impacto en la salud"
-              firstDescription="Conoce algunos de los logros y cifras que distinguen a los profesionales médicos en la región."
+              firstDescription="Conocé algunos de los logros y cifras que distinguen a los profesionales médicos en la región."
               image="/img/imagen-5-doctores.jpg"
               title="Buscamos mejorar la salud de la comunidad"
               points={[
@@ -465,8 +465,8 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
               >
-                Agenda una cita con especialistas y comienza tu camino
-                hacia una mejor salud. Tu bienestar es la prioridad.
+                Agendá un turno con especialistas y comenzá tu camino
+                hacia una mejor salud. Tu bienestar es nuestra prioridad.
               </motion.p>
               <motion.div
                 className="flex flex-col sm:flex-row gap-4 justify-center items-center"
@@ -484,7 +484,7 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
                   }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Agendar Cita Ahora
+                  Agendar Turno Ahora
                 </motion.button>
                 <motion.button
                   onClick={() => (window.location.href = "/beneficios")}
