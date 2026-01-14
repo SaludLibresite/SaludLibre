@@ -129,19 +129,19 @@ export default function InfoSection({
           </motion.div>
 
           <motion.div
-            className="flex items-start justify-end lg:order-first"
+            className="flex items-center justify-end lg:order-first"
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="relative">
+            <div className="relative w-full max-w-none sm:max-w-[48rem] lg:max-w-[57rem]">
               <Image
                 alt="Product screenshot"
                 src={image}
                 width={2432}
                 height={1442}
-                className="w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]"
+                className="w-full h-auto object-cover rounded-xl shadow-xl ring-1 ring-gray-400/10"
               />
             </div>
           </motion.div>
