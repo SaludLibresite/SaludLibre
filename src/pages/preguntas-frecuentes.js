@@ -149,13 +149,13 @@ const faqData = [
         id: 1,
         question: "¿Qué es Salud Libre?",
         answer:
-          "Salud Libre es una plataforma digital que conecta pacientes con profesionales de la salud en Argentina. Ofrecemos un directorio de médicos verificados, sistema de agendamiento de citas, gestión de historiales médicos digitales y almacenamiento seguro de recetas médicas.",
+          "Salud Libre es una plataforma digital que conecta pacientes con profesionales de la salud en Argentina. Ofrecemos un directorio de médicos verificados, sistema de agendamiento de turnos, gestión de historiales médicos digitales y almacenamiento seguro de recetas médicas.",
       },
       {
         id: 2,
         question: "¿Es gratuito usar Salud Libre?",
         answer:
-          "El registro y uso básico de la plataforma es gratuito. Esto incluye buscar médicos, ver perfiles profesionales y gestionar su historial médico. Algunas funcionalidades premium pueden tener costo adicional.",
+          "El registro y uso básico de la plataforma es gratuito. Esto incluye buscar médicos, ver perfiles profesionales y gestionar tu historial médico. Algunas funcionalidades premium pueden tener costo adicional.",
       },
       {
         id: 3,
@@ -166,32 +166,32 @@ const faqData = [
     ],
   },
   {
-    category: "Citas Médicas",
+    category: "Turnos Médicos",
     icon: CalendarIcon,
     questions: [
       {
         id: 4,
-        question: "¿Cómo agendo una cita médica?",
+        question: "¿Cómo agendo un turno médico?",
         answer:
-          "Para agendar una cita, busque el médico de su preferencia, seleccione una fecha y horario disponible en su calendario, complete sus datos y confirme la cita. Recibirá una confirmación por email y SMS.",
+          "Para agendar un turno, buscá el médico de tu preferencia, seleccioná una fecha y horario disponible en su calendario, completá tus datos y confirmá el turno. Vas a recibir una confirmación por email y SMS.",
       },
       {
         id: 5,
-        question: "¿Puedo cancelar o reprogramar una cita?",
+        question: "¿Puedo cancelar o reprogramar un turno?",
         answer:
-          "Sí, puede cancelar o reprogramar citas hasta 24 horas antes de la fecha programada sin costo adicional. Para cambios de último momento, consulte la política específica del profesional.",
+          "Sí, podés cancelar o reprogramar turnos hasta 24 horas antes de la fecha programada sin costo adicional. Para cambios de último momento, consultá la política específica del profesional.",
       },
       {
         id: 6,
-        question: "¿Qué pasa si el médico cancela mi cita?",
+        question: "¿Qué pasa si el médico cancela mi turno?",
         answer:
-          "Si un médico cancela su cita, será notificado inmediatamente y podrá reprogramar sin costo adicional. En algunos casos, podremos sugerir profesionales alternativos con disponibilidad similar.",
+          "Si un médico cancela tu turno, vas a ser notificado inmediatamente y podés reprogramar sin costo adicional. En algunos casos, podemos sugerirte profesionales alternativos con disponibilidad similar.",
       },
       {
         id: 7,
-        question: "¿Funcionan las citas con obra social?",
+        question: "¿Funcionan los turnos con obra social?",
         answer:
-          "Muchos de nuestros profesionales aceptan diferentes obras sociales. Puede filtrar médicos por obra social en nuestra búsqueda y confirmar la cobertura al agendar la cita.",
+          "Muchos de nuestros profesionales aceptan diferentes obras sociales. Podés filtrar médicos por obra social en nuestra búsqueda y confirmar la cobertura al agendar el turno.",
       },
     ],
   },
@@ -203,19 +203,19 @@ const faqData = [
         id: 8,
         question: "¿Cómo funciona el historial médico digital?",
         answer:
-          "Su historial médico digital almacena de forma segura todas sus consultas, recetas, estudios y notas médicas. Solo usted y los profesionales que autorice pueden acceder a esta información.",
+          "Tu historial médico digital almacena de forma segura todas tus consultas, recetas, estudios y notas médicas. Solo vos y los profesionales que autorices pueden acceder a esta información.",
       },
       {
         id: 9,
         question: "¿Puedo subir mis estudios médicos?",
         answer:
-          "Sí, puede subir análisis, radiografías, resonancias y otros estudios en formato PDF o imagen. Nuestro sistema los organizará cronológicamente en su historial.",
+          "Sí, podés subir análisis, radiografías, resonancias y otros estudios en formato PDF o imagen. Nuestro sistema los va a organizar cronológicamente en tu historial.",
       },
       {
         id: 10,
         question: "¿Los médicos pueden ver mi historial completo?",
         answer:
-          "Los médicos solo pueden ver su historial médico cuando usted les otorgue acceso específico para una consulta. Usted mantiene control total sobre quién ve su información.",
+          "Los médicos solo pueden ver tu historial médico cuando vos les otorgues acceso específico para una consulta. Vos mantenés control total sobre quién ve tu información.",
       },
     ],
   },
@@ -227,19 +227,19 @@ const faqData = [
         id: 11,
         question: "¿Qué tan segura es mi información médica?",
         answer:
-          "Utilizamos encriptación de nivel bancario, servidores certificados y cumplimos con todas las regulaciones argentinas de protección de datos médicos. Su información está protegida con los más altos estándares de seguridad.",
+          "Utilizamos encriptación de nivel bancario, servidores certificados y cumplimos con todas las regulaciones argentinas de protección de datos médicos. Tu información está protegida con los más altos estándares de seguridad.",
       },
       {
         id: 12,
         question: "¿Quién puede ver mi información personal?",
         answer:
-          "Solo usted y los profesionales de salud que autorice específicamente pueden acceder a su información médica. Nuestro personal técnico tiene acceso limitado y solo para soporte técnico cuando sea necesario.",
+          "Solo vos y los profesionales de salud que autorices específicamente pueden acceder a tu información médica. Nuestro personal técnico tiene acceso limitado y solo para soporte técnico cuando sea necesario.",
       },
       {
         id: 13,
         question: "¿Puedo eliminar mi cuenta y datos?",
         answer:
-          "Sí, puede solicitar la eliminación completa de su cuenta y datos en cualquier momento. Conservaremos solo la información mínima requerida por ley durante los períodos establecidos.",
+          "Sí, podés solicitar la eliminación completa de tu cuenta y datos en cualquier momento. Vamos a conservar solo la información mínima requerida por ley durante los períodos establecidos.",
       },
     ],
   },
@@ -251,19 +251,19 @@ const faqData = [
         id: 14,
         question: "¿Cómo realizo el pago de las consultas?",
         answer:
-          "Puede pagar directamente en la plataforma con tarjeta de crédito/débito, transferencia bancaria o efectivo (según el profesional). También aceptamos pagos con obra social cuando corresponda.",
+          "Podés pagar directamente en la plataforma con tarjeta de crédito/débito, transferencia bancaria o efectivo (según el profesional). También aceptamos pagos con obra social cuando corresponda.",
       },
       {
         id: 15,
         question: "¿Recibo factura de mis consultas?",
         answer:
-          "Sí, automáticamente generamos facturas digitales para todas las transacciones. Puede descargarlas desde su panel de usuario y son válidas para reintegros de obra social.",
+          "Sí, automáticamente generamos facturas digitales para todas las transacciones. Podés descargarlas desde tu panel de usuario y son válidas para reintegros de obra social.",
       },
       {
         id: 16,
         question: "¿Hay costos ocultos?",
         answer:
-          "No, todos los costos son transparentes y se muestran claramente antes de confirmar cualquier cita o servicio. No hay costos ocultos ni comisiones adicionales.",
+          "No, todos los costos son transparentes y se muestran claramente antes de confirmar cualquier turno o servicio. No hay costos ocultos ni comisiones adicionales.",
       },
     ],
   },
@@ -334,7 +334,7 @@ export default function PreguntasFrecuentes() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
         <SEO 
           title="Preguntas Frecuentes - Salud Libre"
-          description="Encuentra respuestas a las preguntas más comunes sobre cómo agendar citas, consultas online, especialidades médicas y más en Salud Libre."
+          description="Encontrá respuestas a las preguntas más comunes sobre cómo agendar turnos, consultas online, especialidades médicas y más en Salud Libre."
           url="/preguntas-frecuentes"
         />
         <NavBar />
@@ -360,7 +360,7 @@ export default function PreguntasFrecuentes() {
             </div>
             <h1 className="text-5xl font-bold mb-6">Preguntas Frecuentes</h1>
             <p className="text-xl text-blue-100 max-w-3xl mx-auto mb-8">
-              Encuentra respuestas rápidas a todas tus dudas sobre Salud Libre
+              Encontrá respuestas rápidas a todas tus dudas sobre Salud Libre
             </p>
 
             {/* Barra de búsqueda */}
@@ -479,7 +479,7 @@ export default function PreguntasFrecuentes() {
                       No se encontraron resultados
                     </h3>
                     <p className="text-gray-600">
-                      Intenta con otros términos de búsqueda
+                      Intentá con otros términos de búsqueda
                     </p>
                   </div>
                 ) : (
@@ -590,7 +590,7 @@ export default function PreguntasFrecuentes() {
                     </p>
                   </a>
                   <a
-                    href="tel:1124765705"
+                    href="tel:+5491124765705"
                     className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105"
                   >
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-all duration-300">

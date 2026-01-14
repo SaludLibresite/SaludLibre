@@ -125,7 +125,7 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
       <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
         <SEO 
           title="Inicio - Salud Libre"
-          description="Encuentra los mejores médicos y especialistas en Argentina. Agenda citas médicas en línea, consultas virtuales y accede a atención médica de calidad con Salud Libre."
+          description="Encontrá los mejores médicos y especialistas en Argentina. Agendá turnos médicos online, consultas virtuales y accedé a atención médica de calidad con Salud Libre."
           url="/"
         />
       <motion.div
@@ -227,7 +227,7 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
                   className="text-2xl md:text-3xl font-bold text-gray-900"
                   variants={fadeInUp}
                 >
-                  ¿Deseas crecer tu práctica médica?
+                  ¿Querés hacer crecer tu práctica médica?
                 </motion.h3>
               </motion.div>
               <motion.p
@@ -465,8 +465,8 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
               viewport={{ once: true }}
               transition={{ delay: 0.4 }}
             >
-              Agenda una cita con especialistas y comienza tu camino
-              hacia una mejor salud. Tu bienestar es la prioridad.
+              Agendá un turno con especialistas y comenzá tu camino
+              hacia una mejor salud. Tu bienestar es nuestra prioridad.
             </motion.p>
             <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
@@ -484,7 +484,7 @@ export default function Home({ specialties = [], doctorsCount = 0 }) {
                 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Agendar Cita Ahora
+                Agendar Turno Ahora
               </motion.button>
               <motion.button
                 onClick={() => (window.location.href = "/beneficios")}

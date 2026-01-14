@@ -153,13 +153,13 @@ const sampleFaqs = [
   {
     question: "¿Qué es Salud Libre?",
     answer:
-      "Salud Libre es una plataforma digital que conecta pacientes con profesionales de la salud en Argentina. Ofrecemos un directorio de médicos verificados, sistema de agendamiento de citas, gestión de historiales médicos digitales y almacenamiento seguro de recetas médicas.",
+      "Salud Libre es una plataforma digital que conecta pacientes con profesionales de la salud en Argentina. Ofrecemos un directorio de médicos verificados, sistema de agendamiento de turnos, gestión de historiales médicos digitales y almacenamiento seguro de recetas médicas.",
     icon: HospitalIcon,
   },
   {
-    question: "¿Cómo agendo una cita médica?",
+    question: "¿Cómo agendo un turno médico?",
     answer:
-      "Para agendar una cita, busque el médico de su preferencia, seleccione una fecha y horario disponible en su calendario, complete sus datos y confirme la cita. Recibirá una confirmación por email y SMS.",
+      "Para agendar un turno, buscá el médico de tu preferencia, seleccioná una fecha y horario disponible en su calendario, completá tus datos y confirmá el turno. Vas a recibir una confirmación por email y SMS.",
     icon: CalendarIcon,
   },
   {
@@ -175,9 +175,9 @@ const sampleFaqs = [
     icon: LockIcon,
   },
   {
-    question: "¿Funcionan las citas con obra social?",
+    question: "¿Funcionan los turnos con obra social?",
     answer:
-      "Muchos profesionales aceptan diferentes obras sociales. Puede filtrar médicos por obra social en la búsqueda y confirmar la cobertura al agendar la cita.",
+      "Muchos profesionales aceptan diferentes obras sociales. Podés filtrar médicos por obra social en la búsqueda y confirmar la cobertura al agendar el turno.",
     icon: ClipboardIcon,
   },
 ];

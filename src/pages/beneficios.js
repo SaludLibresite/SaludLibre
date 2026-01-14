@@ -22,7 +22,7 @@ const defaultPlans = [
     description: "Perfecto para comenzar",
     features: [
       "Perfil básico",
-      "Hasta 5 citas por mes",
+      "Hasta 5 turnos por mes",
       "Soporte por email",
       "Reseñas de pacientes",
     ],
@@ -34,7 +34,7 @@ const defaultPlans = [
     description: "Para médicos establecidos",
     features: [
       "Perfil completo con galería",
-      "Citas ilimitadas",
+      "Turnos ilimitados",
       "Consultas online",
       "Dashboard de estadísticas",
       "Soporte prioritario",
@@ -112,42 +112,42 @@ export default function Beneficios() {
       icon: UsersIcon,
       title: "Mayor Visibilidad",
       description:
-        "Accede a miles de pacientes potenciales que buscan especialistas como tú en nuestra plataforma.",
+        "Accedé a miles de pacientes potenciales que buscan especialistas como vos en nuestra plataforma.",
       highlight: "Más de 10,000 búsquedas mensuales",
     },
     {
       icon: CalendarIcon,
-      title: "Gestión de Citas",
+      title: "Gestión de Turnos",
       description:
-        "Sistema integrado de reservas que permite a los pacientes agendar citas directamente contigo.",
+        "Sistema integrado de reservas que permite a los pacientes agendar turnos directamente con vos.",
       highlight: "Ahorra hasta 5 horas semanales",
     },
     {
       icon: GlobeAltIcon,
       title: "Consultas Online",
       description:
-        "Ofrece telemedicina y amplía tu alcance más allá de tu ubicación física.",
+        "Ofrecé telemedicina y ampliá tu alcance más allá de tu ubicación física.",
       highlight: "Aumenta ingresos hasta 40%",
     },
     {
       icon: ChartBarIcon,
       title: "Análisis y Estadísticas",
       description:
-        "Obtén insights detallados sobre tus pacientes, horarios más demandados y performance.",
+        "Obtené insights detallados sobre tus pacientes, horarios más demandados y performance.",
       highlight: "Dashboard profesional incluido",
     },
     {
       icon: StarIcon,
       title: "Sistema de Reseñas",
       description:
-        "Construye tu reputación digital con reseñas verificadas de pacientes reales.",
+        "Construí tu reputación digital con reseñas verificadas de pacientes reales.",
       highlight: "Certificación de calidad",
     },
     {
       icon: CheckIcon,
       title: "Perfil Profesional",
       description:
-        "Crea un perfil completo con tu experiencia, especialidades y certificaciones.",
+        "Creá un perfil completo con tu experiencia, especialidades y certificaciones.",
       highlight: "100% personalizable",
     },
   ];
@@ -163,7 +163,7 @@ export default function Beneficios() {
       <div className="min-h-screen bg-white">
         <SEO 
           title="Beneficios y Planes para Médicos - Salud Libre"
-          description="Haz crecer tu práctica médica con Salud Libre. Planes y beneficios exclusivos para profesionales de la salud en Argentina. Conéctate con más pacientes."
+          description="Hacé crecer tu práctica médica con Salud Libre. Planes y beneficios exclusivos para profesionales de la salud en Argentina. Conectate con más pacientes."
           url="/beneficios"
         />
         <NavBar />
@@ -173,11 +173,11 @@ export default function Beneficios() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-              Haz crecer tu práctica médica
+              Hacé crecer tu práctica médica
             </h1>
             <p className="mt-6 text-xl leading-8 text-blue-100">
-              Únete a la plataforma líder de profesionales de la salud en
-              Argentina. Conecta con más pacientes y gestiona tu consulta de
+              Unite a la plataforma líder de profesionales de la salud en
+              Argentina. Conectá con más pacientes y gestioná tu consulta de
               manera eficiente.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
@@ -206,7 +206,7 @@ export default function Beneficios() {
               ¿Por qué elegir Salud Libre?
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Descubre las ventajas de formar parte de nuestra comunidad médica
+              Descubrí las ventajas de formar parte de nuestra comunidad médica
             </p>
           </div>
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
@@ -243,7 +243,7 @@ export default function Beneficios() {
               Planes adaptados a tus necesidades
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Elige el plan que mejor se adapte a tu práctica médica
+              Elegí el plan que mejor se adapte a tu práctica médica
             </p>
           </div>
           <div className="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
@@ -326,7 +326,7 @@ export default function Beneficios() {
               ¿Listo para comenzar?
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-100">
-              Crea tu perfil profesional en minutos y comienza a recibir
+              Creá tu perfil profesional en minutos y empezá a recibir
               pacientes hoy mismo.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">

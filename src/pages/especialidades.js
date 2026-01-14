@@ -191,7 +191,7 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
       <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
         <SEO 
           title="Especialidades Médicas - Salud Libre"
-          description="Explora nuestras especialidades médicas. Encuentra especialistas en cardiología, pediatría, dermatología, traumatología y más. Atención médica de calidad en Argentina."
+          description="Explorá nuestras especialidades médicas. Encontrá especialistas en cardiología, pediatría, dermatología, traumatología y más. Atención médica de calidad en Argentina."
           url="/especialidades"
         />
         <NavBar />
@@ -269,8 +269,8 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
               variants={fadeInUp}
             >
               <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed font-light">
-                Conecta con los mejores especialistas de Argentina. Desde cardiología hasta neurología,
-                encuentra el cuidado médico que necesitas.
+                Conectá con los mejores especialistas de Argentina. Desde cardiología hasta neurología,
+                encontrá el cuidado médico que necesitás.
               </p>
               <p className="text-lg text-gray-500 max-w-3xl mx-auto">
                 Más de <span className="font-semibold text-[#4dbad9]">30 especialidades</span> disponibles con 
@@ -285,7 +285,7 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
             >
               {[
                 { text: "Especialistas Certificados" },
-                { text: "Citas Online" },
+                { text: "Turnos Online" },
                 { text: "Reseñas Verificadas" },
                 { text: "100% Seguro" }
               ].map((feature, index) => (
@@ -513,7 +513,7 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
                 No se encontraron especialidades
               </h3>
               <p className="text-gray-600">
-                Intenta con otros términos de búsqueda
+                Intentá con otros términos de búsqueda
               </p>
             </motion.div>
           ) : (
@@ -650,11 +650,11 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
               className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6"
               variants={fadeInUp}
             >
-              ¿No encuentras la{" "}
+              ¿No encontrás la{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e8ad0f] to-yellow-300">
                 especialidad
               </span>{" "}
-              que buscas?
+              que buscás?
             </motion.h2>
 
             {/* Supporting text */}
@@ -667,8 +667,8 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
                 listos para atenderte.
               </p>
               <p className="text-lg text-white/80 max-w-3xl mx-auto">
-                Explora nuestra amplia red de doctores o ponte en contacto con nosotros
-                para encontrar exactamente lo que necesitas.
+                Explorá nuestra amplia red de doctores o ponete en contacto con nosotros
+                para encontrar exactamente lo que necesitás.
               </p>
             </motion.div>
 
@@ -679,7 +679,7 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
             >
               {[
                 { text: "Búsqueda avanzada" },
-                { text: "Reserva online" },
+                { text: "Turnos online" },
                 { text: "Consulta virtual" },
                 { text: "Respuesta inmediata" }
               ].map((feature, index) => (
@@ -747,21 +747,21 @@ export default function Especialidades({ specialties: initialSpecialties = [] })
               variants={fadeInUp}
             >
               <p className="text-white/80 mb-4">
-                ¿Necesitas ayuda personalizada? Contáctanos
+                ¿Necesitás ayuda personalizada? Contactanos
               </p>
               <div className="flex flex-wrap justify-center gap-6 text-sm">
-                <a href="tel:+5491123456789" className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors">
+                <a href="tel:+5491124765705" className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                   </svg>
-                  <span>+54 9 11 2345-6789</span>
+                  <span>+54 9 11 2476-5705</span>
                 </a>
                 <a href="mailto:info@doctores-ar.com" className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
-                  <span>info@doctores-ar.com</span>
+                  <span>saludlibre2025@gmail.com</span>
                 </a>
               </div>
             </motion.div>

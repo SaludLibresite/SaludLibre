@@ -134,7 +134,7 @@ export default function HeroCarousel({ images }) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
             >
-              Encuentra tu
+              Encontrá tu
             </motion.span>
             <motion.span
               className="block bg-gradient-to-r from-[#e8ad0f] via-white to-[#4dbad9] bg-clip-text text-transparent drop-shadow-2xl"
@@ -152,8 +152,8 @@ export default function HeroCarousel({ images }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            Conecta con los mejores especialistas médicos en tu área.
-            Citas rápidas, atención de calidad y cuidado personalizado.
+            Conectá con los mejores especialistas médicos en tu zona.
+            Turnos rápidos, atención de calidad y cuidado personalizado.
           </motion.p>
         </motion.div>
 

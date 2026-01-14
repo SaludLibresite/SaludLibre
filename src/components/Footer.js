@@ -18,7 +18,8 @@ const supportLinks = [
 ];
 
 const contactInfo = [
-  { label: "Email", value: "contacto@saludlibre.com.ar" },
+  { label: "Teléfono", value: "+54 9 11 2476-5705", href: "tel:+5491124765705" },
+  { label: "Email", value: "saludlibre2025@gmail.com", href: "mailto:saludlibre2025@gmail.com" },
   { label: "Dirección", value: "Juan José Paso 749" },
 ];
 
@@ -121,7 +122,13 @@ export default function Footer() {
                     <span className="font-medium text-gray-900">
                       {item.label}:
                     </span>{" "}
-                    {item.value}
+                    {item.href ? (
+                      <a href={item.href} className="hover:text-gray-900 transition-colors">
+                        {item.value}
+                      </a>
+                    ) : (
+                      item.value
+                    )}
                   </li>
                 ))}
               </ul>

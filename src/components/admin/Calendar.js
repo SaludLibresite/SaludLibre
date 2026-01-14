@@ -12,6 +12,10 @@ import {
   XMarkIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ClockIcon,
+  UserIcon,
+  PhoneIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../context/AuthContext";
 import { getDoctorByUserId } from "../../lib/doctorsService";
@@ -45,6 +49,45 @@ export default function Calendar() {
     notes: "",
   });
   const [creating, setCreating] = useState(false);
+  const [selectedDayView, setSelectedDayView] = useState(null); // New state for day view
+
+  // Read day parameter from URL on mount and when it changes
+  useEffect(() => {
+    const { day } = router.query;
+    if (day && moment(day, "YYYY-MM-DD", true).isValid()) {
+      setSelectedDayView(moment(day, "YYYY-MM-DD").toDate());
+      setSelectedTab("Calendario");
+    } else if (!day && selectedDayView) {
+      // URL changed and day was removed (browser back button)
+      setSelectedDayView(null);
+    }
+  }, [router.query]);
+
+  // Update URL when selectedDayView changes
+  const updateDayInUrl = (dayDate) => {
+    if (dayDate) {
+      const dayStr = moment(dayDate).format("YYYY-MM-DD");
+      router.push(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, day: dayStr },
+        },
+        undefined,
+        { shallow: true }
+      );
+    } else {
+      // Remove day param from URL
+      const { day, ...restQuery } = router.query;
+      router.push(
+        {
+          pathname: router.pathname,
+          query: restQuery,
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  };
 
   // Load doctor data and appointments
   useEffect(() => {
@@ -117,6 +160,13 @@ export default function Calendar() {
   }, [appointments]);
 
   const handleSelectSlot = (slotInfo) => {
+    // If in month view and clicking on a day, show day view
+    if (view === "month") {
+      setSelectedDayView(slotInfo.start);
+      updateDayInUrl(slotInfo.start);
+      return;
+    }
+    
     setSelectedSlot(slotInfo);
 
     // Format date for input
@@ -257,6 +307,49 @@ export default function Calendar() {
         return dateA.diff(dateB);
       });
   };
+
+  // Get appointments for a specific day
+  const getAppointmentsForDay = (dayDate) => {
+    const targetDay = moment(dayDate).startOf("day");
+    return appointments
+      .filter((appointment) => {
+        const appointmentDate = appointment.date?.toDate
+          ? moment(appointment.date.toDate())
+          : moment(appointment.date);
+        return appointmentDate.isSame(targetDay, "day");
+      })
+      .sort((a, b) => a.time.localeCompare(b.time));
+  };
+
+  // Handle day click to show day view
+  const handleDayClick = (dayDate) => {
+    setSelectedDayView(dayDate);
+    updateDayInUrl(dayDate);
+  };
+
+  // Navigate day view
+  const navigateDayView = (direction) => {
+    if (!selectedDayView) return;
+    const newDate = moment(selectedDayView);
+    if (direction === "prev") {
+      newDate.subtract(1, "day");
+    } else {
+      newDate.add(1, "day");
+    }
+    const newDateObj = newDate.toDate();
+    setSelectedDayView(newDateObj);
+    updateDayInUrl(newDateObj);
+  };
+
+  // Generate time slots for day view (8 AM to 8 PM)
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let hour = 8; hour <= 20; hour++) {
+      slots.push(`${hour.toString().padStart(2, "0")}:00`);
+      slots.push(`${hour.toString().padStart(2, "0")}:30`);
+    }
+    return slots;
+  }, []);
 
   // Custom event component
   const EventComponent = ({ event }) => {
@@ -414,7 +507,281 @@ export default function Calendar() {
         {/* Calendar Tab */}
         {selectedTab === "Calendario" && (
           <div>
-            {/* Custom Calendar Toolbar */}
+            {/* Day View - Shown when a day is selected */}
+            {selectedDayView ? (
+              <div className="animate-fadeIn">
+                {/* Day View Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                  <div className="flex items-center space-x-4 mb-3 sm:mb-0">
+                    <button
+                      onClick={() => {
+                        setSelectedDayView(null);
+                        updateDayInUrl(null);
+                      }}
+                      className="p-2 hover:bg-amber-100 rounded-lg transition-colors text-amber-700"
+                      title="Volver al calendario"
+                    >
+                      <ArrowLeftIcon className="h-5 w-5" />
+                    </button>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {moment(selectedDayView).format("dddd")}
+                      </h2>
+                      <p className="text-sm text-gray-600">
+                        {moment(selectedDayView).format("D [de] MMMM [de] YYYY")}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => navigateDayView("prev")}
+                      className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
+                    >
+                      <ChevronLeftIcon className="h-5 w-5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const today = new Date();
+                        setSelectedDayView(today);
+                        updateDayInUrl(today);
+                      }}
+                      className="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm font-medium"
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      onClick={() => navigateDayView("next")}
+                      className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
+                    >
+                      <ChevronRightIcon className="h-5 w-5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewAppointment((prev) => ({
+                          ...prev,
+                          date: moment(selectedDayView).format("YYYY-MM-DD"),
+                        }));
+                        setShowCreateModal(true);
+                      }}
+                      className="ml-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center space-x-1"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      <span className="hidden sm:inline">Agregar Cita</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Day Stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-600 font-medium">Total Citas</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {getAppointmentsForDay(selectedDayView).length}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="text-xs text-green-600 font-medium">Confirmadas</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {getAppointmentsForDay(selectedDayView).filter(a => a.status === "confirmed").length}
+                    </p>
+                  </div>
+                  <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <p className="text-xs text-yellow-600 font-medium">Pendientes</p>
+                    <p className="text-2xl font-bold text-yellow-700">
+                      {getAppointmentsForDay(selectedDayView).filter(a => a.status === "pending").length}
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <p className="text-xs text-amber-600 font-medium">Completadas</p>
+                    <p className="text-2xl font-bold text-amber-700">
+                      {getAppointmentsForDay(selectedDayView).filter(a => a.status === "completed").length}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Timeline View */}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  {getAppointmentsForDay(selectedDayView).length === 0 ? (
+                    <div className="text-center py-16">
+                      <CalendarIcon className="mx-auto h-16 w-16 text-gray-300" />
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">
+                        No hay citas este día
+                      </h3>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Comienza agregando tu primera cita para este día
+                      </p>
+                      <button
+                        onClick={() => {
+                          setNewAppointment((prev) => ({
+                            ...prev,
+                            date: moment(selectedDayView).format("YYYY-MM-DD"),
+                          }));
+                          setShowCreateModal(true);
+                        }}
+                        className="mt-6 bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 inline-flex items-center space-x-2"
+                      >
+                        <PlusIcon className="h-5 w-5" />
+                        <span>Crear Primera Cita</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {/* Time Slots with Appointments */}
+                      {timeSlots.map((timeSlot) => {
+                        const slotAppointments = getAppointmentsForDay(selectedDayView).filter(
+                          (a) => a.time === timeSlot
+                        );
+                        const hasAppointment = slotAppointments.length > 0;
+                        const isCurrentHour = moment().format("HH:mm").startsWith(timeSlot.split(":")[0]);
+                        const isPast = moment(`${moment(selectedDayView).format("YYYY-MM-DD")} ${timeSlot}`).isBefore(moment());
+                        const isToday = moment(selectedDayView).isSame(moment(), "day");
+
+                        return (
+                          <div
+                            key={timeSlot}
+                            className={`flex ${hasAppointment ? "bg-white" : isPast && isToday ? "bg-gray-50/50" : "bg-white hover:bg-gray-50"} transition-colors`}
+                          >
+                            {/* Time Column */}
+                            <div 
+                              className={`w-20 sm:w-24 flex-shrink-0 p-3 sm:p-4 border-r border-gray-100 ${
+                                isCurrentHour && isToday ? "bg-amber-100" : ""
+                              }`}
+                            >
+                              <span className={`text-sm font-medium ${
+                                isCurrentHour && isToday 
+                                  ? "text-amber-700" 
+                                  : isPast && isToday 
+                                    ? "text-gray-400" 
+                                    : "text-gray-600"
+                              }`}>
+                                {timeSlot}
+                              </span>
+                              {isCurrentHour && isToday && (
+                                <div className="mt-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                              )}
+                            </div>
+
+                            {/* Appointments Column */}
+                            <div className="flex-1 p-2 sm:p-3">
+                              {hasAppointment ? (
+                                <div className="space-y-2">
+                                  {slotAppointments.map((appointment) => (
+                                    <div
+                                      key={appointment.id}
+                                      onClick={() => router.push(`/admin/appointment/${appointment.id}`)}
+                                      className={`p-3 sm:p-4 rounded-xl cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] border-l-4 ${
+                                        appointment.status === "confirmed"
+                                          ? "bg-green-50 border-green-500 hover:bg-green-100"
+                                          : appointment.status === "pending"
+                                          ? "bg-yellow-50 border-yellow-500 hover:bg-yellow-100"
+                                          : appointment.status === "cancelled"
+                                          ? "bg-red-50 border-red-500 hover:bg-red-100"
+                                          : appointment.status === "completed"
+                                          ? "bg-amber-50 border-amber-500 hover:bg-amber-100"
+                                          : "bg-gray-50 border-gray-400 hover:bg-gray-100"
+                                      }`}
+                                    >
+                                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center space-x-2 mb-1">
+                                            <UserIcon className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                            <h4 className="font-semibold text-gray-900 truncate">
+                                              {appointment.patientName}
+                                            </h4>
+                                          </div>
+                                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                                            {appointment.reason}
+                                          </p>
+                                          {appointment.patientPhone && (
+                                            <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                              <PhoneIcon className="h-3 w-3" />
+                                              <span>{appointment.patientPhone}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
+                                          <div className="flex items-center space-x-1 text-gray-600">
+                                            <ClockIcon className="h-4 w-4" />
+                                            <span className="text-sm font-medium">{appointment.time}</span>
+                                          </div>
+                                          <span
+                                            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                              appointment.status
+                                            )}`}
+                                          >
+                                            {appointment.status === "confirmed"
+                                              ? "Confirmada"
+                                              : appointment.status === "pending"
+                                              ? "Pendiente"
+                                              : appointment.status === "cancelled"
+                                              ? "Cancelada"
+                                              : appointment.status === "completed"
+                                              ? "Completada"
+                                              : appointment.status}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {appointment.notes && (
+                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                          <p className="text-xs text-gray-500 italic line-clamp-2">
+                                            📝 {appointment.notes}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div 
+                                  onClick={() => {
+                                    setNewAppointment((prev) => ({
+                                      ...prev,
+                                      date: moment(selectedDayView).format("YYYY-MM-DD"),
+                                      time: timeSlot,
+                                    }));
+                                    setShowCreateModal(true);
+                                  }}
+                                  className={`h-12 flex items-center justify-center rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
+                                    isPast && isToday
+                                      ? "border-gray-200 text-gray-300"
+                                      : "border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-400 hover:text-amber-600"
+                                  }`}
+                                >
+                                  <PlusIcon className="h-4 w-4 mr-1" />
+                                  <span className="text-xs">Agregar cita</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Summary */}
+                {getAppointmentsForDay(selectedDayView).length > 0 && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Resumen del Día</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {getAppointmentsForDay(selectedDayView).map((appointment, idx) => (
+                        <span
+                          key={appointment.id}
+                          onClick={() => router.push(`/admin/appointment/${appointment.id}`)}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-transform hover:scale-105 ${getStatusColor(appointment.status)}`}
+                        >
+                          {appointment.time} - {appointment.patientName.split(" ")[0]}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Original Calendar View */
+              <>
+                {/* Custom Calendar Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
               <div className="flex items-center justify-center sm:justify-start space-x-2 sm:space-x-4">
                 <button
@@ -498,6 +865,8 @@ export default function Calendar() {
                 />
               </div>
             </div>
+              </>
+            )}
           </div>
         )}
 
@@ -811,6 +1180,11 @@ export default function Calendar() {
         }
         .rbc-date-cell {
           padding: 0.25rem;
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+        }
+        .rbc-date-cell:hover {
+          background-color: #fef3c7;
         }
         .rbc-today {
           background-color: #fef3c7;
@@ -879,6 +1253,27 @@ export default function Calendar() {
           .rbc-date-cell button {
             font-size: 0.7rem;
           }
+        }
+        /* Day view animations */
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        /* Line clamp for notes */
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
       `}</style>
     </div>

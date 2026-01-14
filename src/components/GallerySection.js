@@ -147,7 +147,7 @@ export default function GallerySection({ specialties: initialSpecialties = [] })
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            Descubre las áreas de especialización médica disponibles
+            Descubrí las áreas de especialización médica disponibles
             profesionales pueden ayudarte a mejorar tu salud y bienestar.
           </motion.p>
           <motion.div

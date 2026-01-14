@@ -60,7 +60,7 @@ export default function AcercaDe() {
       <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-[#e8ad0f]/5">
         <SEO 
           title="Acerca de Nosotros - Salud Libre"
-          description="Conoce más sobre Salud Libre, nuestra misión de conectar pacientes con los mejores especialistas médicos en Argentina y facilitar el acceso a atención de calidad."
+          description="Conocé más sobre Salud Libre, nuestra misión de conectar pacientes con los mejores especialistas médicos en Argentina y facilitar el acceso a atención de calidad."
           url="/acerca-de"
         />
         <NavBar />
@@ -279,14 +279,14 @@ export default function AcercaDe() {
                 </div>
 
                 <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                  Accede a una plataforma completa para encontrar, contactar y reservar citas 
+                  Accedé a una plataforma completa para encontrar, contactar y reservar turnos 
                   con los mejores especialistas médicos de Argentina.
                 </p>
 
                 <div className="space-y-4 mb-8">
                   {[
                     "Búsqueda avanzada de especialistas",
-                    "Reserva de citas online",
+                    "Reserva de turnos online",
                     "Consultas virtuales",
                     "Historial médico digital",
                     "Reseñas y calificaciones",
@@ -341,14 +341,14 @@ export default function AcercaDe() {
                 </div>
 
                 <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                  Únete a nuestra plataforma y expande tu práctica médica con herramientas 
+                  Unite a nuestra plataforma y expandí tu práctica médica con herramientas 
                   profesionales diseñadas para conectar con más pacientes.
                 </p>
 
                 <div className="space-y-4 mb-8">
                   {[
                     "Perfil profesional personalizado",
-                    "Gestión de citas automatizada",
+                    "Gestión de turnos automatizada",
                     "Teleconsultas integradas",
                     "Sistema de pagos seguro",
                     "Reportes y analíticas",
@@ -473,7 +473,7 @@ export default function AcercaDe() {
               className="text-xl md:text-2xl text-white/90 max-w-4xl mx-auto font-light leading-relaxed"
               variants={fadeInUp}
             >
-              Únete a miles de usuarios que ya confían en nuestra plataforma 
+              Unite a miles de usuarios que ya confían en nuestra plataforma 
               para sus necesidades médicas.
             </motion.p>
 
@@ -501,7 +501,7 @@ export default function AcercaDe() {
                 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Únete como Médico
+                Unite como Médico
               </motion.button>
             </motion.div>
           </motion.div>
