@@ -189,7 +189,7 @@ const ChatBubble = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 sm:bottom-24 right-4 sm:right-8 z-[9998] bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
+          className="fixed bottom-6 sm:bottom-5 right-4 sm:right-8 z-[9998] bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300"
           aria-label="Abrir chat de asistencia"
         >
           <ChatBubbleLeftEllipsisIcon className="h-5 w-5 sm:h-6 sm:w-6" />

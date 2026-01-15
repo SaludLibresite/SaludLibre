@@ -197,7 +197,7 @@ export default function TerminosYCondiciones() {
                 </p>
                 <div className="space-y-2 text-gray-700">
                   <p>
-                    <strong>Email:</strong> saludlibre2025@gmail.com
+                    <strong>Email:</strong> contactos@saludlibre.com.ar
                   </p>
                   <p>
                     <strong>Teléfono:</strong> 1124765705
