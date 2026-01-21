@@ -232,6 +232,8 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
   const [showFilters, setShowFilters] = useState(false);
   // Estado local para la ubicación actual del usuario
   const [currentUserLocation, setCurrentUserLocation] = useState(userLocation);
+  // Estado para el centro del mapa
+  const [mapCenter, setMapCenter] = useState(null);
   const mapRef = useRef(null);
 
   // Load Google Maps
@@ -364,11 +366,15 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
   };
 
   // Initial center based on filters or doctor density
-  const initialCenter = getInitialCenter();
+  const initialCenter = useMemo(() => getInitialCenter(), [selectedBarrio, doctorsWithLocation.length]);
 
   // Map load handler - no auto-fit, just set initial position
   const handleMapLoad = (mapInstance) => {
     setMap(mapInstance);
+    // Set initial center only if not already set by user interaction
+    if (!mapCenter) {
+      setMapCenter(initialCenter);
+    }
   };
 
   // Block body scroll when modal is open
@@ -427,7 +433,12 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
   // Go to selected place
   const goToPlace = (place) => {
     if (map && place.geometry) {
-      map.setCenter(place.geometry.location);
+      const newCenter = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+      };
+      setMapCenter(newCenter);
+      map.panTo(newCenter);
       map.setZoom(15);
       setSearchResults([]);
       setSearchQuery('');
@@ -453,6 +464,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
       setSearchResults([]);
       setSearchQuery('');
       setIsSearching(false);
+      setMapCenter(null);
     }
   }, [isOpen]);
 
@@ -461,7 +473,8 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
     if (map && isOpen && selectedBarrio) {
       if (BARRIO_COORDINATES[selectedBarrio]) {
         const coords = BARRIO_COORDINATES[selectedBarrio];
-        map.panTo({ lat: coords.lat, lng: coords.lng });
+        setMapCenter(coords);
+        map.panTo(coords);
         // Hacer zoom más cercano cuando se selecciona una zona
         map.setZoom(14);
       }
@@ -477,7 +490,9 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
         const userLat = location.latitude || location.lat;
         const userLng = location.longitude || location.lng;
         if (userLat && userLng) {
-          map.panTo({ lat: userLat, lng: userLng });
+          const newCenter = { lat: userLat, lng: userLng };
+          setMapCenter(newCenter);
+          map.panTo(newCenter);
           map.setZoom(14);
         }
       } else {
@@ -487,11 +502,13 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
             (position) => {
               const lat = position.coords.latitude;
               const lng = position.coords.longitude;
+              const newCenter = { lat, lng };
               // Save location in state
-              setCurrentUserLocation({ lat, lng });
+              setCurrentUserLocation(newCenter);
+              setMapCenter(newCenter);
               // Use setTimeout to ensure the map is ready and state is updated
               setTimeout(() => {
-                map.panTo({ lat, lng });
+                map.panTo(newCenter);
                 map.setZoom(14);
               }, 100);
             },
@@ -622,7 +639,7 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
                 <GoogleMap
                   ref={mapRef}
                   mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={initialCenter}
+                  center={mapCenter || initialCenter}
                   zoom={12}
                   options={mapOptions}
                   onLoad={handleMapLoad}
