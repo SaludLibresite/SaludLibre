@@ -52,11 +52,12 @@ export async function getPatientById(id) {
         ...docSnap.data(),
       };
     } else {
-      throw new Error("Paciente no encontrado");
+      console.warn(`Paciente no encontrado con ID: ${id}`);
+      return null;
     }
   } catch (error) {
     console.error("Error getting patient:", error);
-    throw error;
+    return null;
   }
 }
 
@@ -210,6 +211,10 @@ export async function assignPatientToDoctor(patientId, doctorId, doctorData) {
   try {
     const patient = await getPatientById(patientId);
     
+    if (!patient) {
+      throw new Error(`Paciente no encontrado con ID: ${patientId}`);
+    }
+    
     // Create doctors array if it doesn't exist
     const doctors = patient.doctors || [];
     
@@ -315,6 +320,11 @@ export async function getPatientsByDoctorAccess(doctorId) {
 export async function addMedicalNote(patientId, note) {
   try {
     const patient = await getPatientById(patientId);
+    
+    if (!patient) {
+      throw new Error(`Paciente no encontrado con ID: ${patientId}`);
+    }
+    
     const medicalHistory = patient.medicalHistory || [];
 
     const newNote = {

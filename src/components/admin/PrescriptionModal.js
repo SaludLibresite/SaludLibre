@@ -56,6 +56,10 @@ export default function PrescriptionModal({
       // Load patient data
       if (patientId) {
         const patient = await getPatientById(patientId);
+        if (!patient) {
+          setMessage("Paciente no encontrado");
+          return;
+        }
         setPatientData(patient);
       }
     } catch (error) {

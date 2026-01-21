@@ -396,12 +396,41 @@ export async function rejectAppointment(id, reason = "") {
 export async function getPendingAppointments(doctorId) {
   try {
     const appointmentsRef = collection(db, APPOINTMENTS_COLLECTION);
-    const q = query(
+    
+    // Try with requestedAt first, fallback to createdAt if that fails
+    let q = query(
       appointmentsRef,
       where("doctorId", "==", doctorId),
-      where("status", "==", "pending"),
-      orderBy("requestedAt", "desc")
+      where("status", "==", "pending")
     );
+
+    // Try to add orderBy, but catch if there's no composite index
+    try {
+      q = query(
+        appointmentsRef,
+        where("doctorId", "==", doctorId),
+        where("status", "==", "pending"),
+        orderBy("requestedAt", "desc")
+      );
+    } catch (error) {
+      // If requestedAt ordering fails, try createdAt
+      try {
+        q = query(
+          appointmentsRef,
+          where("doctorId", "==", doctorId),
+          where("status", "==", "pending"),
+          orderBy("createdAt", "desc")
+        );
+      } catch (error2) {
+        // If both fail, use simple query without ordering
+        console.warn("Could not order pending appointments:", error2);
+        q = query(
+          appointmentsRef,
+          where("doctorId", "==", doctorId),
+          where("status", "==", "pending")
+        );
+      }
+    }
 
     const querySnapshot = await getDocs(q);
     const appointments = [];
@@ -411,6 +440,21 @@ export async function getPendingAppointments(doctorId) {
         id: doc.id,
         ...doc.data(),
       });
+    });
+
+    // Sort manually in case ordering didn't work in the query
+    appointments.sort((a, b) => {
+      const dateA = a.requestedAt?.toDate 
+        ? a.requestedAt.toDate() 
+        : a.createdAt?.toDate 
+          ? a.createdAt.toDate() 
+          : new Date(a.requestedAt || a.createdAt || 0);
+      const dateB = b.requestedAt?.toDate 
+        ? b.requestedAt.toDate() 
+        : b.createdAt?.toDate 
+          ? b.createdAt.toDate() 
+          : new Date(b.requestedAt || b.createdAt || 0);
+      return dateB - dateA;
     });
 
     return appointments;

@@ -58,11 +58,22 @@ export default function PendingAppointments() {
             const patient = await getPatientById(appointment.patientId);
             return {
               ...appointment,
-              patientData: patient,
+              patientData: patient || {
+                name: 'Paciente no encontrado',
+                email: 'N/A',
+                phone: 'N/A'
+              },
             };
           } catch (error) {
             console.error("Error loading patient data:", error);
-            return appointment;
+            return {
+              ...appointment,
+              patientData: {
+                name: 'Error al cargar paciente',
+                email: 'N/A',
+                phone: 'N/A'
+              },
+            };
           }
         })
       );
@@ -320,9 +331,22 @@ function AppointmentCard({
 
             {/* Request Date */}
             <div className="text-xs text-gray-500 border-t border-gray-100 pt-2">
-              Solicitada el {new Date(appointment.requestedAt.toDate ? appointment.requestedAt.toDate() : appointment.requestedAt)
-                .toLocaleDateString("es-ES", { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(appointment.requestedAt.toDate ? appointment.requestedAt.toDate() : appointment.requestedAt)
-                .toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' })}
+              Solicitada el {(() => {
+                const requestDate = appointment.requestedAt?.toDate 
+                  ? appointment.requestedAt.toDate() 
+                  : appointment.createdAt?.toDate 
+                    ? appointment.createdAt.toDate() 
+                    : new Date(appointment.requestedAt || appointment.createdAt || new Date());
+                
+                return `${requestDate.toLocaleDateString("es-ES", { 
+                  day: '2-digit', 
+                  month: '2-digit', 
+                  year: 'numeric' 
+                })} a las ${requestDate.toLocaleTimeString("es-ES", { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}`;
+              })()}
             </div>
           </div>
         </div>

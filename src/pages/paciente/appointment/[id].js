@@ -51,6 +51,8 @@ export default function PatientAppointmentDetail() {
         if (patientData && patientData.userId === currentUser.uid) {
           setAppointment(appointmentData);
           setPatient(patientData);
+        } else if (!patientData) {
+          setError("Paciente no encontrado");
         } else {
           setError("No tienes permisos para ver esta cita");
         }

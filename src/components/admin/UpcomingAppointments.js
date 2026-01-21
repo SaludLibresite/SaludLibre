@@ -1,8 +1,87 @@
-import { CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { useState, useEffect } from "react";
+import { CalendarIcon, ClockIcon, UserIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "../../context/AuthContext";
+import { getDoctorByUserId } from "../../lib/doctorsService";
+import { getUpcomingAppointments } from "../../lib/appointmentsService";
+import { getPatientById } from "../../lib/patientsService";
 
 export default function UpcomingAppointments() {
-  // No hay próximas citas
-  const appointments = [];
+  const { currentUser } = useAuth();
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadUpcomingAppointments();
+    }
+  }, [currentUser]);
+
+  const loadUpcomingAppointments = async () => {
+    try {
+      setLoading(true);
+      const doctorData = await getDoctorByUserId(currentUser.uid);
+      if (!doctorData) return;
+
+      const upcomingAppointments = await getUpcomingAppointments(doctorData.id);
+      
+      // Enrich appointments with patient data
+      const enrichedAppointments = await Promise.all(
+        upcomingAppointments.slice(0, 5).map(async (appointment) => {
+          try {
+            const patient = await getPatientById(appointment.patientId);
+            return {
+              ...appointment,
+              patientData: patient || {
+                name: 'Paciente no encontrado',
+                email: 'N/A',
+                phone: 'N/A'
+              },
+            };
+          } catch (error) {
+            console.error("Error loading patient data:", error);
+            return {
+              ...appointment,
+              patientData: {
+                name: 'Error al cargar paciente',
+                email: 'N/A',
+                phone: 'N/A'
+              },
+            };
+          }
+        })
+      );
+
+      setAppointments(enrichedAppointments);
+    } catch (error) {
+      console.error("Error loading upcoming appointments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date) => {
+    const appointmentDate = date?.toDate ? date.toDate() : new Date(date);
+    return appointmentDate.toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "short",
+      year: appointmentDate.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined
+    });
+  };
+
+  const formatTime = (time) => {
+    return time || "No especificado";
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "scheduled":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-100">
@@ -17,7 +96,27 @@ export default function UpcomingAppointments() {
         </div>
       </div>
       <div className="p-6">
-        {appointments.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                      <div className="h-3 bg-gray-200 rounded w-32"></div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="h-4 bg-gray-200 rounded w-16 mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-12"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : appointments.length === 0 ? (
           <div className="text-center py-8">
             <div className="mx-auto w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
               <ClockIcon className="h-8 w-8 text-amber-500" />
@@ -28,14 +127,40 @@ export default function UpcomingAppointments() {
             <p className="text-sm text-gray-500 mb-4">
               Las citas programadas aparecerán aquí.
             </p>
-            <button className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-sm font-medium rounded-lg hover:from-amber-600 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg">
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              Programar Cita
-            </button>
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Las citas se mostrarían aquí cuando existan */}
+            {appointments.map((appointment) => (
+              <div
+                key={appointment.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full flex items-center justify-center">
+                    <UserIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {appointment.patientData?.name || "Paciente no encontrado"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {appointment.reason || "Consulta general"}
+                    </p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                      {appointment.status === "scheduled" ? "Confirmada" : "Pendiente"}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">
+                    {formatDate(appointment.date)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatTime(appointment.time)}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

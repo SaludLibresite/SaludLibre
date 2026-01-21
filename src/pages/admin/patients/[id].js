@@ -85,6 +85,10 @@ export default function PatientDetailPage() {
 
       // Load patient data
       const patientData = await getPatientById(id);
+      
+      if (!patientData) {
+        throw new Error("Paciente no encontrado");
+      }
 
       // Verify this patient belongs to the current doctor
       if (patientData.doctorId !== doctor.id) {
@@ -187,6 +191,10 @@ export default function PatientDetailPage() {
   const refreshPatientData = async () => {
     try {
       const patientData = await getPatientById(id);
+      if (!patientData) {
+        console.error("Paciente no encontrado al refrescar");
+        return;
+      }
       setPatient(patientData);
     } catch (error) {
       console.error("Error refreshing patient data:", error);
