@@ -15,85 +15,110 @@ export async function detectUserType(user) {
   console.log('detectUserType: Checking user:', user.email);
 
   try {
-    // Check if user is a doctor
-    const doctorsQuery = query(
-      collection(db, "doctors"),
-      where("userId", "==", user.uid)
-    );
-    const doctorsSnapshot = await getDocs(doctorsQuery);
+    // Add retry mechanism for eventual consistency
+    let retries = 3;
+    let lastError;
+    
+    while (retries > 0) {
+      try {
+        // Check if user is a doctor
+        const doctorsQuery = query(
+          collection(db, "doctors"),
+          where("userId", "==", user.uid)
+        );
+        const doctorsSnapshot = await getDocs(doctorsQuery);
 
-    if (!doctorsSnapshot.empty) {
-      const doctorData = doctorsSnapshot.docs[0].data();
-      
-      // Convertir Timestamps de Firebase a Dates para evitar problemas de serialización
-      const processedDoctorData = {
-        ...doctorData,
-        createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
-        updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
-        subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
-        subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
-      };
-      
-      console.log('detectUserType: Doctor found:', {
-        id: doctorsSnapshot.docs[0].id,
-        isGoogleUser: processedDoctorData.isGoogleUser,
-        profileComplete: processedDoctorData.profileComplete,
-        nombre: processedDoctorData.nombre,
-        subscriptionStatus: processedDoctorData.subscriptionStatus,
-        subscriptionPlan: processedDoctorData.subscriptionPlan,
-        subscriptionExpiresAt: processedDoctorData.subscriptionExpiresAt,
-      });
-      
-      return {
-        type: "doctor",
-        profile: {
-          id: doctorsSnapshot.docs[0].id,
-          ...processedDoctorData,
-        },
-      };
+        if (!doctorsSnapshot.empty) {
+          const doctorData = doctorsSnapshot.docs[0].data();
+          
+          // Convertir Timestamps de Firebase a Dates para evitar problemas de serialización
+          const processedDoctorData = {
+            ...doctorData,
+            createdAt: doctorData.createdAt?.toDate?.() || doctorData.createdAt,
+            updatedAt: doctorData.updatedAt?.toDate?.() || doctorData.updatedAt,
+            subscriptionExpiresAt: doctorData.subscriptionExpiresAt?.toDate?.() || doctorData.subscriptionExpiresAt,
+            subscriptionActivatedAt: doctorData.subscriptionActivatedAt?.toDate?.() || doctorData.subscriptionActivatedAt,
+          };
+          
+          console.log('detectUserType: Doctor found:', {
+            id: doctorsSnapshot.docs[0].id,
+            isGoogleUser: processedDoctorData.isGoogleUser,
+            profileComplete: processedDoctorData.profileComplete,
+            nombre: processedDoctorData.nombre,
+            subscriptionStatus: processedDoctorData.subscriptionStatus,
+            subscriptionPlan: processedDoctorData.subscriptionPlan,
+            subscriptionExpiresAt: processedDoctorData.subscriptionExpiresAt,
+          });
+          
+          return {
+            type: "doctor",
+            profile: {
+              id: doctorsSnapshot.docs[0].id,
+              ...processedDoctorData,
+            },
+          };
+        }
+
+        console.log('detectUserType: No doctor profile found, checking patients...');
+
+        // Check if user is a patient
+        const patientsQuery = query(
+          collection(db, "patients"),
+          where("userId", "==", user.uid)
+        );
+        const patientsSnapshot = await getDocs(patientsQuery);
+
+        if (!patientsSnapshot.empty) {
+          const patientData = patientsSnapshot.docs[0].data();
+          return {
+            type: "patient",
+            profile: {
+              id: patientsSnapshot.docs[0].id,
+              ...patientData,
+            },
+          };
+        }
+
+        // Check if user is superadmin (you can add more sophisticated logic here)
+        // For now, we'll check if the email matches certain criteria
+        const superAdminEmails = [
+          "admin@medicos-ar.com",
+          "superadmin@medicos-ar.com",
+          "juan@jhernandez.mx", // Add existing superadmin email
+          // Add more superadmin emails as needed
+        ];
+
+        if (superAdminEmails.includes(user.email)) {
+          return {
+            type: "superadmin",
+            profile: {
+              id: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+            },
+          };
+        }
+
+        // User exists in auth but not in any collection
+        // If this is the first attempt, break and return unknown
+        // If this is a retry, throw to trigger another retry
+        if (retries === 3) {
+          break;
+        } else {
+          throw new Error('User not found in any collection');
+        }
+      } catch (queryError) {
+        lastError = queryError;
+        retries--;
+        if (retries > 0) {
+          console.log(`detectUserType: Query failed, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
     }
 
-    console.log('detectUserType: No doctor profile found, checking patients...');
-
-    // Check if user is a patient
-    const patientsQuery = query(
-      collection(db, "patients"),
-      where("userId", "==", user.uid)
-    );
-    const patientsSnapshot = await getDocs(patientsQuery);
-
-    if (!patientsSnapshot.empty) {
-      const patientData = patientsSnapshot.docs[0].data();
-      return {
-        type: "patient",
-        profile: {
-          id: patientsSnapshot.docs[0].id,
-          ...patientData,
-        },
-      };
-    }
-
-    // Check if user is superadmin (you can add more sophisticated logic here)
-    // For now, we'll check if the email matches certain criteria
-    const superAdminEmails = [
-      "admin@medicos-ar.com",
-      "superadmin@medicos-ar.com",
-      "juan@jhernandez.mx", // Add existing superadmin email
-      // Add more superadmin emails as needed
-    ];
-
-    if (superAdminEmails.includes(user.email)) {
-      return {
-        type: "superadmin",
-        profile: {
-          id: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-        },
-      };
-    }
-
-    // User exists in auth but not in any collection
+    // If we get here, user exists in auth but not in any collection
+    console.log('detectUserType: User exists in auth but not found in any collection');
     return { type: "unknown", profile: null };
   } catch (error) {
     console.error("Error detecting user type:", error);

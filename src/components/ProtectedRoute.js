@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "../context/AuthContext";
 import { useUserStore } from "../store/userStore";
 import { canAccessPanel } from "../lib/userTypeService";
+import AuthLoadingScreen from "./AuthLoadingScreen";
 
 export default function ProtectedRoute({ children, requiredUserType = "doctor" }) {
   const { currentUser, loading: authLoading } = useAuth();
@@ -10,86 +11,56 @@ export default function ProtectedRoute({ children, requiredUserType = "doctor" }
   const router = useRouter();
 
   useEffect(() => {
-    // Wait for both auth and user store to finish loading
-    if (!authLoading && !userStoreLoading) {
-      // If no user is logged in, redirect to appropriate login
-      if (!currentUser) {
-        const loginUrl = requiredUserType === 'patient' 
-          ? '/paciente/login' 
-          : '/auth/login';
-        router.push(loginUrl);
-        return;
-      }
-
-      // If user type is detected but cannot access this panel
-      if (userType && !canAccessPanel(userType, requiredUserType)) {
-        // Redirect based on user type
-        if (userType === 'patient') {
-          router.push('/paciente/dashboard');
-        } else if (userType === 'doctor') {
-          router.push('/admin');
-        } else if (userType === 'superadmin') {
-          router.push('/superadmin');
-        } else {
-          router.push('/');
-        }
-        return;
-      }
-
-      // Special case: if user type is still unknown but we're on an admin page
-      // and currentUser exists, give it a bit more time for type detection
-      if (!userType && requiredUserType === 'doctor') {
-        // Check if this is a new Google user by looking at URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        const isNewGoogleUser = urlParams.get('newGoogleUser') === 'true';
-        
-        if (isNewGoogleUser) {
-          // For new Google users, wait a bit longer for user type detection
-          console.log('New Google user detected, waiting for user type detection...');
-          return;
-        }
-        
-        // For other cases, give it more time before redirecting
-        setTimeout(() => {
-          if (!userType) {
-            console.warn('User type not detected after timeout, redirecting to home');
-            router.push('/');
-          }
-        }, 3000);
-        return;
-      }
-
-      // If user type is still unknown after auth is complete (for non-doctor routes)
-      if (!userType && requiredUserType !== 'doctor') {
-        console.warn('User type not detected, redirecting to home');
-        router.push('/');
-        return;
-      }
+    // Don't do anything while still loading
+    if (authLoading || userStoreLoading) {
+      return;
     }
+
+    // If no user is logged in, redirect to appropriate login
+    if (!currentUser) {
+      const loginUrl = requiredUserType === 'patient' 
+        ? '/paciente/login' 
+        : '/auth/login';
+      router.push(loginUrl);
+      return;
+    }
+
+    // If user type is not detected yet, wait for it
+    // This prevents premature redirections
+    if (!userType) {
+      console.log('User type not detected yet, waiting...');
+      return;
+    }
+
+    // If user type is detected but cannot access this panel
+    if (!canAccessPanel(userType, requiredUserType)) {
+      console.log(`User type ${userType} cannot access ${requiredUserType} panel, redirecting...`);
+      // Redirect based on user type
+      if (userType === 'patient') {
+        router.push('/paciente/dashboard');
+      } else if (userType === 'doctor') {
+        router.push('/admin');
+      } else if (userType === 'superadmin') {
+        router.push('/superadmin');
+      } else {
+        router.push('/');
+      }
+      return;
+    }
+
+    // If we reach here, user has proper access
+    console.log(`User type ${userType} has access to ${requiredUserType} panel`);
   }, [authLoading, userStoreLoading, currentUser, userType, router, requiredUserType]);
 
   // Show loading while checking authentication and user type
   if (authLoading || userStoreLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando acceso...</p>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen message="Verificando acceso" showDetails={true} />;
   }
 
   // Show loading if user is logged in but user type is not yet detected
+  // This prevents showing "Access Denied" before user type detection is complete
   if (currentUser && !userType) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Detectando tipo de usuario...</p>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen message="Detectando tipo de usuario" showDetails={true} />;
   }
 
   // If user is authorized, render the protected content

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuth } from "../../context/AuthContext";
 import { useUserStore } from "../../store/userStore";
 import { canAccessPanel } from "../../lib/userTypeService";
+import { createSmoothTransition } from "../../lib/authUtils";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function Login() {
@@ -71,7 +72,11 @@ export default function Login() {
       // Login user
       await login(email, password);
       
-      // Redirect immediately after successful login
+      // Add a smooth transition delay to allow user type detection to complete
+      // This prevents the "access restricted" screen from flashing
+      await createSmoothTransition(400);
+      
+      // Redirect after successful login
       if (isSuperAdminAccess) {
         router.push("/superadmin");
       } else {

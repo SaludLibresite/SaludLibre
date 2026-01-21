@@ -181,14 +181,28 @@ export function AuthProvider({ children }) {
         try {
           setUserStoreLoading(true);
           console.log('Detecting user type for:', user.email);
+          
+          // Add a small delay to ensure Firebase data is consistent
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           // Detect user type and profile
           const { type, profile } = await detectUserType(user);
           console.log('User type detected:', type, profile ? 'with profile' : 'no profile');
           setUserData(type, profile);
         } catch (error) {
           console.error("Error detecting user type:", error);
-          // If detection fails, clear user data
-          clearUserData();
+          // If detection fails, retry once after a short delay
+          try {
+            console.log('Retrying user type detection...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const { type, profile } = await detectUserType(user);
+            console.log('User type detected on retry:', type, profile ? 'with profile' : 'no profile');
+            setUserData(type, profile);
+          } catch (retryError) {
+            console.error("Error detecting user type on retry:", retryError);
+            // If still fails, clear user data
+            clearUserData();
+          }
         } finally {
           setUserStoreLoading(false);
         }
