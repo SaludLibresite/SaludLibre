@@ -172,6 +172,7 @@ export default function PrescriptionModal({
           gender: patientData.gender || "No especificado",
           dni: patientData.dni || "No especificado",
           obraSocial: patientData.obraSocial || patientData.insuranceProvider || "Particular",
+          insuranceNumber: patientData.insuranceNumber || "",
         },
         medications: validMedications,
         diagnosis: diagnosis.trim(),

@@ -167,6 +167,7 @@ export default async function handler(req, res) {
       dni: prescriptionData.patientInfo?.dni || "No especificado",
       gender: prescriptionData.patientInfo?.gender || "No especificado",
       obraSocial: prescriptionData.patientInfo?.obraSocial || "Particular",
+      insuranceNumber: prescriptionData.patientInfo?.insuranceNumber || "",
       ...prescriptionData.patientInfo,
     };
 
@@ -320,6 +321,25 @@ export default async function handler(req, res) {
       margin + 3,
       yPosition
     );
+
+    // Add insurance number if it exists and patient has insurance
+    if (
+      prescriptionData.patientInfo.insuranceNumber &&
+      prescriptionData.patientInfo.obraSocial &&
+      prescriptionData.patientInfo.obraSocial !== "Particular"
+    ) {
+      yPosition += 5;
+      pdf.setTextColor(68, 68, 68);
+      pdf.text(`N° Credencial:`, margin + 3, yPosition);
+      
+      yPosition += 4;
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(
+        prescriptionData.patientInfo.insuranceNumber,
+        margin + 3,
+        yPosition
+      );
+    }
 
     yPosition += 12;
 
