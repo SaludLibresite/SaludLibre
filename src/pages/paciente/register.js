@@ -201,6 +201,16 @@ export default function PatientRegister() {
 
 
   const validateForm = () => {
+    console.log('validateForm called with formData:', {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      password: formData.password ? '***' : '',
+      confirmPassword: formData.confirmPassword ? '***' : ''
+    });
+    
     const newErrors = {};
 
     // Name validation
@@ -317,6 +327,7 @@ export default function PatientRegister() {
     }
 
     setErrors(newErrors);
+    console.log('Validation complete. Errors found:', Object.keys(newErrors).length, newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -478,7 +489,10 @@ export default function PatientRegister() {
   };
 
   const handleSubmit = async () => {
+    console.log('handleSubmit called with formData:', formData);
+    
     if (!validateForm()) {
+      console.log('Form validation failed with errors:', errors);
       return;
     }
 
@@ -486,6 +500,7 @@ export default function PatientRegister() {
       setLoading(true);
       setMessage("");
 
+      console.log('Checking for existing email...');
       // Check if email is already registered
       const emailQuery = query(
         collection(db, "patients"),
@@ -599,18 +614,35 @@ export default function PatientRegister() {
             {message && (
               <div
                 className={`mb-6 p-4 rounded-lg border ${
-                  message.includes("Error")
+                  message.includes("Error") || message.includes("inválido") || message.includes("requerido")
                     ? "bg-red-50 text-red-700 border-red-200"
                     : "bg-green-50 text-green-700 border-green-200"
                 }`}
               >
                 <div className="flex items-center">
-                  {message.includes("Error") ? (
+                  {message.includes("Error") || message.includes("inválido") || message.includes("requerido") ? (
                     <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
                   ) : (
                     <CheckCircleIcon className="h-5 w-5 mr-2" />
                   )}
                   <span>{message}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Show validation errors summary if there are any */}
+            {Object.keys(errors).length > 0 && (
+              <div className="mb-6 p-4 rounded-lg border bg-red-50 text-red-700 border-red-200">
+                <div className="flex items-start">
+                  <ExclamationTriangleIcon className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium mb-1">Por favor corrige los siguientes errores:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {Object.entries(errors).map(([field, error]) => (
+                        <li key={field}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
@@ -854,10 +886,15 @@ export default function PatientRegister() {
                       onChange={(e) =>
                         handleInputChange("dateOfBirth", e.target.value)
                       }
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                        errors.dateOfBirth ? "border-red-500" : "border-gray-300"
+                      }`}
                       disabled={loading}
                     />
                   </div>
+                  {errors.dateOfBirth && (
+                    <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>
+                  )}
                 </div>
               </div>
 
@@ -868,7 +905,9 @@ export default function PatientRegister() {
                 <select
                   value={formData.gender}
                   onChange={(e) => handleInputChange("gender", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors ${
+                    errors.gender ? "border-red-500" : "border-gray-300"
+                  }`}
                   disabled={loading}
                 >
                   <option value="">Seleccionar género</option>
@@ -876,11 +915,18 @@ export default function PatientRegister() {
                   <option value="Femenino">Femenino</option>
                   <option value="Otro">Otro</option>
                 </select>
+                {errors.gender && (
+                  <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+                )}
               </div>
 
               <button
                 type="button"
-                onClick={handleSubmit}
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log('Submit button clicked');
+                  handleSubmit();
+                }}
                 disabled={loading || googleLoading}
                 className="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-md hover:shadow-lg"
               >
