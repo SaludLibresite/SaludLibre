@@ -291,6 +291,12 @@ export default function PrescriptionModal({
                       {patientData?.name}
                     </p>
                     <p>
+                      <span className="font-medium">DNI:</span>{" "}
+                      <span className={!patientData?.dni ? "text-amber-600 font-medium" : ""}>
+                        {patientData?.dni || "⚠️ No especificado"}
+                      </span>
+                    </p>
+                    <p>
                       <span className="font-medium">Edad:</span>{" "}
                       {calculateAge(patientData?.dateOfBirth) || "N/A"} años
                     </p>
