@@ -97,8 +97,19 @@ export default function AdminLayout({ children }) {
         setSubscription(userSubscription);
         
         // Check if profile is incomplete for Google users
+        console.log('AdminLayout: Checking profile completion for doctor:', {
+          id: doctor?.id,
+          isGoogleUser: doctor?.isGoogleUser,
+          profileComplete: doctor?.profileComplete,
+          nombre: doctor?.nombre,
+          especialidad: doctor?.especialidad
+        });
+        
         if (doctor && doctor.isGoogleUser && !doctor.profileComplete) {
+          console.log('AdminLayout: Showing complete profile modal for Google user');
           setShowCompleteProfileModal(true);
+        } else {
+          console.log('AdminLayout: Profile is complete or user is not Google user, not showing modal');
         }
       } catch (error) {
         console.error("Error loading data:", error);
@@ -135,6 +146,8 @@ export default function AdminLayout({ children }) {
 
   const handleProfileComplete = async (updatedData) => {
     try {
+      console.log('AdminLayout: handleProfileComplete called with data:', updatedData);
+      
       // Update doctor data in state
       setDoctorData(prev => ({
         ...prev,
@@ -142,11 +155,14 @@ export default function AdminLayout({ children }) {
         profileComplete: true
       }));
       
+      console.log('AdminLayout: Doctor data updated in state, closing modal');
+      
       // Close modal
       setShowCompleteProfileModal(false);
       setProfileError("");
       
       // Optionally reload the page to refresh all data
+      console.log('AdminLayout: Reloading page to refresh data');
       window.location.reload();
     } catch (error) {
       console.error("Error handling profile completion:", error);

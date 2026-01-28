@@ -27,7 +27,7 @@ export default function AdminDashboard() {
         setDoctorData(doctor);
         
         // Check if profile needs completion
-        if (doctor && (doctor.profileCompleted === false || 
+        if (doctor && (doctor.profileComplete === false || 
                       doctor.especialidad === "Por definir" || 
                       doctor.telefono === "Sin especificar" ||
                       doctor.genero === "Sin especificar" ||

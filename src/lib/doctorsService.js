@@ -448,7 +448,7 @@ export async function createDoctorFromGoogle(user, referralCode = null) {
       nombre: baseName,
       imagen: user.photoURL || "/img/doctor-1.jpg", // Use standard field name
       // Mark as incomplete profile that needs to be filled
-      profileCompleted: false, // Use consistent field name
+      profileComplete: false, // Use consistent field name
       isGoogleUser: true,
       // Basic required fields with default values to avoid validation issues
       telefono: "Sin especificar",
@@ -523,9 +523,50 @@ export async function updateDoctorProfileCompletion(doctorId, profileData) {
     const docRef = doc(db, DOCTORS_COLLECTION, doctorId);
     await updateDoc(docRef, updateData);
 
+    console.log('Profile completion updated successfully for doctor:', doctorId, {
+      profileComplete: true,
+      nombre: profileData.nombre,
+      especialidad: profileData.especialidad
+    });
     return updateData;
   } catch (error) {
     console.error("Error updating doctor profile completion:", error);
+    throw error;
+  }
+}
+
+// Migrate legacy profileCompleted field to profileComplete
+export async function migrateProfileCompletionField() {
+  try {
+    const doctorsRef = collection(db, DOCTORS_COLLECTION);
+    const querySnapshot = await getDocs(doctorsRef);
+    
+    let migratedCount = 0;
+    
+    for (const docSnap of querySnapshot.docs) {
+      const doctor = docSnap.data();
+      
+      // If has profileCompleted but not profileComplete, migrate
+      if (doctor.profileCompleted !== undefined && doctor.profileComplete === undefined) {
+        const updateData = {
+          profileComplete: doctor.profileCompleted,
+          updatedAt: new Date(),
+        };
+        
+        // Remove the old field
+        updateData.profileCompleted = null;
+        
+        await updateDoc(doc(db, DOCTORS_COLLECTION, docSnap.id), updateData);
+        migratedCount++;
+        
+        console.log(`Migrated profile completion for doctor ${docSnap.id}: ${doctor.profileCompleted} -> ${updateData.profileComplete}`);
+      }
+    }
+    
+    console.log(`Migration completed. ${migratedCount} profiles migrated.`);
+    return migratedCount;
+  } catch (error) {
+    console.error("Error migrating profile completion fields:", error);
     throw error;
   }
 }
