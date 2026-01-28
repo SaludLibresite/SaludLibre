@@ -8,6 +8,7 @@ import {
   MapPinIcon,
   HeartIcon,
   ShieldCheckIcon,
+  IdentificationIcon,
 } from "@heroicons/react/24/outline";
 import { updatePatient } from "../../lib/patientsService";
 
@@ -266,17 +267,25 @@ export default function EditPatientModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  DNI
+                  DNI <span className="text-amber-500 text-xs">(Requerido para recetas)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.dni}
-                  onChange={(e) => handleInputChange("dni", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
-                  placeholder="12345678"
-                  maxLength="8"
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <IdentificationIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.dni}
+                    onChange={(e) => handleInputChange("dni", e.target.value.replace(/\D/g, ''))}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                    placeholder="12345678"
+                    maxLength="8"
+                    disabled={loading}
+                  />
+                </div>
+                {!formData.dni && (
+                  <p className="text-amber-600 text-xs mt-1">
+                    ⚠️ El DNI es necesario para generar recetas médicas oficiales
+                  </p>
+                )}
               </div>
 
               <div>

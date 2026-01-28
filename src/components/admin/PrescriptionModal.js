@@ -151,6 +151,13 @@ export default function PrescriptionModal({
 
       console.log("Doctor data in prescription modal:", doctorData);
 
+      // Check if patient has DNI for prescription
+      if (!patientData.dni || patientData.dni.trim() === "") {
+        setMessage("⚠️ El paciente no tiene DNI cargado. Edita el paciente para agregarlo antes de generar la receta.");
+        setLoading(false);
+        return;
+      }
+
       const prescriptionData = {
         doctorInfo: {
           id: doctorData.id,
@@ -170,7 +177,7 @@ export default function PrescriptionModal({
           age: calculateAge(patientData.dateOfBirth),
           dateOfBirth: patientData.dateOfBirth,
           gender: patientData.gender || "No especificado",
-          dni: patientData.dni || "No especificado",
+          dni: patientData.dni,
           obraSocial: patientData.obraSocial || patientData.insuranceProvider || "Particular",
           insuranceNumber: patientData.insuranceNumber || "",
         },

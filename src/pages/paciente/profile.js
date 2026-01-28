@@ -20,6 +20,7 @@ import {
   PencilIcon,
   CheckIcon,
   XMarkIcon,
+  IdentificationIcon,
 } from "@heroicons/react/24/outline";
 
 export default function PatientProfile() {
@@ -41,6 +42,7 @@ export default function PatientProfile() {
     phone: "",
     dateOfBirth: "",
     gender: "",
+    dni: "",
     address: "",
     emergencyContact: "",
     emergencyPhone: "",
@@ -68,6 +70,7 @@ export default function PatientProfile() {
         phone: activePatient.phone || "",
         dateOfBirth: activePatient.dateOfBirth || "",
         gender: activePatient.gender || "",
+        dni: activePatient.dni || "",
         address: activePatient.address || "",
         emergencyContact: activePatient.emergencyContact || "",
         emergencyPhone: activePatient.emergencyPhone || "",
@@ -534,6 +537,38 @@ export default function PatientProfile() {
                           {new Date(profileData.dateOfBirth).toLocaleDateString(
                             "es-ES"
                           )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      DNI <span className="text-amber-500 text-xs">(Requerido para recetas)</span>
+                    </label>
+                    {editing ? (
+                      <>
+                        <input
+                          type="text"
+                          value={editData.dni}
+                          onChange={(e) =>
+                            handleInputChange("dni", e.target.value.replace(/\D/g, ''))
+                          }
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                          placeholder="12345678"
+                          maxLength="8"
+                        />
+                        {!editData.dni && (
+                          <p className="text-amber-600 text-xs mt-1">
+                            ⚠️ El DNI es necesario para que tu doctor pueda generar recetas médicas
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className={`flex items-center px-4 py-3 rounded-lg ${!profileData.dni ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'}`}>
+                        <IdentificationIcon className={`h-5 w-5 mr-3 ${!profileData.dni ? 'text-amber-500' : 'text-gray-400'}`} />
+                        <span className={!profileData.dni ? 'text-amber-600' : ''}>
+                          {profileData.dni || "⚠️ No especificado - Requerido para recetas"}
                         </span>
                       </div>
                     )}
