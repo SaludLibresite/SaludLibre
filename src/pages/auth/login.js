@@ -145,13 +145,18 @@ export default function Login() {
       setError("");
       setGoogleLoading(true);
       
-      const { result, doctorProfile } = await loginWithGoogle();
+      const { result, doctorProfile, isNewUser } = await loginWithGoogle();
       
       // Successful login - redirect immediately
       if (isSuperAdminAccess) {
         router.push("/superadmin");
       } else {
-        router.push("/admin");
+        // If new user, redirect with welcome parameters
+        if (isNewUser) {
+          router.push("/admin?welcome=true&newGoogleUser=true");
+        } else {
+          router.push("/admin");
+        }
       }
       
     } catch (error) {

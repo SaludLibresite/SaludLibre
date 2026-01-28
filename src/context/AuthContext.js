@@ -104,10 +104,25 @@ export function AuthProvider({ children }) {
       }
       
       if (!doctorProfile) {
-        // No doctor profile exists - this is not a registered doctor
-        console.log('No doctor profile found by userId or email, signing out user');
-        await signOut(auth);
-        throw new Error("ACCOUNT_NOT_FOUND");
+        // No doctor profile exists - check if we should create one
+        console.log('No doctor profile found, checking if we can create a new Google account...');
+        
+        // Check if email exists with traditional registration
+        const emailExists = await checkEmailExistsTraditional(user.email);
+        console.log('Email exists with traditional registration:', emailExists ? 'YES' : 'NO');
+        
+        if (emailExists) {
+          console.log('Email exists with password registration, signing out');
+          await signOut(auth);
+          throw new Error("EMAIL_EXISTS_WITH_PASSWORD");
+        }
+        
+        // Create doctor profile for new Google user
+        console.log('Creating new doctor profile for Google user...');
+        const newDoctorProfile = await createDoctorFromGoogle(user);
+        
+        console.log('Doctor profile created successfully:', newDoctorProfile.id);
+        return { result, isNewUser: true, doctorProfile: newDoctorProfile };
       }
       
       if (doctorProfile && !doctorProfile.isGoogleUser) {
