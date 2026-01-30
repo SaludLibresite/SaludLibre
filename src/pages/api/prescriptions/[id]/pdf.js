@@ -164,7 +164,6 @@ export default async function handler(req, res) {
       name: prescriptionData.patientInfo?.name || "Paciente",
       age: prescriptionData.patientInfo?.age || "N/A",
       dateOfBirth: prescriptionData.patientInfo?.dateOfBirth || null,
-      dni: prescriptionData.patientInfo?.dni || "No especificado",
       gender: prescriptionData.patientInfo?.gender || "No especificado",
       obraSocial: prescriptionData.patientInfo?.obraSocial || "Particular",
       insuranceNumber: prescriptionData.patientInfo?.insuranceNumber || "",
@@ -257,6 +256,10 @@ export default async function handler(req, res) {
     pdf.text(`Matricula: ${prescriptionData.doctorInfo.matricula || "N/A"}`, rightColumnX, yPosition);
     
     yPosition += 5;
+    pdf.text(`Especialidad: ${prescriptionData.doctorInfo.especialidad || "No especificado"}`, margin, yPosition);
+    pdf.text(`DNI: ${prescriptionData.doctorInfo.dni || "N/A"}`, rightColumnX, yPosition);
+    
+    yPosition += 5;
     pdf.text(`Domicilio: ${prescriptionData.doctorInfo.domicilio || "No especificado"}`, margin, yPosition);
 
     yPosition += 12;
@@ -291,13 +294,10 @@ export default async function handler(req, res) {
     
     // Row 1
     pdf.text(
-      `DNI: ${prescriptionData.patientInfo.dni || "No especificado"}`,
+      `Sexo: ${prescriptionData.patientInfo.gender || "No especificado"}`,
       margin,
       yPosition
     );
-    pdf.text(
-      `Sexo: ${prescriptionData.patientInfo.gender || "No especificado"}`,
-      rightColumnX,
       yPosition
     );
     

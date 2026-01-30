@@ -173,8 +173,15 @@ export default async function handler(req, res) {
       yPosition
     );
     pdf.text(
-      `Teléfono: ${prescriptionData.doctorInfo.telefono}`,
+      `DNI: ${prescriptionData.doctorInfo.dni || "N/A"}`,
       rightColumnX,
+      yPosition
+    );
+
+    yPosition += 6;
+    pdf.text(
+      `Teléfono: ${prescriptionData.doctorInfo.telefono}`,
+      margin + 12,
       yPosition
     );
 
@@ -223,13 +230,8 @@ export default async function handler(req, res) {
 
     yPosition += 6;
     pdf.text(
-      `DNI: ${prescriptionData.patientInfo.dni || "No especificado"}`,
-      margin + 12,
-      yPosition
-    );
-    pdf.text(
       `Sexo: ${prescriptionData.patientInfo.gender || "No especificado"}`,
-      rightColumnX,
+      margin + 12,
       yPosition
     );
 

@@ -518,15 +518,6 @@ export default function PatientDetailPage() {
                           </div>
                         </div>
                         <div className="flex items-start p-3 bg-gray-50 rounded-lg">
-                          <IdentificationIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs sm:text-sm text-gray-500">DNI</div>
-                            <div className={`font-medium text-sm sm:text-base ${!patient?.dni ? 'text-amber-600' : ''}`}>
-                              {patient?.dni || "⚠️ No especificado - Requerido para recetas"}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-start p-3 bg-gray-50 rounded-lg">
                           <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
                           <div className="min-w-0 flex-1">
                             <div className="text-xs sm:text-sm text-gray-500">Género</div>

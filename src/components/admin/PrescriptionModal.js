@@ -151,13 +151,6 @@ export default function PrescriptionModal({
 
       console.log("Doctor data in prescription modal:", doctorData);
 
-      // Check if patient has DNI for prescription
-      if (!patientData.dni || patientData.dni.trim() === "") {
-        setMessage("⚠️ El paciente no tiene DNI cargado. Edita el paciente para agregarlo antes de generar la receta.");
-        setLoading(false);
-        return;
-      }
-
       const prescriptionData = {
         doctorInfo: {
           id: doctorData.id,
@@ -168,6 +161,7 @@ export default function PrescriptionModal({
           telefono: doctorData.telefono || "No especificado",
           domicilio: doctorData.formattedAddress || doctorData.ubicacion || "No especificado",
           matricula: doctorData.matricula || doctorData.referralCode || "N/A",
+          dni: doctorData.dni || "N/A",
           signatureURL: doctorData.signatureURL || null,
           stampURL: doctorData.stampURL || null,
         },
@@ -177,7 +171,6 @@ export default function PrescriptionModal({
           age: calculateAge(patientData.dateOfBirth),
           dateOfBirth: patientData.dateOfBirth,
           gender: patientData.gender || "No especificado",
-          dni: patientData.dni,
           obraSocial: patientData.obraSocial || patientData.insuranceProvider || "Particular",
           insuranceNumber: patientData.insuranceNumber || "",
         },
@@ -289,12 +282,6 @@ export default function PrescriptionModal({
                     <p>
                       <span className="font-medium">Nombre:</span>{" "}
                       {patientData?.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">DNI:</span>{" "}
-                      <span className={!patientData?.dni ? "text-amber-600 font-medium" : ""}>
-                        {patientData?.dni || "⚠️ No especificado"}
-                      </span>
                     </p>
                     <p>
                       <span className="font-medium">Edad:</span>{" "}
