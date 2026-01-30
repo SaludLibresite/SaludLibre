@@ -630,15 +630,15 @@ export default function DoctorsMapModal({ isOpen, onClose, doctors, userLocation
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 top-0 md:top-0 rounded-t-3xl overflow-hidden shadow-2xl"
-            style={{ zIndex: 9999 }}
+            className="fixed inset-0 rounded-t-3xl md:rounded-3xl overflow-hidden shadow-2xl"
+            style={{ zIndex: 9999, height: '100vh', height: '100dvh' }}
           >
-            <div className="w-full h-full bg-white rounded-t-3xl overflow-hidden flex flex-col">
+            <div className="w-full h-full bg-white rounded-t-3xl md:rounded-3xl overflow-hidden flex flex-col">
               {/* Map Background */}
-              <div className="flex-1 relative">
+              <div className="absolute inset-0" style={{ height: '100%' }}>
                 <GoogleMap
                   ref={mapRef}
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  mapContainerStyle={{ width: '100%', height: '100%', minHeight: '100vh', minHeight: '100dvh' }}
                   center={mapCenter || initialCenter}
                   zoom={12}
                   options={mapOptions}
