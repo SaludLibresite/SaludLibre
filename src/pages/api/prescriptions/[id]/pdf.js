@@ -298,8 +298,6 @@ export default async function handler(req, res) {
       margin,
       yPosition
     );
-      yPosition
-    );
     
     yPosition += 5;
     pdf.text(
