@@ -638,7 +638,7 @@ export default function ProfileSettings() {
                       className="hidden"
                     />
                   </div>
-                  <div className="text-center sm:text-left">
+                  <div className="text-center sm:text-left pl-4">
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">
                       Foto de Perfil
                     </h3>
