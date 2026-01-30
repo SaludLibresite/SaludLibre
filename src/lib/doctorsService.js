@@ -232,8 +232,17 @@ export async function createDoctor(doctorData) {
 export async function updateDoctor(id, doctorData) {
   try {
     const docRef = doc(db, DOCTORS_COLLECTION, id);
+    
+    // Remove undefined values to prevent Firestore errors
+    const cleanedData = Object.entries(doctorData).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+    
     await updateDoc(docRef, {
-      ...doctorData,
+      ...cleanedData,
       updatedAt: new Date(),
     });
 
