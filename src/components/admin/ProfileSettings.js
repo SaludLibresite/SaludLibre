@@ -74,6 +74,8 @@ export default function ProfileSettings() {
           setProfile((prevProfile) => ({
             ...prevProfile,
             ...doctorData,
+            // Ensure workingHours exists, use default if not present
+            workingHours: doctorData.workingHours || prevProfile.workingHours,
           }));
         }
       } catch (error) {
@@ -528,10 +530,8 @@ export default function ProfileSettings() {
       setSaving(true);
       setMessage("");
 
-      // Remove workingHours from profile data for now since it's not in the main doctor schema
-      const { workingHours, ...doctorData } = profile;
-
-      await updateDoctor(doctorId, doctorData);
+      // Include workingHours in the profile data
+      await updateDoctor(doctorId, profile);
       setMessage("Perfil actualizado correctamente");
 
       setTimeout(() => setMessage(""), 3000);
