@@ -42,13 +42,13 @@ export default function ProfileSettings() {
     stampURL: "",
     tituloURL: "",
     workingHours: {
+      sunday: { start: "09:00", end: "13:00", enabled: false },
       monday: { start: "09:00", end: "17:00", enabled: true },
       tuesday: { start: "09:00", end: "17:00", enabled: true },
       wednesday: { start: "09:00", end: "17:00", enabled: true },
       thursday: { start: "09:00", end: "17:00", enabled: true },
       friday: { start: "09:00", end: "17:00", enabled: true },
       saturday: { start: "09:00", end: "13:00", enabled: false },
-      sunday: { start: "09:00", end: "13:00", enabled: false },
     },
   });
 
@@ -545,14 +545,24 @@ export default function ProfileSettings() {
 
   const tabs = ["Personal", "Profesional", "Galería", "Horarios", "Seguridad"];
 
+  const daysOrder = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+
   const dayNames = {
+    sunday: "Domingo",
     monday: "Lunes",
     tuesday: "Martes",
     wednesday: "Miércoles",
     thursday: "Jueves",
     friday: "Viernes",
     saturday: "Sábado",
-    sunday: "Domingo",
   };
 
   return (
@@ -1228,58 +1238,61 @@ export default function ProfileSettings() {
                   Horarios de Trabajo
                 </h3>
                 <div className="space-y-4">
-                  {Object.entries(profile.workingHours).map(([day, hours]) => (
-                    <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="sm:w-24 flex-shrink-0">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={hours.enabled}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(
-                                day,
-                                "enabled",
-                                e.target.checked
-                              )
-                            }
-                            className="mr-2 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            {dayNames[day]}
-                          </span>
-                        </label>
-                      </div>
-                      {hours.enabled && (
-                        <div className="flex items-center gap-2 sm:gap-4 flex-1">
-                          <input
-                            type="time"
-                            value={hours.start}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(
-                                day,
-                                "start",
-                                e.target.value
-                              )
-                            }
-                            className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                          />
-                          <span className="text-gray-500 text-sm">a</span>
-                          <input
-                            type="time"
-                            value={hours.end}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(
-                                day,
-                                "end",
-                                e.target.value
-                              )
-                            }
-                            className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                          />
+                  {daysOrder.map((day) => {
+                    const hours = profile.workingHours[day];
+                    return (
+                      <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="sm:w-24 flex-shrink-0">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={hours.enabled}
+                              onChange={(e) =>
+                                handleWorkingHoursChange(
+                                  day,
+                                  "enabled",
+                                  e.target.checked
+                                )
+                              }
+                              className="mr-2 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              {dayNames[day]}
+                            </span>
+                          </label>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {hours.enabled && (
+                          <div className="flex items-center gap-2 sm:gap-4 flex-1">
+                            <input
+                              type="time"
+                              value={hours.start}
+                              onChange={(e) =>
+                                handleWorkingHoursChange(
+                                  day,
+                                  "start",
+                                  e.target.value
+                                )
+                              }
+                              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
+                            <span className="text-gray-500 text-sm">a</span>
+                            <input
+                              type="time"
+                              value={hours.end}
+                              onChange={(e) =>
+                                handleWorkingHoursChange(
+                                  day,
+                                  "end",
+                                  e.target.value
+                                )
+                              }
+                              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
