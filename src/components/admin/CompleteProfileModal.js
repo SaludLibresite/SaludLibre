@@ -126,7 +126,9 @@ export default function CompleteProfileModal({ doctor, onComplete, onError }) {
       onComplete(formData);
     } catch (error) {
       console.error("Error updating profile:", error);
-      onError("Error al actualizar el perfil. Intenta de nuevo.");
+      if (onError) {
+        onError("Error al actualizar el perfil. Intenta de nuevo.");
+      }
     } finally {
       setLoading(false);
     }

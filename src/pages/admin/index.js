@@ -27,11 +27,15 @@ export default function AdminDashboard() {
         setDoctorData(doctor);
         
         // Check if profile needs completion
+        // Show modal if profile is incomplete OR if this is a new Google user
+        const isNewGoogleUser = router.query.newGoogleUser === 'true';
         if (doctor && (doctor.profileComplete === false || 
                       doctor.especialidad === "Por definir" || 
                       doctor.telefono === "Sin especificar" ||
                       doctor.genero === "Sin especificar" ||
-                      doctor.ubicacion === "Sin especificar")) {
+                      doctor.ubicacion === "Sin especificar" ||
+                      isNewGoogleUser)) {
+          console.log('Profile incomplete, showing completion modal');
           setShowCompleteProfileModal(true);
         }
       } catch (error) {
@@ -42,7 +46,7 @@ export default function AdminDashboard() {
     }
 
     loadDoctorData();
-  }, [currentUser]);
+  }, [currentUser, router.query.newGoogleUser]);
 
   const handleProfileCompleted = (updatedDoctor) => {
     setDoctorData(updatedDoctor);
@@ -86,8 +90,6 @@ export default function AdminDashboard() {
         {showCompleteProfileModal && doctorData && (
           <CompleteProfileModal
             doctor={doctorData}
-            isOpen={showCompleteProfileModal}
-            onClose={() => setShowCompleteProfileModal(false)}
             onComplete={handleProfileCompleted}
           />
         )}

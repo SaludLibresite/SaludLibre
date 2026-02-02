@@ -122,6 +122,11 @@ export function AuthProvider({ children }) {
         const newDoctorProfile = await createDoctorFromGoogle(user);
         
         console.log('Doctor profile created successfully:', newDoctorProfile.id);
+        
+        // Wait a bit for Firebase to sync and user type detection to occur
+        console.log('Waiting for user type detection...');
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
         return { result, isNewUser: true, doctorProfile: newDoctorProfile };
       }
       
