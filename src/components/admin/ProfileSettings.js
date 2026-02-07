@@ -11,6 +11,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import GoogleMapsLocationPicker from "./GoogleMapsLocationPicker";
+import { getAllSpecialties } from "../../lib/specialtiesService";
 
 export default function ProfileSettings() {
   const { currentUser } = useAuth();
@@ -61,6 +62,7 @@ export default function ProfileSettings() {
   const [uploadingStamp, setUploadingStamp] = useState(false);
   const [uploadingTitulo, setUploadingTitulo] = useState(false);
   const [message, setMessage] = useState("");
+  const [especialidades, setEspecialidades] = useState([]);
 
   // Load doctor profile on component mount
   useEffect(() => {
@@ -87,6 +89,24 @@ export default function ProfileSettings() {
 
     loadDoctorProfile();
   }, [currentUser]);
+
+  // Load specialties from Firebase
+  useEffect(() => {
+    async function loadSpecialties() {
+      try {
+        const specs = await getAllSpecialties();
+        const activeSpecs = specs
+          .filter(s => s.isActive !== false)
+          .map(s => s.title)
+          .sort();
+        setEspecialidades(activeSpecs);
+      } catch (error) {
+        console.error('Error loading specialties:', error);
+        setEspecialidades([]);
+      }
+    }
+    loadSpecialties();
+  }, []);
 
   const [activeTab, setActiveTab] = useState("Personal");
 
@@ -814,21 +834,11 @@ export default function ProfileSettings() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     >
                       <option value="">Selecciona tu especialidad</option>
-                      <option value="Cardiología">Cardiología</option>
-                      <option value="Dermatología">Dermatología</option>
-                      <option value="Endocrinología">Endocrinología</option>
-                      <option value="Gastroenterología">
-                        Gastroenterología
-                      </option>
-                      <option value="Ginecología">Ginecología</option>
-                      <option value="Medicina General">Medicina General</option>
-                      <option value="Neurología">Neurología</option>
-                      <option value="Odontología">Odontología</option>
-                      <option value="Oftalmología">Oftalmología</option>
-                      <option value="Pediatría">Pediatría</option>
-                      <option value="Psiquiatría">Psiquiatría</option>
-                      <option value="Traumatología">Traumatología</option>
-                      <option value="Urología">Urología</option>
+                      {especialidades.map((especialidad) => (
+                        <option key={especialidad} value={especialidad}>
+                          {especialidad}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>

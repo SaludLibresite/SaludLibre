@@ -1,5 +1,31 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+
+// Safe storage wrapper that handles errors
+const safeStorage = {
+  getItem: (name) => {
+    try {
+      return localStorage.getItem(name);
+    } catch (error) {
+      console.warn('Error reading from localStorage:', error);
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch (error) {
+      console.warn('Error writing to localStorage:', error);
+    }
+  },
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+    } catch (error) {
+      console.warn('Error removing from localStorage:', error);
+    }
+  }
+};
 
 export const useDoctorsFilterStore = create(
   persist(
@@ -86,6 +112,7 @@ export const useDoctorsFilterStore = create(
     }),
     {
       name: "doctors-filters-storage",
+      storage: createJSONStorage(() => safeStorage),
       // Only persist filter values, not transient state like map or nearby doctors
       partialize: (state) => ({
         search: state.search,
@@ -97,7 +124,10 @@ export const useDoctorsFilterStore = create(
         selectedPrepaga: state.selectedPrepaga,
         selectedAgeGroup: state.selectedAgeGroup,
         currentPage: state.currentPage
-      })
+      }),
+      // Skip hydration errors
+      skipHydration: false,
+      version: 1,
     }
   )
 );
