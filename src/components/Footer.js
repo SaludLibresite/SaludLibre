@@ -19,7 +19,7 @@ const supportLinks = [
 
 const contactInfo = [
   { label: "Teléfono", value: "+54 9 11 2476-5705", href: "tel:+5491124765705" },
-  { label: "Email", value: "contactos@saludlibre.com.ar", href: "mailto:contactos@saludlibre.com.ar" },
+  { label: "Email", value: "contacto@saludlibre.com.ar", href: "mailto:contacto@saludlibre.com.ar" },
   { label: "Dirección", value: "Juan José Paso 749" },
 ];
 

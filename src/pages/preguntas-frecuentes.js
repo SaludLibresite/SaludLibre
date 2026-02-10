@@ -566,7 +566,7 @@ export default function PreguntasFrecuentes() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
                   <a
-                    href="mailto:contactos@saludlibre.com.ar"
+                    href="mailto:contacto@saludlibre.com.ar"
                     className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105"
                   >
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-white/30 transition-all duration-300">
@@ -586,7 +586,7 @@ export default function PreguntasFrecuentes() {
                     </div>
                     <h4 className="font-semibold mb-2">Email</h4>
                     <p className="text-blue-100 text-sm">
-                      contactos@saludlibre.com.ar
+                      contacto@saludlibre.com.ar
                     </p>
                   </a>
                   <a

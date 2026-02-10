@@ -286,7 +286,7 @@ export default function PoliticaPrivacidad() {
                 <div className="space-y-2 text-gray-700">
                   <p>
                     <strong>Oficial de Protección de Datos:</strong>{" "}
-                    contactos@saludlibre.com.ar
+                    contacto@saludlibre.com.ar
                   </p>
                   <p>
                     <strong>Teléfono:</strong> 1124765705
