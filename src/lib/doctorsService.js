@@ -232,8 +232,17 @@ export async function createDoctor(doctorData) {
 export async function updateDoctor(id, doctorData) {
   try {
     const docRef = doc(db, DOCTORS_COLLECTION, id);
+    
+    // Remove undefined values to prevent Firestore errors
+    const cleanedData = Object.entries(doctorData).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+    
     await updateDoc(docRef, {
-      ...doctorData,
+      ...cleanedData,
       updatedAt: new Date(),
     });
 
@@ -294,18 +303,50 @@ export function generateSlug(name, specialty = "") {
 
 // Calculate distance between two coordinates using Haversine formula
 function calculateDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371; // Radius of the Earth in kilometers
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLng = (lng2 - lng1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // Distance in kilometers
-  return distance;
+  try {
+    // Validar que todos los parámetros sean números válidos
+    if (
+      typeof lat1 !== 'number' || typeof lng1 !== 'number' ||
+      typeof lat2 !== 'number' || typeof lng2 !== 'number' ||
+      isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)
+    ) {
+      console.error('Invalid coordinates:', { lat1, lng1, lat2, lng2 });
+      return Infinity;
+    }
+
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLng = (lng2 - lng1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    
+    const sqrtA = Math.sqrt(a);
+    const sqrt1MinusA = Math.sqrt(1 - a);
+    
+    // Validar que atan2 existe y es una función
+    if (typeof Math.atan2 !== 'function') {
+      console.error('Math.atan2 is not available');
+      return Infinity;
+    }
+    
+    const c = 2 * Math.atan2(sqrtA, sqrt1MinusA);
+    const distance = R * c; // Distance in kilometers
+    
+    // Validar el resultado
+    if (isNaN(distance) || !isFinite(distance)) {
+      console.error('Invalid distance calculated:', distance);
+      return Infinity;
+    }
+    
+    return distance;
+  } catch (error) {
+    console.error('Error calculating distance:', error);
+    return Infinity;
+  }
 }
 
 // Get doctors near a location
@@ -315,6 +356,14 @@ export async function getDoctorsNearLocation(
   radiusKm = 10
 ) {
   try {
+    // Validar coordenadas de entrada
+    if (
+      typeof latitude !== 'number' || typeof longitude !== 'number' ||
+      isNaN(latitude) || isNaN(longitude)
+    ) {
+      throw new Error('Coordenadas inválidas');
+    }
+
     // Get all verified doctors first
     const doctors = await getAllDoctors();
     const verifiedDoctors = doctors.filter(
@@ -328,7 +377,11 @@ export async function getDoctorsNearLocation(
           doctor.latitude !== null &&
           doctor.longitude !== null &&
           doctor.latitude !== undefined &&
-          doctor.longitude !== undefined
+          doctor.longitude !== undefined &&
+          typeof doctor.latitude === 'number' &&
+          typeof doctor.longitude === 'number' &&
+          !isNaN(doctor.latitude) &&
+          !isNaN(doctor.longitude)
         );
       })
       .map((doctor) => {
@@ -343,7 +396,7 @@ export async function getDoctorsNearLocation(
           distance: Math.round(distance * 100) / 100, // Round to 2 decimal places
         };
       })
-      .filter((doctor) => doctor.distance <= radiusKm)
+      .filter((doctor) => doctor.distance !== Infinity && doctor.distance <= radiusKm)
       .sort((a, b) => a.distance - b.distance); // Sort by distance
 
     return nearbyDoctors;
@@ -448,7 +501,7 @@ export async function createDoctorFromGoogle(user, referralCode = null) {
       nombre: baseName,
       imagen: user.photoURL || "/img/doctor-1.jpg", // Use standard field name
       // Mark as incomplete profile that needs to be filled
-      profileCompleted: false, // Use consistent field name
+      profileComplete: false, // Use consistent field name
       isGoogleUser: true,
       // Basic required fields with default values to avoid validation issues
       telefono: "Sin especificar",
@@ -523,9 +576,50 @@ export async function updateDoctorProfileCompletion(doctorId, profileData) {
     const docRef = doc(db, DOCTORS_COLLECTION, doctorId);
     await updateDoc(docRef, updateData);
 
+    console.log('Profile completion updated successfully for doctor:', doctorId, {
+      profileComplete: true,
+      nombre: profileData.nombre,
+      especialidad: profileData.especialidad
+    });
     return updateData;
   } catch (error) {
     console.error("Error updating doctor profile completion:", error);
+    throw error;
+  }
+}
+
+// Migrate legacy profileCompleted field to profileComplete
+export async function migrateProfileCompletionField() {
+  try {
+    const doctorsRef = collection(db, DOCTORS_COLLECTION);
+    const querySnapshot = await getDocs(doctorsRef);
+    
+    let migratedCount = 0;
+    
+    for (const docSnap of querySnapshot.docs) {
+      const doctor = docSnap.data();
+      
+      // If has profileCompleted but not profileComplete, migrate
+      if (doctor.profileCompleted !== undefined && doctor.profileComplete === undefined) {
+        const updateData = {
+          profileComplete: doctor.profileCompleted,
+          updatedAt: new Date(),
+        };
+        
+        // Remove the old field
+        updateData.profileCompleted = null;
+        
+        await updateDoc(doc(db, DOCTORS_COLLECTION, docSnap.id), updateData);
+        migratedCount++;
+        
+        console.log(`Migrated profile completion for doctor ${docSnap.id}: ${doctor.profileCompleted} -> ${updateData.profileComplete}`);
+      }
+    }
+    
+    console.log(`Migration completed. ${migratedCount} profiles migrated.`);
+    return migratedCount;
+  } catch (error) {
+    console.error("Error migrating profile completion fields:", error);
     throw error;
   }
 }

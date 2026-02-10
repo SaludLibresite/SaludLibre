@@ -247,11 +247,15 @@ export default function Register() {
         email: result.user.email
       });
       
+      // Wait for user type detection to complete
+      console.log('Waiting for user type detection...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // Don't set loading to false - keep the loading state during redirect
       console.log('Redirecting to admin panel...');
       
-      // Use window.location.href for a hard redirect to ensure it works
-      window.location.href = "/admin?newGoogleUser=true";
+      // Use router.push for better Next.js navigation
+      router.push("/admin?newGoogleUser=true&welcome=true");
       
     } catch (error) {
       console.error("Google registration error:", error);
@@ -995,6 +999,42 @@ export default function Register() {
           </div>
         </div>
       </div>
+
+      {/* Google Loading Overlay */}
+      {googleLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm mx-4 text-center">
+            <div className="flex justify-center mb-4">
+              <svg
+                className="animate-spin h-12 w-12 text-amber-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Creando tu cuenta profesional
+            </h3>
+            <p className="text-sm text-gray-600">
+              Por favor espera mientras configuramos tu perfil...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

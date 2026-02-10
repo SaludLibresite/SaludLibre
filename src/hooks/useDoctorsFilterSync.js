@@ -73,14 +73,25 @@ export function useDoctorsFilterSync() {
     if (currentPage > 1) query.pagina = currentPage.toString();
     
     // Update URL without triggering navigation
-    router.replace(
-      {
-        pathname: router.pathname,
-        query
-      },
-      undefined,
-      { shallow: true, scroll: false }
-    );
+    try {
+      router.replace(
+        {
+          pathname: router.pathname,
+          query
+        },
+        undefined,
+        { shallow: true, scroll: false }
+      ).catch((err) => {
+        // Ignore router errors during navigation
+        if (err.cancelled) {
+          console.log('Router navigation cancelled');
+        } else {
+          console.warn('Router error:', err);
+        }
+      });
+    } catch (error) {
+      console.warn('Error updating URL:', error);
+    }
   }, [
     router,
     search,

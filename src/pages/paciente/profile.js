@@ -20,6 +20,7 @@ import {
   PencilIcon,
   CheckIcon,
   XMarkIcon,
+  IdentificationIcon,
 } from "@heroicons/react/24/outline";
 
 export default function PatientProfile() {

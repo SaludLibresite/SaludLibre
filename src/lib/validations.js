@@ -9,25 +9,35 @@
  */
 export const validateArgentinePhone = (phone) => {
   if (!phone || !phone.trim()) {
-    return true; // Empty is valid (optional field)
+    return false; // For registration, phone is required
   }
 
   // Remove all non-numeric characters except +
   const cleanPhone = phone.replace(/[^\d+]/g, '');
 
-  // Check for Argentine phone patterns
-  const argentineMobileRegex = /^(\+54|54)?((11|15|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39)\d{8})$/;
-  const argentineLandlineRegex = /^(\+54|54)?((2[2-9]|3[2-9]|4[1-9]|5[1-9]|6[1-9]|7[1-9])\d{8})$/;
+  console.log('validateArgentinePhone:', { original: phone, cleaned: cleanPhone });
 
-  // Check if it matches Argentine phone patterns
-  if (cleanPhone.startsWith('+54') || cleanPhone.startsWith('54')) {
-    const numberWithoutPrefix = cleanPhone.replace(/^(\+54|54)/, '');
-    return (numberWithoutPrefix.length === 10 &&
-            (argentineMobileRegex.test(cleanPhone) || argentineLandlineRegex.test(cleanPhone)));
+  // Check for Argentine phone patterns - be more flexible
+  // Accept 10 digits (any area code format)
+  if (cleanPhone.length === 10 && /^\d{10}$/.test(cleanPhone)) {
+    console.log('Valid: 10 digits without prefix');
+    return true;
   }
 
-  // Allow international format without +54 prefix (10 digits)
-  return cleanPhone.length === 10 && /^\d{10}$/.test(cleanPhone);
+  // Accept with +54 prefix (total 13 chars: +54 + 10 digits)
+  if (cleanPhone.startsWith('+54') && cleanPhone.length === 13) {
+    console.log('Valid: with +54 prefix');
+    return true;
+  }
+
+  // Accept with 54 prefix (total 12 digits: 54 + 10 digits)
+  if (cleanPhone.startsWith('54') && !cleanPhone.startsWith('+') && cleanPhone.length === 12) {
+    console.log('Valid: with 54 prefix');
+    return true;
+  }
+
+  console.log('Invalid phone format');
+  return false;
 };
 
 /**

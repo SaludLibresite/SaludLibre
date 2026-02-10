@@ -11,6 +11,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import GoogleMapsLocationPicker from "./GoogleMapsLocationPicker";
+import { getAllSpecialties } from "../../lib/specialtiesService";
 
 export default function ProfileSettings() {
   const { currentUser } = useAuth();
@@ -42,13 +43,13 @@ export default function ProfileSettings() {
     stampURL: "",
     tituloURL: "",
     workingHours: {
+      sunday: { start: "09:00", end: "13:00", enabled: false },
       monday: { start: "09:00", end: "17:00", enabled: true },
       tuesday: { start: "09:00", end: "17:00", enabled: true },
       wednesday: { start: "09:00", end: "17:00", enabled: true },
       thursday: { start: "09:00", end: "17:00", enabled: true },
       friday: { start: "09:00", end: "17:00", enabled: true },
       saturday: { start: "09:00", end: "13:00", enabled: false },
-      sunday: { start: "09:00", end: "13:00", enabled: false },
     },
   });
 
@@ -61,6 +62,7 @@ export default function ProfileSettings() {
   const [uploadingStamp, setUploadingStamp] = useState(false);
   const [uploadingTitulo, setUploadingTitulo] = useState(false);
   const [message, setMessage] = useState("");
+  const [especialidades, setEspecialidades] = useState([]);
 
   // Load doctor profile on component mount
   useEffect(() => {
@@ -74,6 +76,8 @@ export default function ProfileSettings() {
           setProfile((prevProfile) => ({
             ...prevProfile,
             ...doctorData,
+            // Ensure workingHours exists, use default if not present
+            workingHours: doctorData.workingHours || prevProfile.workingHours,
           }));
         }
       } catch (error) {
@@ -85,6 +89,24 @@ export default function ProfileSettings() {
 
     loadDoctorProfile();
   }, [currentUser]);
+
+  // Load specialties from Firebase
+  useEffect(() => {
+    async function loadSpecialties() {
+      try {
+        const specs = await getAllSpecialties();
+        const activeSpecs = specs
+          .filter(s => s.isActive !== false)
+          .map(s => s.title)
+          .sort();
+        setEspecialidades(activeSpecs);
+      } catch (error) {
+        console.error('Error loading specialties:', error);
+        setEspecialidades([]);
+      }
+    }
+    loadSpecialties();
+  }, []);
 
   const [activeTab, setActiveTab] = useState("Personal");
 
@@ -528,10 +550,8 @@ export default function ProfileSettings() {
       setSaving(true);
       setMessage("");
 
-      // Remove workingHours from profile data for now since it's not in the main doctor schema
-      const { workingHours, ...doctorData } = profile;
-
-      await updateDoctor(doctorId, doctorData);
+      // Include workingHours in the profile data
+      await updateDoctor(doctorId, profile);
       setMessage("Perfil actualizado correctamente");
 
       setTimeout(() => setMessage(""), 3000);
@@ -545,14 +565,24 @@ export default function ProfileSettings() {
 
   const tabs = ["Personal", "Profesional", "Galería", "Horarios", "Seguridad"];
 
+  const daysOrder = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+
   const dayNames = {
+    sunday: "Domingo",
     monday: "Lunes",
     tuesday: "Martes",
     wednesday: "Miércoles",
     thursday: "Jueves",
     friday: "Viernes",
     saturday: "Sábado",
-    sunday: "Domingo",
   };
 
   return (
@@ -638,7 +668,7 @@ export default function ProfileSettings() {
                       className="hidden"
                     />
                   </div>
-                  <div className="text-center sm:text-left">
+                  <div className="text-center sm:text-left pl-4">
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">
                       Foto de Perfil
                     </h3>
@@ -804,21 +834,11 @@ export default function ProfileSettings() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm sm:text-base"
                     >
                       <option value="">Selecciona tu especialidad</option>
-                      <option value="Cardiología">Cardiología</option>
-                      <option value="Dermatología">Dermatología</option>
-                      <option value="Endocrinología">Endocrinología</option>
-                      <option value="Gastroenterología">
-                        Gastroenterología
-                      </option>
-                      <option value="Ginecología">Ginecología</option>
-                      <option value="Medicina General">Medicina General</option>
-                      <option value="Neurología">Neurología</option>
-                      <option value="Odontología">Odontología</option>
-                      <option value="Oftalmología">Oftalmología</option>
-                      <option value="Pediatría">Pediatría</option>
-                      <option value="Psiquiatría">Psiquiatría</option>
-                      <option value="Traumatología">Traumatología</option>
-                      <option value="Urología">Urología</option>
+                      {especialidades.map((especialidad) => (
+                        <option key={especialidad} value={especialidad}>
+                          {especialidad}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -1228,58 +1248,61 @@ export default function ProfileSettings() {
                   Horarios de Trabajo
                 </h3>
                 <div className="space-y-4">
-                  {Object.entries(profile.workingHours).map(([day, hours]) => (
-                    <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="sm:w-24 flex-shrink-0">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={hours.enabled}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(
-                                day,
-                                "enabled",
-                                e.target.checked
-                              )
-                            }
-                            className="mr-2 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            {dayNames[day]}
-                          </span>
-                        </label>
-                      </div>
-                      {hours.enabled && (
-                        <div className="flex items-center gap-2 sm:gap-4 flex-1">
-                          <input
-                            type="time"
-                            value={hours.start}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(
-                                day,
-                                "start",
-                                e.target.value
-                              )
-                            }
-                            className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                          />
-                          <span className="text-gray-500 text-sm">a</span>
-                          <input
-                            type="time"
-                            value={hours.end}
-                            onChange={(e) =>
-                              handleWorkingHoursChange(
-                                day,
-                                "end",
-                                e.target.value
-                              )
-                            }
-                            className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                          />
+                  {daysOrder.map((day) => {
+                    const hours = profile.workingHours[day];
+                    return (
+                      <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="sm:w-24 flex-shrink-0">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={hours.enabled}
+                              onChange={(e) =>
+                                handleWorkingHoursChange(
+                                  day,
+                                  "enabled",
+                                  e.target.checked
+                                )
+                              }
+                              className="mr-2 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              {dayNames[day]}
+                            </span>
+                          </label>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {hours.enabled && (
+                          <div className="flex items-center gap-2 sm:gap-4 flex-1">
+                            <input
+                              type="time"
+                              value={hours.start}
+                              onChange={(e) =>
+                                handleWorkingHoursChange(
+                                  day,
+                                  "start",
+                                  e.target.value
+                                )
+                              }
+                              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
+                            <span className="text-gray-500 text-sm">a</span>
+                            <input
+                              type="time"
+                              value={hours.end}
+                              onChange={(e) =>
+                                handleWorkingHoursChange(
+                                  day,
+                                  "end",
+                                  e.target.value
+                                )
+                              }
+                              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -28,6 +28,14 @@ export default function NearbyDoctorsButton({ onNearbyDoctorsFound, onReset }) {
 
       const { latitude, longitude } = position.coords;
 
+      // Validar coordenadas
+      if (
+        typeof latitude !== 'number' || typeof longitude !== 'number' ||
+        isNaN(latitude) || isNaN(longitude)
+      ) {
+        throw new Error('No se pudo obtener una ubicación válida');
+      }
+
       // Find nearby doctors within 25km
       const nearbyDoctors = await getDoctorsNearLocation(
         latitude,
@@ -35,7 +43,7 @@ export default function NearbyDoctorsButton({ onNearbyDoctorsFound, onReset }) {
         25
       );
 
-      if (nearbyDoctors.length === 0) {
+      if (!Array.isArray(nearbyDoctors) || nearbyDoctors.length === 0) {
         setError(
           "No se encontraron doctores cerca de tu ubicación (en un radio de 25km)"
         );
@@ -43,7 +51,9 @@ export default function NearbyDoctorsButton({ onNearbyDoctorsFound, onReset }) {
       }
 
       // Call parent callback with nearby doctors
-      onNearbyDoctorsFound(nearbyDoctors, { latitude, longitude });
+      if (typeof onNearbyDoctorsFound === 'function') {
+        onNearbyDoctorsFound(nearbyDoctors, { latitude, longitude });
+      }
     } catch (error) {
       console.error("Error finding nearby doctors:", error);
 

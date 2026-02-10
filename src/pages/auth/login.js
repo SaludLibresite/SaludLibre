@@ -145,13 +145,36 @@ export default function Login() {
       setError("");
       setGoogleLoading(true);
       
-      const { result, doctorProfile } = await loginWithGoogle();
+      const { result, doctorProfile, isNewUser } = await loginWithGoogle();
       
-      // Successful login - redirect immediately
+      console.log('Google login completed:', { isNewUser, hasProfile: !!doctorProfile });
+      
+      // If new user, wait a bit more for user type detection to complete
+      if (isNewUser) {
+        console.log('New user detected, waiting for user type detection to complete...');
+        // Wait for userType to be populated in the store
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds max
+        while (!userType && attempts < maxAttempts && !userStoreLoading) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        console.log('User type after waiting:', userType, 'Attempts:', attempts);
+      }
+      
+      // Add smooth transition delay
+      await createSmoothTransition(300);
+      
+      // Successful login - redirect
       if (isSuperAdminAccess) {
         router.push("/superadmin");
       } else {
-        router.push("/admin");
+        // If new user, redirect with welcome parameters
+        if (isNewUser) {
+          router.push("/admin?welcome=true&newGoogleUser=true");
+        } else {
+          router.push("/admin");
+        }
       }
       
     } catch (error) {
@@ -674,6 +697,42 @@ export default function Login() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Google Loading Overlay */}
+      {googleLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm mx-4 text-center">
+            <div className="flex justify-center mb-4">
+              <svg
+                className="animate-spin h-12 w-12 text-amber-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Iniciando sesión con Google
+            </h3>
+            <p className="text-sm text-gray-600">
+              Por favor espera mientras configuramos tu cuenta...
+            </p>
           </div>
         </div>
       )}

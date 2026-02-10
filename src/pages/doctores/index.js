@@ -19,6 +19,7 @@ import { useRouter } from "next/router";
 import { getBarrioFilterOptions, filterDoctorsByBarrio } from "../../lib/barriosUtils";
 import { useDoctorsFilterStore } from "../../store/doctorsFilterStore";
 import { useDoctorsFilterSync } from "../../hooks/useDoctorsFilterSync";
+import { getAllSpecialties } from "../../lib/specialtiesService";
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
@@ -49,6 +50,7 @@ export default function DoctoresPage({ initialDoctors }) {
   const [isLoading, setIsLoading] = useState(false);
   const [doctoresData, setDoctoresData] = useState(initialDoctors || []);
   const [initialLoading, setInitialLoading] = useState(false);
+  const [especialidades, setEspecialidades] = useState([]);
 
   // Initialize doctors data from SSG props
   useEffect(() => {
@@ -56,6 +58,25 @@ export default function DoctoresPage({ initialDoctors }) {
       setDoctoresData(initialDoctors);
     }
   }, [initialDoctors]);
+
+  // Load specialties from Firebase
+  useEffect(() => {
+    async function loadSpecialties() {
+      try {
+        const specs = await getAllSpecialties();
+        const activeSpecs = specs
+          .filter(s => s.isActive !== false)
+          .map(s => s.title)
+          .sort();
+        setEspecialidades(activeSpecs);
+      } catch (error) {
+        console.error('Error loading specialties:', error);
+        // Fallback a lista por defecto si hay error
+        setEspecialidades([]);
+      }
+    }
+    loadSpecialties();
+  }, []);
 
   // Handler for nearby doctors
   const handleNearbyDoctorsFound = (doctors, location) => {
@@ -137,8 +158,8 @@ export default function DoctoresPage({ initialDoctors }) {
 
   // Obtener opciones disponibles para cada filtro basado en las selecciones actuales
   const getAvailableCategories = () => {
-    const doctors = getPartiallyFilteredDoctors('categoria');
-    return [...new Set(doctors.map((d) => d.especialidad))].sort();
+    // Usar las especialidades cargadas desde Firebase
+    return especialidades;
   };
 
   const getAvailableGeneros = () => {

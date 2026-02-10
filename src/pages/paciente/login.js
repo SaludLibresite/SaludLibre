@@ -49,7 +49,8 @@ export default function PatientLogin() {
 
   // Redirect if user is already logged in and can access this panel
   useEffect(() => {
-    if (!userStoreLoading && userType) {
+    // Only redirect if not actively logging in
+    if (!userStoreLoading && userType && !loading && !googleLoading) {
       if (canAccessPanel(userType, "patient")) {
         router.push("/paciente/dashboard");
       } else if (userType === "doctor") {
@@ -66,7 +67,7 @@ export default function PatientLogin() {
         }, 2000);
       }
     }
-  }, [userType, userStoreLoading, router]);
+  }, [userType, userStoreLoading, router, loading, googleLoading]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -283,6 +284,8 @@ export default function PatientLogin() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
+      console.log('Google sign-in successful for patient login:', user.email);
+
       // Check if this user exists as a patient
       const patientsQuery = query(
         collection(db, "patients"),
@@ -292,13 +295,25 @@ export default function PatientLogin() {
 
       if (patientsSnapshot.empty) {
         // User doesn't exist as a patient, wait for user type detection
+        console.log('User not found as patient, waiting for user type detection...');
         setMessage(
           "Verificando tipo de usuario..."
         );
-        // Wait for user type detection, useEffect will handle redirection
-        setTimeout(() => {
-          setGoogleLoading(false);
-        }, 2000);
+        
+        // Wait longer for user type detection to complete
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Wait actively for userType to be detected
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds max
+        while (!userType && attempts < maxAttempts && !userStoreLoading) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
+        console.log('User type after waiting:', userType, 'Attempts:', attempts);
+        setGoogleLoading(false);
+        // useEffect will handle redirection based on userType
         return;
       }
 
@@ -311,10 +326,13 @@ export default function PatientLogin() {
         return;
       }
 
-      // Successful login, wait for user type detection and redirection
-      setTimeout(() => {
-        setGoogleLoading(false);
-      }, 1000);
+      console.log('Patient login successful, waiting for user type detection...');
+      
+      // Wait for user type detection
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Successful login, redirection will be handled by useEffect
+      setGoogleLoading(false);
     } catch (error) {
       console.error("Error with Google sign in:", error);
 
@@ -864,6 +882,42 @@ export default function PatientLogin() {
           </div>
         </div>
       </div>
+
+      {/* Google Loading Overlay */}
+      {googleLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm mx-4 text-center">
+            <div className="flex justify-center mb-4">
+              <svg
+                className="animate-spin h-12 w-12 text-cyan-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Iniciando sesión con Google
+            </h3>
+            <p className="text-sm text-gray-600">
+              Por favor espera mientras verificamos tu cuenta...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
