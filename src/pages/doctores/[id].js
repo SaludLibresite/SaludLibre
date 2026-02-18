@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import NavBar from "../../components/NavBar";
 import DoctorGallery from "../../components/doctoresPage/DoctorGallery";
 import DoctorReviews from "../../components/doctoresPage/DoctorReviews";
@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../../components/Footer";
 import { formatDoctorName } from "../../lib/dataUtils";
 import DoctorCard from "../../components/doctoresPage/DoctorCard";
-import { getDoctorBySlug, getAllDoctors } from "../../lib/doctorsService";
+import { getDoctorBySlug, getDoctorById, getAllDoctors } from "../../lib/doctorsService";
 import { getDoctorRank } from "../../lib/subscriptionUtils";
 import { createAppointment } from "../../lib/appointmentsService";
 import {
@@ -22,6 +22,89 @@ import useSWR from "swr";
 
 // SWR fetcher
 const fetcher = (url) => fetch(url).then((res) => res.json());
+
+// Day key constants
+const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const DAY_NAMES_ES = {
+  sunday: "Domingo",
+  monday: "Lunes",
+  tuesday: "Martes",
+  wednesday: "Miércoles",
+  thursday: "Jueves",
+  friday: "Viernes",
+  saturday: "Sábado",
+};
+
+const DEFAULT_WORKING_HOURS = {
+  sunday: { start: "09:00", end: "13:00", enabled: false },
+  monday: { start: "09:00", end: "17:00", enabled: true },
+  tuesday: { start: "09:00", end: "17:00", enabled: true },
+  wednesday: { start: "09:00", end: "17:00", enabled: true },
+  thursday: { start: "09:00", end: "17:00", enabled: true },
+  friday: { start: "09:00", end: "17:00", enabled: true },
+  saturday: { start: "09:00", end: "13:00", enabled: false },
+};
+
+/** Format "09:00" → "9:00" (strip leading zero) */
+const formatTime = (t) => {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  return `${parseInt(h)}:${m}`;
+};
+
+/** Build a human-readable schedule summary from workingHours */
+function buildScheduleSummary(workingHours) {
+  if (!workingHours) return null;
+
+  const enabledDays = DAY_KEYS.filter((d) => workingHours[d]?.enabled);
+  if (enabledDays.length === 0) return "Sin horario configurado";
+
+  // Group consecutive days with the same hours
+  const groups = [];
+  let currentGroup = null;
+
+  // Reorder to start from Monday
+  const orderedDays = [...DAY_KEYS.slice(1), DAY_KEYS[0]]; // Mon–Sun
+
+  orderedDays.forEach((day) => {
+    const config = workingHours[day];
+    if (!config?.enabled) {
+      currentGroup = null;
+      return;
+    }
+    const timeRange = `${formatTime(config.start)} - ${formatTime(config.end)}`;
+    if (currentGroup && currentGroup.timeRange === timeRange) {
+      currentGroup.days.push(day);
+    } else {
+      currentGroup = { days: [day], timeRange };
+      groups.push(currentGroup);
+    }
+  });
+
+  return groups
+    .map((g) => {
+      const first = DAY_NAMES_ES[g.days[0]];
+      const last = DAY_NAMES_ES[g.days[g.days.length - 1]];
+      const dayLabel = g.days.length === 1 ? first : `${first} a ${last}`;
+      return `${dayLabel}, ${g.timeRange}`;
+    })
+    .join(" | ");
+}
+
+/** Get today's schedule from workingHours */
+function getTodaySchedule(workingHours) {
+  if (!workingHours) return null;
+  const todayKey = DAY_KEYS[new Date().getDay()];
+  const config = workingHours[todayKey];
+  if (!config?.enabled) return { enabled: false, dayName: DAY_NAMES_ES[todayKey] };
+  return {
+    enabled: true,
+    dayName: DAY_NAMES_ES[todayKey],
+    start: config.start,
+    end: config.end,
+    label: `${formatTime(config.start)} - ${formatTime(config.end)}`,
+  };
+}
 
 // Animation variants
 const fadeInUp = {
@@ -89,6 +172,19 @@ export default function DoctorDetailPage({
   const relatedDoctors = swrData?.relatedDoctors || initialRelatedDoctors;
   const reviews = swrData?.reviews || initialReviews;
   const averageRating = swrData?.averageRating || initialAverageRating;
+
+  // Compute effective workingHours and schedule display strings
+  const workingHours = useMemo(() => {
+    return doctor?.workingHours || DEFAULT_WORKING_HOURS;
+  }, [doctor?.workingHours]);
+
+  const scheduleSummary = useMemo(() => {
+    return buildScheduleSummary(workingHours) || doctor?.horario || "A consultar";
+  }, [workingHours, doctor?.horario]);
+
+  const todaySchedule = useMemo(() => {
+    return getTodaySchedule(workingHours);
+  }, [workingHours]);
 
   // If there's an error, redirect to doctors page
   useEffect(() => {
@@ -170,8 +266,34 @@ export default function DoctorDetailPage({
   // Handle appointment submission
   const handleAppointmentSubmit = async (appointmentData) => {
     try {
-      await createAppointment(appointmentData);
-      console.log("Cita creada exitosamente:", appointmentData);
+      const createdAppointment = await createAppointment(appointmentData);
+      console.log("Cita creada exitosamente:", createdAppointment);
+
+      // Send confirmation emails to patient and doctor
+      try {
+        const response = await fetch("/api/appointments/send-confirmation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            appointmentData: {
+              ...appointmentData,
+              appointmentId: createdAppointment.appointmentId,
+            },
+          }),
+        });
+
+        const emailResult = await response.json();
+        if (emailResult.success) {
+          console.log("Correos de confirmación enviados:", emailResult);
+        } else {
+          console.warn("No se pudieron enviar los correos:", emailResult.message);
+        }
+      } catch (emailError) {
+        // Don't fail the appointment creation if email fails
+        console.error("Error enviando correos de confirmación:", emailError);
+      }
     } catch (error) {
       console.error("Error creating appointment:", error);
       throw error;
@@ -194,55 +316,30 @@ export default function DoctorDetailPage({
   };
 
   useEffect(() => {
-    if (!doctor?.horario) return;
-
-    // Parse time string supporting both 24h ("14:00") and 12h ("2:00 PM") formats
-    const parseTime = (timeStr) => {
-      const cleaned = timeStr.trim().toUpperCase();
-      const match = cleaned.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/);
-      if (!match) return null;
-
-      let hours = parseInt(match[1]);
-      const minutes = parseInt(match[2]);
-      const period = match[3];
-
-      if (period === 'PM' && hours < 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
-
-      const d = new Date();
-      d.setHours(hours, minutes, 0, 0);
-      return d;
-    };
-
-    // Check doctor availability
+    // Check doctor availability using workingHours (structured) or fallback to horario (text)
     const checkAvailability = () => {
       const now = new Date();
-      try {
-        // Extract time range - look for pattern like "9:00 AM - 5:00 PM" or "9:00 - 18:00"
-        const timeRangeMatch = doctor.horario.match(/(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-–]\s*(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/);
-        if (!timeRangeMatch) {
-          setIsAvailable(false);
-          return;
-        }
+      const todayKey = DAY_KEYS[now.getDay()];
+      const dayConfig = workingHours[todayKey];
 
-        const start = parseTime(timeRangeMatch[1]);
-        const end = parseTime(timeRangeMatch[2]);
-
-        if (!start || !end) {
-          setIsAvailable(false);
-          return;
-        }
-
-        setIsAvailable(now >= start && now <= end);
-      } catch (error) {
+      if (!dayConfig?.enabled) {
         setIsAvailable(false);
+        return;
       }
+
+      const [startH, startM] = dayConfig.start.split(":").map(Number);
+      const [endH, endM] = dayConfig.end.split(":").map(Number);
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      setIsAvailable(nowMinutes >= startMinutes && nowMinutes <= endMinutes);
     };
 
     checkAvailability();
     const interval = setInterval(checkAvailability, 60000);
     return () => clearInterval(interval);
-  }, [doctor?.horario]);
+  }, [workingHours]);
 
   // Render SEO first for better server-side rendering
   const seoComponent = (
@@ -366,6 +463,11 @@ export default function DoctorDetailPage({
                     <span className="text-sm text-gray-200">
                       {isAvailable ? "Disponible" : "No disponible"}
                     </span>
+                    {todaySchedule && todaySchedule.enabled && (
+                      <span className="text-xs text-gray-300 ml-1">
+                        ({todaySchedule.label})
+                      </span>
+                    )}
                     {getDoctorRank(doctor) === "VIP" && (
                       <span className="ml-2 bg-yellow-400 text-gray-900 text-xs font-semibold px-2 py-1 rounded">
                         Premium
@@ -412,7 +514,7 @@ export default function DoctorDetailPage({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center py-3 px-2 bg-gray-50 rounded">
                     <div className="text-xs text-gray-600">Horario</div>
-                    <div className="font-medium text-sm">{doctor.horario || "A consultar"}</div>
+                    <div className="font-medium text-sm">{scheduleSummary}</div>
                   </div>
                   <div className="text-center py-3 px-2 bg-gray-50 rounded">
                     <div className="text-xs text-gray-600">Estado</div>
@@ -516,13 +618,20 @@ export default function DoctorDetailPage({
                           <h1 className="text-3xl font-bold mb-2">{doctor.nombre}</h1>
                           <p className="text-xl text-gray-200 font-medium">{doctor.especialidad}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex flex-col items-end gap-2">
                           <div className="flex items-center gap-3">
                             <div className={`w-4 h-4 rounded-full ${isAvailable ? "bg-green-400" : "bg-gray-400"}`}></div>
                             <span className="text-white font-medium">
                               {isAvailable ? "Disponible" : "No disponible"}
                             </span>
                           </div>
+                          {todaySchedule && (
+                            <span className="text-xs text-gray-300">
+                              {todaySchedule.enabled
+                                ? `Hoy: ${todaySchedule.label}`
+                                : `Hoy (${todaySchedule.dayName}): No atiende`}
+                            </span>
+                          )}
                           {/* Estado de verificación integrado */}
                           <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -548,7 +657,7 @@ export default function DoctorDetailPage({
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span>{doctor.horario || "Horarios a consultar"}</span>
+                          <span>{scheduleSummary}</span>
                         </div>
                         {doctor.consultaOnline && (
                           <div className="flex items-center gap-2">
@@ -648,19 +757,38 @@ export default function DoctorDetailPage({
               </div>
 
               {/* Status */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-6">
-                <span className="text-sm font-medium text-gray-700">
-                  Estado
-                </span>
-                <span
-                  className={`text-sm font-semibold px-3 py-1 rounded ${
-                    isAvailable
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {isAvailable ? "Disponible" : "No disponible"}
-                </span>
+              <div className="flex flex-col p-4 bg-gray-50 rounded-lg mb-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Estado
+                  </span>
+                  <span
+                    className={`text-sm font-semibold px-3 py-1 rounded ${
+                      isAvailable
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {isAvailable ? "Disponible" : "No disponible"}
+                  </span>
+                </div>
+                {todaySchedule && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      {todaySchedule.enabled ? (
+                        <>
+                          <span className="font-medium">Hoy ({todaySchedule.dayName}): </span>
+                          {todaySchedule.label}
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium">Hoy ({todaySchedule.dayName}): </span>
+                          <span className="text-red-500">No atiende</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Appointment Button */}
@@ -729,7 +857,7 @@ export default function DoctorDetailPage({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Horarios: {doctor.horario || "A consultar"}</span>
+                    <span>Horarios: {scheduleSummary}</span>
                   </div>
                   {doctor.latitude && doctor.longitude && (
                     <div>
@@ -769,9 +897,6 @@ export default function DoctorDetailPage({
                     whileHover="hover"
                     initial="rest"
                     className="cursor-pointer"
-                    onClick={() =>
-                      router.push(`/doctores/${relatedDoctor.slug}`)
-                    }
                   >
                     <DoctorCard doctor={relatedDoctor} compact />
                   </motion.div>
@@ -966,10 +1091,12 @@ export async function getStaticPaths() {
       d.descripcion && !d.descripcion.includes("Perfil en configuración")
     );
 
-    // Generate paths for all verified doctors
-    const paths = verifiedDoctors.map(doctor => ({
-      params: { id: doctor.slug },
-    }));
+    // Generate paths for all verified doctors (use slug, fallback to id)
+    const paths = verifiedDoctors
+      .filter(doctor => doctor.slug || doctor.id)
+      .map(doctor => ({
+        params: { id: doctor.slug || doctor.id },
+      }));
 
     // Return paths with fallback 'blocking' to generate pages on-demand
     // for new doctors that aren't in the build
@@ -990,8 +1117,18 @@ export async function getStaticProps(context) {
   const { id } = context.params;
 
   try {
-    // Get doctor by slug
-    const doctorData = await getDoctorBySlug(id);
+    // Try to get doctor by slug first, then fallback to document ID
+    let doctorData;
+    try {
+      doctorData = await getDoctorBySlug(id);
+    } catch (slugError) {
+      // If slug lookup fails, try by document ID as fallback
+      try {
+        doctorData = await getDoctorById(id);
+      } catch (idError) {
+        doctorData = null;
+      }
+    }
 
     // Check if doctor exists, is verified, and has complete profile
     if (!doctorData || doctorData.verified !== true || 

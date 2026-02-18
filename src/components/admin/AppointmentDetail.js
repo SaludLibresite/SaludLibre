@@ -111,6 +111,23 @@ export default function AppointmentDetail({ appointmentId }) {
     try {
       await updateAppointmentStatus(appointmentId, "confirmed");
       setAppointment((prev) => ({ ...prev, status: "confirmed" }));
+
+      // Send confirmation email to patient
+      try {
+        const response = await fetch("/api/appointments/send-confirmed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appointmentId }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          console.log("Correo de confirmación enviado al paciente");
+        } else {
+          console.warn("No se pudo enviar el correo de confirmación:", result.message);
+        }
+      } catch (emailError) {
+        console.error("Error enviando correo de confirmación:", emailError);
+      }
     } catch (error) {
       console.error("Error confirming appointment:", error);
     }

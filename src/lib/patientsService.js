@@ -356,3 +356,27 @@ export async function getPatientsWithUpcomingAppointments(doctorId) {
     throw error;
   }
 }
+
+// Get patients paginated for superadmin
+export async function getPatientsPaginated({ page = 1, limit = 20, search = "", sort = "recent" } = {}) {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search,
+      sort,
+    });
+
+    const response = await fetch(`/api/superadmin/patients?${params}`);
+
+    if (!response.ok) {
+      throw new Error("Error fetching patients");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error getting paginated patients:", error);
+    throw error;
+  }
+}

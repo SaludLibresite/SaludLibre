@@ -554,6 +554,21 @@ export default function ProfileSettings() {
       await updateDoctor(doctorId, profile);
       setMessage("Perfil actualizado correctamente");
 
+      // Invalidate SWR and ISR caches for this doctor's public page
+      try {
+        const slug = profile.slug || doctorId;
+        if (slug) {
+          // Revalidate ISR page
+          await fetch(`/api/revalidate?path=/doctores/${slug}`);
+          // Bust SWR cache by touching the API endpoint with cache-bust param
+          await fetch(`/api/doctors/${slug}?t=${Date.now()}`, { cache: 'no-store' });
+        }
+        // Also revalidate the doctors listing page
+        await fetch(`/api/revalidate?path=/doctores`);
+      } catch (revalidateError) {
+        console.warn("Cache revalidation failed (non-critical):", revalidateError);
+      }
+
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Error saving profile:", error);

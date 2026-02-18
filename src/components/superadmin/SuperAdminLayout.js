@@ -14,6 +14,7 @@ import {
   UserIcon,
   CurrencyDollarIcon,
   GiftIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 
 export default function SuperAdminLayout({ children }) {
@@ -52,6 +53,11 @@ export default function SuperAdminLayout({ children }) {
       name: 'Doctores',
       href: '/superadmin/doctors',
       icon: UserGroupIcon,
+    },
+    {
+      name: 'Pacientes',
+      href: '/superadmin/patients',
+      icon: UsersIcon,
     },
     {
       name: 'Especialidades',

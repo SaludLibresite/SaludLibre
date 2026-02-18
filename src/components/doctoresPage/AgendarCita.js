@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   XMarkIcon,
@@ -7,8 +7,50 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { createPatient } from "../../lib/patientsService";
+import { getAvailableTimeSlots } from "../../lib/appointmentsService";
 import { formatDoctorName } from "../../lib/dataUtils";
 import { useUserStore } from "../../store/userStore";
+
+// Map JS day index (0=Sunday) to workingHours keys
+const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+// Default working hours if doctor hasn't configured them
+const DEFAULT_WORKING_HOURS = {
+  sunday: { start: "09:00", end: "13:00", enabled: false },
+  monday: { start: "09:00", end: "17:00", enabled: true },
+  tuesday: { start: "09:00", end: "17:00", enabled: true },
+  wednesday: { start: "09:00", end: "17:00", enabled: true },
+  thursday: { start: "09:00", end: "17:00", enabled: true },
+  friday: { start: "09:00", end: "17:00", enabled: true },
+  saturday: { start: "09:00", end: "13:00", enabled: false },
+};
+
+/**
+ * Parse doctor.horario free-text string to extract a time range.
+ * Returns { start: "HH:MM", end: "HH:MM" } or null.
+ */
+function parseHorarioString(horario) {
+  if (!horario) return null;
+  const match = horario.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?\s*[-–]\s*(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/);
+  if (!match) return null;
+
+  let startH = parseInt(match[1]);
+  const startM = match[2];
+  const startP = match[3]?.toUpperCase();
+  let endH = parseInt(match[4]);
+  const endM = match[5];
+  const endP = match[6]?.toUpperCase();
+
+  if (startP === "PM" && startH < 12) startH += 12;
+  if (startP === "AM" && startH === 12) startH = 0;
+  if (endP === "PM" && endH < 12) endH += 12;
+  if (endP === "AM" && endH === 12) endH = 0;
+
+  return {
+    start: `${startH.toString().padStart(2, "0")}:${startM}`,
+    end: `${endH.toString().padStart(2, "0")}:${endM}`,
+  };
+}
 
 export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, currentUser }) {
   const [formData, setFormData] = useState({
@@ -26,7 +68,31 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [saveAsPatient, setSaveAsPatient] = useState(true);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedDayInfo, setSelectedDayInfo] = useState(null); // { dayKey, enabled, start, end }
+  const [selectedHour, setSelectedHour] = useState(null); // selected hour block (e.g. 9, 10...)
   const { userProfile, userType } = useUserStore();
+
+  // Build effective workingHours: prefer structured data, fallback to parsing horario string
+  const workingHours = useMemo(() => {
+    if (doctor?.workingHours) return doctor.workingHours;
+    // If only free-text horario exists, build a rough workingHours from it
+    const parsed = parseHorarioString(doctor?.horario);
+    if (parsed) {
+      const wh = {};
+      DAY_KEYS.forEach((day, i) => {
+        // Assume Mon–Fri enabled by default when parsing free text
+        wh[day] = {
+          start: parsed.start,
+          end: parsed.end,
+          enabled: i >= 1 && i <= 5, // Mon–Fri
+        };
+      });
+      return wh;
+    }
+    return DEFAULT_WORKING_HOURS;
+  }, [doctor?.workingHours, doctor?.horario]);
 
   // Pre-llenar campos con datos del usuario activo cuando se abre el sidepanel
   useEffect(() => {
@@ -71,7 +137,7 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
       let patientId = null;
 
       // Si el usuario quiere guardar como paciente, crear el paciente primero
-      if (saveAsPatient && doctor?.id) {
+      if (saveAsPatient && doctor?.id && currentUser) {
         try {
           const patientData = {
             name: formData.nombre,
@@ -93,7 +159,7 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
               : [],
           };
 
-          const newPatient = await createPatient(patientData);
+          const newPatient = await createPatient(patientData, doctor.id, currentUser.uid);
           patientId = newPatient.id;
         } catch (error) {
           console.error("Error creating patient:", error);
@@ -101,12 +167,33 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
         }
       }
 
-      // Crear la cita
+      // Crear la cita con nombres de campos consistentes con el resto del sistema
       const appointmentData = {
-        ...formData,
+        // Campos estándar del sistema (inglés)
+        patientName: formData.nombre,
+        patientEmail: formData.email,
+        patientPhone: formData.telefono,
+        date: formData.fecha ? new Date(`${formData.fecha}T00:00:00`) : null,
+        time: formData.hora,
+        type: formData.tipoConsulta,
+        reason: formData.descripcion,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        // Campos de referencia en español para compatibilidad con emails
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        fecha: formData.fecha,
+        hora: formData.hora,
+        tipoConsulta: formData.tipoConsulta,
+        descripcion: formData.descripcion,
+        // Campos de relación
         doctorId: doctor?.id,
         doctorName: doctor?.nombre,
+        doctorSpecialty: doctor?.especialidad,
+        doctorGender: doctor?.genero,
         patientId: patientId,
+        patientUserId: currentUser?.uid || null,
         status: "pending",
         createdAt: new Date(),
       };
@@ -146,18 +233,102 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
     }
   };
 
-  const generateTimeSlots = () => {
+  // Generate time slots based on doctor's working hours for the selected day
+  const generateTimeSlotsForDay = useCallback((dayConfig) => {
+    if (!dayConfig || !dayConfig.enabled) return [];
+
+    const [startH, startM] = dayConfig.start.split(":").map(Number);
+    const [endH, endM] = dayConfig.end.split(":").map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+
     const slots = [];
-    for (let hour = 8; hour <= 17; hour++) {
-      slots.push(`${hour.toString().padStart(2, "0")}:00`);
-      if (hour < 17) {
-        slots.push(`${hour.toString().padStart(2, "0")}:15`);
-        slots.push(`${hour.toString().padStart(2, "0")}:30`);
-        slots.push(`${hour.toString().padStart(2, "0")}:45`);
-      }
+    for (let m = startMinutes; m < endMinutes; m += 15) {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      slots.push(`${h.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`);
     }
     return slots;
+  }, []);
+
+  // When the selected date changes, load available slots
+  useEffect(() => {
+    if (!formData.fecha || !doctor?.id) {
+      setAvailableSlots([]);
+      setSelectedDayInfo(null);
+      return;
+    }
+
+    const dateParts = formData.fecha.split("-");
+    const selectedDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+    const dayKey = DAY_KEYS[selectedDate.getDay()];
+    const dayConfig = workingHours[dayKey] || { enabled: false };
+
+    setSelectedDayInfo({ dayKey, ...dayConfig });
+
+    if (!dayConfig.enabled) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    // Generate all possible slots for this day based on working hours
+    const allSlots = generateTimeSlotsForDay(dayConfig);
+
+    // Now check which slots are already booked
+    const loadSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        // getAvailableTimeSlots returns slots not yet booked, but uses hardcoded range.
+        // We'll fetch booked slots and filter our working-hours-based slots instead.
+        const bookedSlotsResponse = await getAvailableTimeSlots(doctor.id, selectedDate);
+        // bookedSlotsResponse contains the available (non-booked) slots from the service.
+        // We intersect our working-hours slots with those available ones.
+        const available = allSlots.filter(slot => bookedSlotsResponse.includes(slot));
+        setAvailableSlots(available);
+      } catch (error) {
+        console.error("Error loading available slots:", error);
+        // On error, show all working-hours slots (better than nothing)
+        setAvailableSlots(allSlots);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    loadSlots();
+  }, [formData.fecha, doctor?.id, workingHours, generateTimeSlotsForDay]);
+
+  // Get days the doctor doesn't work (for disabling in date picker)
+  const disabledDays = useMemo(() => {
+    const disabled = [];
+    DAY_KEYS.forEach((day, index) => {
+      if (!workingHours[day]?.enabled) {
+        disabled.push(index);
+      }
+    });
+    return disabled;
+  }, [workingHours]);
+
+  // Handle date change — also reset the selected time and hour
+  const handleDateChange = (value) => {
+    handleInputChange("fecha", value);
+    handleInputChange("hora", ""); // Reset time when date changes
+    setSelectedHour(null);
   };
+
+  // Group available slots by hour for the two-level picker
+  const hourGroups = useMemo(() => {
+    const groups = {};
+    availableSlots.forEach((slot) => {
+      const hour = parseInt(slot.split(":")[0]);
+      if (!groups[hour]) groups[hour] = [];
+      groups[hour].push(slot);
+    });
+    // Return sorted array of { hour, slots }
+    return Object.keys(groups)
+      .map(Number)
+      .sort((a, b) => a - b)
+      .map((hour) => ({ hour, slots: groups[hour] }));
+  }, [availableSlots]);
 
   // Variantes de animación para el sidepanel
   const sidepanelVariants = {
@@ -193,8 +364,6 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
       },
     },
   };
-
-  const timeSlots = generateTimeSlots();
 
   return (
     <AnimatePresence>
@@ -249,7 +418,7 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto">
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <form id="agendar-cita-form" onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Message */}
                 <AnimatePresence>
                   {message && (
@@ -411,35 +580,118 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
                       <input
                         type="date"
                         value={formData.fecha}
-                        onChange={(e) =>
-                          handleInputChange("fecha", e.target.value)
-                        }
+                        onChange={(e) => handleDateChange(e.target.value)}
                         min={new Date().toISOString().split("T")[0]}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         required
                         disabled={loading}
                       />
+                      {selectedDayInfo && !selectedDayInfo.enabled && (
+                        <p className="mt-1 text-sm text-amber-600 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          El profesional no atiende este día
+                        </p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Hora Preferida
+                        Hora Preferida *
                       </label>
-                      <select
-                        value={formData.hora}
-                        onChange={(e) =>
-                          handleInputChange("hora", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        disabled={loading}
-                      >
-                        <option value="">Seleccionar hora</option>
-                        {generateTimeSlots().map((time) => (
-                          <option key={time} value={time}>
-                            {time}
-                          </option>
-                        ))}
-                      </select>
+                      {loadingSlots ? (
+                        <div className="flex items-center justify-center py-4">
+                          <svg className="animate-spin h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+                          </svg>
+                          <span className="text-sm text-gray-500">Cargando horarios...</span>
+                        </div>
+                      ) : hourGroups.length > 0 ? (
+                        <div className="space-y-2">
+                          {/* Hour blocks */}
+                          <div className="grid grid-cols-4 gap-2">
+                            {hourGroups.map(({ hour, slots }) => {
+                              const isExpanded = selectedHour === hour;
+                              const hasSelectedSlot = slots.includes(formData.hora);
+                              return (
+                                <button
+                                  key={hour}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isExpanded) {
+                                      setSelectedHour(null);
+                                    } else {
+                                      setSelectedHour(hour);
+                                      // If there's only one slot in this hour, auto-select it
+                                      if (slots.length === 1) {
+                                        handleInputChange("hora", slots[0]);
+                                      }
+                                    }
+                                  }}
+                                  className={`px-2 py-2 text-sm rounded-lg border transition-colors font-medium ${
+                                    hasSelectedSlot
+                                      ? "bg-blue-600 text-white border-blue-600"
+                                      : isExpanded
+                                      ? "bg-blue-50 text-blue-700 border-blue-400 ring-1 ring-blue-400"
+                                      : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-300"
+                                  }`}
+                                  disabled={loading}
+                                >
+                                  {hour.toString().padStart(2, "0")}:00
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Expanded sub-slots for selected hour */}
+                          {selectedHour !== null && hourGroups.find(g => g.hour === selectedHour) && (
+                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                              <p className="text-xs text-blue-600 font-medium mb-2">
+                                Seleccioná un horario entre las {selectedHour.toString().padStart(2, "0")}:00 y las {selectedHour.toString().padStart(2, "0")}:45
+                              </p>
+                              <div className="grid grid-cols-4 gap-2">
+                                {hourGroups.find(g => g.hour === selectedHour).slots.map((time) => (
+                                  <button
+                                    key={time}
+                                    type="button"
+                                    onClick={() => handleInputChange("hora", time)}
+                                    className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                                      formData.hora === time
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-300"
+                                    }`}
+                                    disabled={loading}
+                                  >
+                                    {time}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Show selected time confirmation */}
+                          {formData.hora && (
+                            <p className="text-sm text-green-600 flex items-center mt-1">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              Horario seleccionado: {formData.hora}
+                            </p>
+                          )}
+                        </div>
+                      ) : formData.fecha ? (
+                        <p className="text-gray-500 text-sm p-3 bg-gray-50 rounded-lg">
+                          {selectedDayInfo && !selectedDayInfo.enabled
+                            ? "El profesional no atiende este día. Seleccioná otra fecha."
+                            : "No hay horarios disponibles para esta fecha"}
+                        </p>
+                      ) : (
+                        <p className="text-gray-500 text-sm p-3 bg-gray-50 rounded-lg">
+                          Seleccioná una fecha para ver los horarios disponibles
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -565,7 +817,7 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, current
                 </button>
                 <button
                   type="submit"
-                  onClick={handleSubmit}
+                  form="agendar-cita-form"
                   className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors flex items-center justify-center space-x-2"
                   disabled={loading}
                 >

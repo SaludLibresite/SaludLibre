@@ -472,23 +472,46 @@ export async function getAvailableTimeSlots(doctorId, date) {
     const q = query(
       appointmentsRef,
       where("doctorId", "==", doctorId),
-      where("date", "==", date),
       where("status", "in", ["scheduled", "pending"])
     );
 
     const querySnapshot = await getDocs(q);
     const bookedSlots = [];
 
-    querySnapshot.forEach((doc) => {
-      const appointment = doc.data();
+    // Filter appointments matching the target date
+    const targetDate = date instanceof Date ? date : new Date(date);
+    const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+
+    querySnapshot.forEach((docSnap) => {
+      const appointment = docSnap.data();
       if (appointment.time) {
-        bookedSlots.push(appointment.time);
+        // Compare dates - handle Firestore Timestamp, Date, and string formats
+        let appointmentDateStr = null;
+        if (appointment.date?.toDate) {
+          const d = appointment.date.toDate();
+          appointmentDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        } else if (appointment.date instanceof Date) {
+          appointmentDateStr = `${appointment.date.getFullYear()}-${String(appointment.date.getMonth() + 1).padStart(2, "0")}-${String(appointment.date.getDate()).padStart(2, "0")}`;
+        } else if (typeof appointment.date === "string") {
+          appointmentDateStr = appointment.date.split("T")[0];
+        } else if (appointment.fecha) {
+          appointmentDateStr = typeof appointment.fecha === "string" ? appointment.fecha.split("T")[0] : null;
+        }
+
+        if (appointmentDateStr === targetDateStr) {
+          bookedSlots.push(appointment.time);
+          // Also check hora field for backward compatibility
+          if (appointment.hora && appointment.hora !== appointment.time) {
+            bookedSlots.push(appointment.hora);
+          }
+        }
       }
     });
 
-    // Generate available slots (9 AM to 6 PM, 15-minute intervals)
+    // Generate available slots (broad range: 6 AM to midnight, 15-minute intervals)
+    // The caller should filter these against the doctor's workingHours
     const allSlots = [];
-    for (let hour = 9; hour < 18; hour++) {
+    for (let hour = 6; hour < 24; hour++) {
       allSlots.push(`${hour.toString().padStart(2, "0")}:00`);
       allSlots.push(`${hour.toString().padStart(2, "0")}:15`);
       allSlots.push(`${hour.toString().padStart(2, "0")}:30`);

@@ -485,7 +485,7 @@ export default function DoctorCard({ doctor, delay = 0, inside = false }) {
               </button>
             </div>
             <Link
-              href={`/doctores/${doctor.slug}`}
+              href={`/doctores/${doctor.slug || doctor.id}`}
               className={`w-full py-2.5 text-center transition-all duration-300 rounded-2xl font-semibold border-2 block text-sm
                 ${
                   doctorRank === "VIP"
