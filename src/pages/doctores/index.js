@@ -20,6 +20,10 @@ import { getBarrioFilterOptions, filterDoctorsByBarrio } from "../../lib/barrios
 import { useDoctorsFilterStore } from "../../store/doctorsFilterStore";
 import { useDoctorsFilterSync } from "../../hooks/useDoctorsFilterSync";
 import { getAllSpecialties } from "../../lib/specialtiesService";
+import useSWR from "swr";
+
+// SWR fetcher
+const fetcher = (url) => fetch(url).then((res) => res.json());
 
 // Constants
 const DOCTORS_PER_PAGE = 20;
@@ -48,16 +52,20 @@ export default function DoctoresPage({ initialDoctors }) {
   } = useDoctorsFilterStore();
   
   const [isLoading, setIsLoading] = useState(false);
-  const [doctoresData, setDoctoresData] = useState(initialDoctors || []);
   const [initialLoading, setInitialLoading] = useState(false);
   const [especialidades, setEspecialidades] = useState([]);
 
-  // Initialize doctors data from SSG props
-  useEffect(() => {
-    if (initialDoctors && initialDoctors.length > 0) {
-      setDoctoresData(initialDoctors);
-    }
-  }, [initialDoctors]);
+  // SWR: stale-while-revalidate - shows SSG data immediately, revalidates in background
+  const { data: swrData } = useSWR("/api/doctors", fetcher, {
+    fallbackData: { doctors: initialDoctors || [] },
+    revalidateOnFocus: false,       // Don't refetch on tab focus
+    revalidateOnReconnect: true,    // Refetch when connection is restored
+    refreshInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    dedupingInterval: 60 * 1000,    // Dedupe requests within 1 minute
+  });
+
+  // Use SWR data (falls back to SSG initialDoctors seamlessly)
+  const doctoresData = swrData?.doctors || initialDoctors || [];
 
   // Load specialties from Firebase
   useEffect(() => {
@@ -602,34 +610,31 @@ export async function getStaticProps() {
   try {
     const doctors = await getAllDoctors();
     
-    // Only show verified doctors
+    // Only show verified doctors with complete profiles
     const verifiedDoctors = doctors.filter(
-      (doctor) => doctor.verified === true
+      (doctor) => doctor.verified === true && 
+        doctor.profileComplete !== false &&
+        doctor.especialidad && doctor.especialidad !== "Por definir" &&
+        doctor.descripcion && !doctor.descripcion.includes("Perfil en configuración")
     );
     
     // Serialize doctors data - convert Firebase Timestamps to strings
     const serializedDoctors = verifiedDoctors.map(doctor => {
-      const serialized = { ...doctor };
-      
-      // List of all possible date fields
-      const dateFields = [
-        'subscriptionExpiresAt',
-        'subscriptionActivatedAt',
-        'createdAt',
-        'updatedAt',
-        'lastLogin',
-        'birthDate',
-        'registeredAt'
-      ];
-      
-      // Convert all date fields to ISO strings
-      dateFields.forEach(field => {
-        if (serialized[field]) {
-          serialized[field] = serialized[field].toDate 
-            ? serialized[field].toDate().toISOString()
-            : serialized[field];
+      const serialized = JSON.parse(JSON.stringify(doctor, (key, value) => {
+        // Handle Firestore Timestamps (they have a toDate method)
+        if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+          return value.toDate().toISOString();
         }
-      });
+        // Handle Firestore Timestamps serialized via toJSON() as {seconds, nanoseconds}
+        if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value && Object.keys(value).length === 2) {
+          return new Date(value.seconds * 1000).toISOString();
+        }
+        // Handle Firestore Timestamps with internal format {_seconds, _nanoseconds}
+        if (value && typeof value === 'object' && '_seconds' in value && '_nanoseconds' in value) {
+          return new Date(value._seconds * 1000).toISOString();
+        }
+        return value;
+      }));
       
       return serialized;
     });

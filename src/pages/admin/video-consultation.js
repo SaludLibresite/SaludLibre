@@ -23,9 +23,11 @@ export default function VideoConsultationPage() {
   const router = useRouter();
   const [scheduledRooms, setScheduledRooms] = useState([]);
   const [todayRooms, setTodayRooms] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [deletingRoomId, setDeletingRoomId] = useState(null);
 
   // Zustand store - ya no se usa para manejo de estado local
   const { 
@@ -35,6 +37,7 @@ export default function VideoConsultationPage() {
   const loadDoctorRooms = useCallback(async () => {
     try {
       const rooms = await videoConsultationService.getDoctorRooms(currentUser.uid);
+      setAllRooms(rooms);
       setScheduledRooms(rooms.filter(room => room.status === 'scheduled'));
     } catch (error) {
       console.error('Error loading doctor rooms:', error);
@@ -124,6 +127,34 @@ export default function VideoConsultationPage() {
     showNotification('¡Enlace copiado!', 'success');
   };
 
+  const handleDeleteRoom = async (room) => {
+    if (!confirm(`¿Eliminar la consulta con ${room.patientName || 'este paciente'}?`)) return;
+    
+    setDeletingRoomId(room.id);
+    try {
+      await videoConsultationService.deleteVideoRoom(room.id);
+      
+      // Also delete from Daily.co if possible
+      try {
+        const sanitizedName = room.roomName.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 41);
+        await fetch('/api/video/create-room', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomName: sanitizedName }),
+        }).catch(() => {});
+      } catch {}
+
+      showNotification('Consulta eliminada', 'success');
+      loadDoctorRooms();
+      loadTodayRooms();
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      showNotification('Error al eliminar la consulta', 'error');
+    } finally {
+      setDeletingRoomId(null);
+    }
+  };
+
 
 
   // Interfaz principal (dashboard)
@@ -209,6 +240,14 @@ export default function VideoConsultationPage() {
                           <ShareIcon className="h-4 w-4" />
                         </button>
                         <button
+                          onClick={() => handleDeleteRoom(room)}
+                          disabled={deletingRoomId === room.id}
+                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                          title="Eliminar consulta"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleJoinRoom(room)}
                           className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
@@ -276,6 +315,14 @@ export default function VideoConsultationPage() {
                           <ShareIcon className="h-4 w-4" />
                         </button>
                         <button
+                          onClick={() => handleDeleteRoom(room)}
+                          disabled={deletingRoomId === room.id}
+                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                          title="Eliminar consulta"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleJoinRoom(room)}
                           className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                         >
@@ -298,6 +345,110 @@ export default function VideoConsultationPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Historial de consultas */}
+          <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <VideoCameraIcon className="h-5 w-5 mr-2 text-gray-500" />
+                Historial de Consultas
+              </h3>
+              <span className="bg-gray-100 text-gray-800 text-sm font-medium px-3 py-1 rounded-full">
+                {allRooms.length} total
+              </span>
+            </div>
+
+            {allRooms.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {allRooms.map((room) => {
+                      const statusLabel = room.status === 'scheduled' ? 'Programada' 
+                        : room.status === 'active' ? 'Activa' 
+                        : room.status === 'completed' ? 'Completada' 
+                        : room.status === 'cancelled' ? 'Cancelada' 
+                        : room.status;
+                      const statusColor = room.status === 'scheduled' ? 'bg-blue-100 text-blue-800' 
+                        : room.status === 'active' ? 'bg-green-100 text-green-800' 
+                        : room.status === 'completed' ? 'bg-gray-100 text-gray-800' 
+                        : room.status === 'cancelled' ? 'bg-red-100 text-red-800' 
+                        : 'bg-gray-100 text-gray-800';
+                      const createdDate = room.createdAt?.toDate ? room.createdAt.toDate() : (room.createdAt ? new Date(room.createdAt) : null);
+                      
+                      return (
+                        <tr key={room.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                                <UserIcon className="h-4 w-4 text-gray-500" />
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">
+                                {room.patientName || `ID: ${room.patientId?.substring(0, 8)}`}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            {createdDate ? createdDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}`}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {room.consultationType || 'general'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              {(room.status === 'scheduled' || room.status === 'active') && (
+                                <>
+                                  <button
+                                    onClick={() => copyRoomLink(room)}
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Copiar enlace"
+                                  >
+                                    <ShareIcon className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleJoinRoom(room)}
+                                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
+                                  >
+                                    Unirse
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleDeleteRoom(room)}
+                                disabled={deletingRoomId === room.id}
+                                className="p-1.5 text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                                title="Eliminar"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <VideoCameraIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No hay consultas en el historial</p>
+              </div>
+            )}
           </div>
 
           {/* Estadísticas */}

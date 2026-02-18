@@ -127,12 +127,14 @@ export default function NewAppointmentModal({
     }
   };
 
-  // Generate time slots (9 AM to 6 PM, every 30 minutes)
+  // Generate time slots (9 AM to 6 PM, every 15 minutes)
   const generateTimeSlots = () => {
     const slots = [];
     for (let hour = 9; hour < 18; hour++) {
       slots.push(`${hour.toString().padStart(2, "0")}:00`);
+      slots.push(`${hour.toString().padStart(2, "0")}:15`);
       slots.push(`${hour.toString().padStart(2, "0")}:30`);
+      slots.push(`${hour.toString().padStart(2, "0")}:45`);
     }
     return slots;
   };

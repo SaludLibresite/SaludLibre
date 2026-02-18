@@ -341,12 +341,14 @@ export default function Calendar() {
     updateDayInUrl(newDateObj);
   };
 
-  // Generate time slots for day view (8 AM to 8 PM)
+  // Generate time slots for day view (8 AM to 8 PM, 15-minute intervals)
   const timeSlots = useMemo(() => {
     const slots = [];
     for (let hour = 8; hour <= 20; hour++) {
       slots.push(`${hour.toString().padStart(2, "0")}:00`);
+      slots.push(`${hour.toString().padStart(2, "0")}:15`);
       slots.push(`${hour.toString().padStart(2, "0")}:30`);
+      slots.push(`${hour.toString().padStart(2, "0")}:45`);
     }
     return slots;
   }, []);
@@ -858,8 +860,8 @@ export default function Calendar() {
                     toolbar: () => null, // Disable built-in toolbar
                   }}
                   views={["month", "week"]}
-                  step={30}
-                  timeslots={2}
+                  step={15}
+                  timeslots={4}
                   min={new Date(0, 0, 0, 8, 0, 0)} // 8 AM
                   max={new Date(0, 0, 0, 20, 0, 0)} // 8 PM
                 />

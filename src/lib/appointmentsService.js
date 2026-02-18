@@ -486,11 +486,13 @@ export async function getAvailableTimeSlots(doctorId, date) {
       }
     });
 
-    // Generate available slots (assuming 9 AM to 6 PM, 30-minute intervals)
+    // Generate available slots (9 AM to 6 PM, 15-minute intervals)
     const allSlots = [];
     for (let hour = 9; hour < 18; hour++) {
       allSlots.push(`${hour.toString().padStart(2, "0")}:00`);
+      allSlots.push(`${hour.toString().padStart(2, "0")}:15`);
       allSlots.push(`${hour.toString().padStart(2, "0")}:30`);
+      allSlots.push(`${hour.toString().padStart(2, "0")}:45`);
     }
 
     // Filter out booked slots

@@ -8,8 +8,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { createPatient } from "../../lib/patientsService";
 import { formatDoctorName } from "../../lib/dataUtils";
+import { useUserStore } from "../../store/userStore";
 
-export default function AgendarCita({ isOpen, onClose, doctor, onSubmit }) {
+export default function AgendarCita({ isOpen, onClose, doctor, onSubmit, currentUser }) {
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
@@ -25,6 +26,21 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [saveAsPatient, setSaveAsPatient] = useState(true);
+  const { userProfile, userType } = useUserStore();
+
+  // Pre-llenar campos con datos del usuario activo cuando se abre el sidepanel
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      setFormData((prev) => ({
+        ...prev,
+        nombre: userProfile?.nombre || userProfile?.name || currentUser.displayName || prev.nombre,
+        email: userProfile?.email || currentUser.email || prev.email,
+        telefono: userProfile?.telefono || userProfile?.phone || currentUser.phoneNumber || prev.telefono,
+        dateOfBirth: userProfile?.dateOfBirth || userProfile?.fechaNacimiento || prev.dateOfBirth,
+        gender: userProfile?.gender || userProfile?.genero || prev.gender,
+      }));
+    }
+  }, [isOpen, currentUser, userProfile]);
 
   // Prevenir scroll del body cuando el sidepanel está abierto
   useEffect(() => {
@@ -135,7 +151,9 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit }) {
     for (let hour = 8; hour <= 17; hour++) {
       slots.push(`${hour.toString().padStart(2, "0")}:00`);
       if (hour < 17) {
+        slots.push(`${hour.toString().padStart(2, "0")}:15`);
         slots.push(`${hour.toString().padStart(2, "0")}:30`);
+        slots.push(`${hour.toString().padStart(2, "0")}:45`);
       }
     }
     return slots;
@@ -197,10 +215,10 @@ export default function AgendarCita({ isOpen, onClose, doctor, onSubmit }) {
 
           {/* Sidepanel */}
           <motion.div
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl  flex flex-col"
             variants={sidepanelVariants}
             style={{
-              zIndex: 1000,
+              zIndex: 20000,
             }}
             initial="hidden"
             animate="visible"

@@ -51,9 +51,20 @@ export const hasActiveSubscription = (doctor) => {
   }
 
   if (doctor.subscriptionExpiresAt) {
-    const expirationDate = doctor.subscriptionExpiresAt.toDate 
-      ? doctor.subscriptionExpiresAt.toDate() 
-      : new Date(doctor.subscriptionExpiresAt);
+    let expirationDate;
+    if (typeof doctor.subscriptionExpiresAt.toDate === 'function') {
+      // Firestore Timestamp object
+      expirationDate = doctor.subscriptionExpiresAt.toDate();
+    } else if (typeof doctor.subscriptionExpiresAt === 'object' && 'seconds' in doctor.subscriptionExpiresAt) {
+      // Timestamp serialized as {seconds, nanoseconds}
+      expirationDate = new Date(doctor.subscriptionExpiresAt.seconds * 1000);
+    } else if (typeof doctor.subscriptionExpiresAt === 'object' && '_seconds' in doctor.subscriptionExpiresAt) {
+      // Timestamp with internal format {_seconds, _nanoseconds}
+      expirationDate = new Date(doctor.subscriptionExpiresAt._seconds * 1000);
+    } else {
+      // ISO string or other parseable date format
+      expirationDate = new Date(doctor.subscriptionExpiresAt);
+    }
     
     return expirationDate > new Date();
   }

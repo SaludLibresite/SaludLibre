@@ -8,7 +8,6 @@ const useVideoConsultationStore = create(
       currentRoom: null,
       isInMeeting: false,
       meetingStartTime: null,
-      jitsiAPI: null,
       participants: [],
       meetingStatus: 'idle', // idle, loading, active, ended, error
       
@@ -20,32 +19,19 @@ const useVideoConsultationStore = create(
         });
       },
 
-      setMeetingActive: (jitsiAPI) => {
+      setMeetingActive: () => {
         set({
           isInMeeting: true,
           meetingStatus: 'active',
           meetingStartTime: new Date().toISOString(),
-          jitsiAPI: jitsiAPI
         });
       },
 
       setMeetingEnded: () => {
-        const { jitsiAPI } = get();
-        
-        // Limpiar Jitsi API si existe
-        if (jitsiAPI) {
-          try {
-            jitsiAPI.dispose();
-          } catch (error) {
-            console.warn('Error disposing Jitsi API:', error);
-          }
-        }
-
         set({
           currentRoom: null,
           isInMeeting: false,
           meetingStartTime: null,
-          jitsiAPI: null,
           participants: [],
           meetingStatus: 'idle'
         });
@@ -66,10 +52,8 @@ const useVideoConsultationStore = create(
       restoreFromPersist: () => {
         const state = get();
         if (state.currentRoom && state.isInMeeting) {
-          // Si había una reunión activa, marcar como necesita reconexión
           set({
             meetingStatus: 'loading',
-            jitsiAPI: null // Se necesita recrear
           });
           return true;
         }
@@ -78,21 +62,10 @@ const useVideoConsultationStore = create(
 
       // Limpiar completamente el estado
       clearAll: () => {
-        const { jitsiAPI } = get();
-        
-        if (jitsiAPI) {
-          try {
-            jitsiAPI.dispose();
-          } catch (error) {
-            console.warn('Error disposing Jitsi API:', error);
-          }
-        }
-
         set({
           currentRoom: null,
           isInMeeting: false,
           meetingStartTime: null,
-          jitsiAPI: null,
           participants: [],
           meetingStatus: 'idle',
           errorMessage: null
@@ -101,7 +74,6 @@ const useVideoConsultationStore = create(
     }),
     {
       name: 'video-consultation-storage',
-      // Solo persistir ciertos campos (no jitsiAPI)
       partialize: (state) => ({
         currentRoom: state.currentRoom,
         isInMeeting: state.isInMeeting,
@@ -109,7 +81,6 @@ const useVideoConsultationStore = create(
         participants: state.participants,
         meetingStatus: state.meetingStatus
       }),
-      // Limpiar estado al cerrar ventana/tab
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Verificar si la reunión es muy antigua (más de 2 horas)
@@ -119,7 +90,6 @@ const useVideoConsultationStore = create(
             const diffHours = (now - startTime) / (1000 * 60 * 60);
             
             if (diffHours > 2) {
-              // Limpiar reunión antigua
               state.currentRoom = null;
               state.isInMeeting = false;
               state.meetingStartTime = null;

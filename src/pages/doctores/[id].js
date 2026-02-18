@@ -1,7 +1,6 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import NavBar from "../../components/NavBar";
-import DoctorInfo from "../../components/doctoresPage/DoctorInfo";
 import DoctorGallery from "../../components/doctoresPage/DoctorGallery";
 import DoctorReviews from "../../components/doctoresPage/DoctorReviews";
 import AgendarCita from "../../components/doctoresPage/AgendarCita";
@@ -19,6 +18,10 @@ import {
 } from "../../lib/reviewsService";
 import { useAuth } from "../../context/AuthContext";
 import SEO from "../../components/SEO";
+import useSWR from "swr";
+
+// SWR fetcher
+const fetcher = (url) => fetch(url).then((res) => res.json());
 
 // Animation variants
 const fadeInUp = {
@@ -51,10 +54,10 @@ const cardHover = {
 };
 
 export default function DoctorDetailPage({ 
-  doctor, 
-  relatedDoctors, 
-  reviews, 
-  averageRating, 
+  doctor: initialDoctor, 
+  relatedDoctors: initialRelatedDoctors, 
+  reviews: initialReviews, 
+  averageRating: initialAverageRating, 
   error 
 }) {
   const router = useRouter();
@@ -62,6 +65,30 @@ export default function DoctorDetailPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const { currentUser } = useAuth();
+
+  // SWR: revalidate doctor data in background
+  const slug = initialDoctor?.slug || router.query.id;
+  const { data: swrData } = useSWR(
+    slug ? `/api/doctors/${slug}` : null,
+    fetcher,
+    {
+      fallbackData: {
+        doctor: initialDoctor,
+        relatedDoctors: initialRelatedDoctors,
+        reviews: initialReviews,
+        averageRating: initialAverageRating,
+      },
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      refreshInterval: 5 * 60 * 1000,
+      dedupingInterval: 60 * 1000,
+    }
+  );
+
+  const doctor = swrData?.doctor || initialDoctor;
+  const relatedDoctors = swrData?.relatedDoctors || initialRelatedDoctors;
+  const reviews = swrData?.reviews || initialReviews;
+  const averageRating = swrData?.averageRating || initialAverageRating;
 
   // If there's an error, redirect to doctors page
   useEffect(() => {
@@ -169,14 +196,43 @@ export default function DoctorDetailPage({
   useEffect(() => {
     if (!doctor?.horario) return;
 
+    // Parse time string supporting both 24h ("14:00") and 12h ("2:00 PM") formats
+    const parseTime = (timeStr) => {
+      const cleaned = timeStr.trim().toUpperCase();
+      const match = cleaned.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/);
+      if (!match) return null;
+
+      let hours = parseInt(match[1]);
+      const minutes = parseInt(match[2]);
+      const period = match[3];
+
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+
+      const d = new Date();
+      d.setHours(hours, minutes, 0, 0);
+      return d;
+    };
+
     // Check doctor availability
     const checkAvailability = () => {
       const now = new Date();
       try {
-        const [start, end] = doctor.horario.split(" - ").map((time) => {
-          const [hours, minutes] = time.split(":");
-          return new Date().setHours(parseInt(hours), parseInt(minutes));
-        });
+        // Extract time range - look for pattern like "9:00 AM - 5:00 PM" or "9:00 - 18:00"
+        const timeRangeMatch = doctor.horario.match(/(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-–]\s*(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/);
+        if (!timeRangeMatch) {
+          setIsAvailable(false);
+          return;
+        }
+
+        const start = parseTime(timeRangeMatch[1]);
+        const end = parseTime(timeRangeMatch[2]);
+
+        if (!start || !end) {
+          setIsAvailable(false);
+          return;
+        }
+
         setIsAvailable(now >= start && now <= end);
       } catch (error) {
         setIsAvailable(false);
@@ -732,6 +788,7 @@ export default function DoctorDetailPage({
         onClose={() => setIsModalOpen(false)}
         doctor={doctor}
         onSubmit={handleAppointmentSubmit}
+        currentUser={currentUser}
       />
 
       {/* Login Required Modal */}
@@ -875,45 +932,39 @@ const loadDoctorReviews = async (doctorId) => {
   }
 };
 
-// Helper function to serialize Firestore objects
+// Helper function to serialize Firestore objects (handles nested objects recursively)
 const serializeFirestoreData = (data) => {
   if (!data) return data;
   
-  const serialized = { ...data };
-  
-  // Convert Firestore Timestamps to ISO strings and undefined to null
-  Object.keys(serialized).forEach(key => {
-    const value = serialized[key];
-    
-    // Convert undefined to null for JSON serialization
-    if (value === undefined) {
-      serialized[key] = null;
-      return;
+  return JSON.parse(JSON.stringify(data, (key, value) => {
+    // Convert undefined to null
+    if (value === undefined) return null;
+    // Handle Firestore Timestamps (they have a toDate method)
+    if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+      return value.toDate().toISOString();
     }
-    
-    // Check if it's a Firestore Timestamp or Date object
-    if (value && typeof value === 'object') {
-      if (value.toDate && typeof value.toDate === 'function') {
-        // Firestore Timestamp
-        serialized[key] = value.toDate().toISOString();
-      } else if (value instanceof Date) {
-        // JavaScript Date
-        serialized[key] = value.toISOString();
-      } else if (value.seconds && value.nanoseconds !== undefined) {
-        // Firestore Timestamp object format
-        serialized[key] = new Date(value.seconds * 1000 + value.nanoseconds / 1000000).toISOString();
-      }
+    // Handle Firestore Timestamps serialized via toJSON() as {seconds, nanoseconds}
+    if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value && Object.keys(value).length === 2) {
+      return new Date(value.seconds * 1000).toISOString();
     }
-  });
-  
-  return serialized;
+    // Handle Firestore Timestamps with internal format {_seconds, _nanoseconds}
+    if (value && typeof value === 'object' && '_seconds' in value && '_nanoseconds' in value) {
+      return new Date(value._seconds * 1000).toISOString();
+    }
+    return value;
+  }));
 };
 
 export async function getStaticPaths() {
   try {
-    // Get all verified doctors
+    // Get all verified doctors with complete profiles
     const allDoctors = await getAllDoctors();
-    const verifiedDoctors = allDoctors.filter(d => d.verified === true);
+    const verifiedDoctors = allDoctors.filter(d => 
+      d.verified === true &&
+      d.profileComplete !== false &&
+      d.especialidad && d.especialidad !== "Por definir" &&
+      d.descripcion && !d.descripcion.includes("Perfil en configuración")
+    );
 
     // Generate paths for all verified doctors
     const paths = verifiedDoctors.map(doctor => ({
@@ -942,8 +993,11 @@ export async function getStaticProps(context) {
     // Get doctor by slug
     const doctorData = await getDoctorBySlug(id);
 
-    // Check if doctor exists and is verified
-    if (!doctorData || doctorData.verified !== true) {
+    // Check if doctor exists, is verified, and has complete profile
+    if (!doctorData || doctorData.verified !== true || 
+        doctorData.profileComplete === false ||
+        doctorData.especialidad === "Por definir" ||
+        (doctorData.descripcion && doctorData.descripcion.includes("Perfil en configuración"))) {
       return {
         redirect: {
           destination: "/doctores",
@@ -969,7 +1023,10 @@ export async function getStaticProps(context) {
         (d) =>
           d.id !== doctorData.id &&
           d.especialidad === doctorData.especialidad &&
-          d.verified === true
+          d.verified === true &&
+          d.profileComplete !== false &&
+          d.especialidad !== "Por definir" &&
+          !(d.descripcion && d.descripcion.includes("Perfil en configuración"))
       )
       .sort((a, b) => {
         // Prioritize VIP doctors
