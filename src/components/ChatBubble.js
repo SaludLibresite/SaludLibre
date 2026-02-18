@@ -111,75 +111,86 @@ const ChatBubble = () => {
     });
   };
 
-  // Función para renderizar contenido con enlaces clickeables
-  const renderMessageContent = (content) => {
-    // Regex para detectar enlaces en formato [texto](url)
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  // Renderiza un enlace clickeable
+  const renderLink = (linkText, linkUrl, key) => (
+    <button
+      key={key}
+      onClick={() => {
+        if (linkUrl.startsWith('/')) {
+          router.push(linkUrl);
+          setIsOpen(false);
+        } else if (linkUrl.startsWith('tel:')) {
+          window.location.href = linkUrl;
+        } else if (linkUrl.startsWith('https://wa.me')) {
+          window.open(linkUrl, '_blank');
+        } else {
+          window.open(linkUrl, '_blank');
+        }
+      }}
+      className={`font-medium transition-colors underline ${
+        linkUrl.startsWith('tel:') || linkUrl.startsWith('https://wa.me')
+          ? 'text-green-600 hover:text-green-800'
+          : 'text-blue-600 hover:text-blue-800'
+      }`}
+    >
+      {linkText}
+    </button>
+  );
+
+  // Procesa texto inline: **negrita**, [enlaces](url)
+  const renderInlineContent = (text, keyPrefix = '') => {
+    // Regex combinada: **negrita** o [texto](url)
+    const inlineRegex = /(\*\*([^*]+)\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
     const parts = [];
     let lastIndex = 0;
     let match;
 
-    while ((match = linkRegex.exec(content)) !== null) {
-      // Agregar texto antes del enlace
+    while ((match = inlineRegex.exec(text)) !== null) {
+      // Texto antes del match
       if (match.index > lastIndex) {
-        parts.push(content.substring(lastIndex, match.index));
+        parts.push(text.substring(lastIndex, match.index));
       }
-      
-      // Agregar el enlace como elemento clickeable
-      const linkText = match[1];
-      const linkUrl = match[2];
-      
-      parts.push(
-        <button
-          key={match.index}
-          onClick={() => {
-            if (linkUrl.startsWith('/')) {
-              router.push(linkUrl);
-              setIsOpen(false); // Cerrar chat al navegar
-            } else if (linkUrl.startsWith('tel:')) {
-              window.location.href = linkUrl;
-            } else if (linkUrl.startsWith('https://wa.me/')) {
-              window.open(linkUrl, '_blank');
-            } else {
-              window.open(linkUrl, '_blank');
-            }
-          }}
-          className={`font-medium transition-colors underline ${
-            linkUrl.startsWith('tel:') 
-              ? 'text-green-600 hover:text-green-800' 
-              : linkUrl.startsWith('https://wa.me/')
-              ? 'text-green-600 hover:text-green-800'
-              : 'text-blue-600 hover:text-blue-800'
-          }`}
-        >
-          {linkText}
-        </button>
+
+      if (match[1]) {
+        // **negrita**
+        parts.push(<strong key={`${keyPrefix}-b-${match.index}`}>{match[2]}</strong>);
+      } else if (match[3]) {
+        // [texto](url)
+        parts.push(renderLink(match[4], match[5], `${keyPrefix}-l-${match.index}`));
+      }
+
+      lastIndex = inlineRegex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : [text];
+  };
+
+  // Función principal para renderizar contenido con markdown básico
+  const renderMessageContent = (content) => {
+    // Dividir por líneas y procesar cada una
+    const lines = content.split('\n');
+
+    return lines.map((line, lineIndex) => {
+      const key = `line-${lineIndex}`;
+
+      // Línea vacía → espaciado
+      if (line.trim() === '') {
+        return <br key={key} />;
+      }
+
+      // Procesar contenido inline (negrita + enlaces)
+      const inlineContent = renderInlineContent(line, key);
+
+      return (
+        <span key={key}>
+          {inlineContent}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
       );
-      
-      lastIndex = linkRegex.lastIndex;
-    }
-    
-    // Agregar texto restante
-    if (lastIndex < content.length) {
-      parts.push(content.substring(lastIndex));
-    }
-    
-    // Si no hay enlaces, devolver el contenido original
-    if (parts.length === 0) {
-      return content;
-    }
-    
-    // Procesar saltos de línea en las partes de texto
-    return parts.map((part, index) => {
-      if (typeof part === 'string') {
-        return part.split('\n').map((line, lineIndex, lines) => (
-          <span key={`${index}-${lineIndex}`}>
-            {line}
-            {lineIndex < lines.length - 1 && <br />}
-          </span>
-        ));
-      }
-      return part;
     });
   };
 
