@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
+/* ============================================================
+   SaludLibre Design System Tokens
+   Brand colors from legacy + semantic tokens from skill.
+   Dark mode via .dark class toggle.
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand — SaludLibre identity */
+  --color-primary: #4dbad9;
+  --color-primary-hover: #3aa8c7;
+  --color-primary-light: #e0f4fa;
+  --color-secondary: #e8ad0f;
+  --color-secondary-hover: #d49e0d;
+  --color-secondary-light: #fef3c7;
+  --color-navy: #011d2f;
+  --color-navy-light: #0a2e45;
+  --color-orange: #e8910f;
+
+  /* Surface — backgrounds and cards */
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8fafc;
+  --color-surface-muted: #f1f5f9;
+
+  /* Text */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #ffffff;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Feedback */
+  --color-success: #16a34a;
+  --color-success-light: #dcfce7;
+  --color-warning: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-error: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-info: #0891b2;
+  --color-info-light: #cffafe;
+
+  /* User type badges */
+  --color-doctor: #2563eb;
+  --color-doctor-light: #dbeafe;
+  --color-patient: #16a34a;
+  --color-patient-light: #dcfce7;
+  --color-superadmin: #7c3aed;
+  --color-superadmin-light: #ede9fe;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Dark mode — class-based toggle */
+.dark {
+  --color-primary: #5ec8e6;
+  --color-primary-hover: #7dd4ec;
+  --color-primary-light: #0c3342;
+  --color-secondary: #f0bf3a;
+  --color-secondary-hover: #f4cc5c;
+  --color-secondary-light: #3d2e05;
+  --color-navy: #0a2e45;
+  --color-navy-light: #133d56;
+
+  --color-surface: #0f172a;
+  --color-surface-elevated: #1e293b;
+  --color-surface-muted: #1a2332;
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #0f172a;
+
+  --color-border: #334155;
+  --color-border-strong: #475569;
+
+  --color-success: #22c55e;
+  --color-success-light: #14532d;
+  --color-warning: #f59e0b;
+  --color-warning-light: #78350f;
+  --color-error: #ef4444;
+  --color-error-light: #7f1d1d;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ============================================================
+   Base Styles
+   ============================================================ */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-muted);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4dbad9, #e8ad0f);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #011d2f, #4dbad9);
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(to right, #e8ad0f, #ffffff, #4dbad9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient underline */
+.gradient-underline {
+  background: linear-gradient(to right, #4dbad9, #e8ad0f);
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Glass morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
