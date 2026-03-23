@@ -246,12 +246,13 @@ export class SubscriptionService {
       createdAt: now,
       updatedAt: now,
     };
-    await this.subscriptionRepo.save(subscription);
+    const subscriptionId = await this.subscriptionRepo.add(subscription);
+    subscription.id = subscriptionId;
 
     // Create pending payment record
     const payment: Payment = {
       id: '',
-      subscriptionId: subscription.id,
+      subscriptionId,
       status: 'pending',
       paymentMethod: 'mercadopago',
       transactionAmount: plan.price,
@@ -260,9 +261,9 @@ export class SubscriptionService {
       createdAt: now,
       updatedAt: now,
     };
-    await this.paymentRepo.save(payment);
+    await this.paymentRepo.add(payment);
 
-    return { ...preference, subscriptionId: subscription.id };
+    return { ...preference, subscriptionId };
   }
 
   /** Process MercadoPago webhook notification (IPN) */

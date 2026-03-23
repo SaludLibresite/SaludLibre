@@ -5,6 +5,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import useSWR from 'swr';
+import { useViewModeStore } from '@/src/stores/viewModeStore';
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const SWR_OPTIONS = { dedupingInterval: 600_000, revalidateOnFocus: false } as const;
+
+const GMAP_LIBRARIES: ('places')[] = ['places'];
 
 /* ─── Types ─── */
 interface DoctorLocation {
@@ -48,6 +55,27 @@ interface Specialty {
   title: string;
 }
 
+interface MedicalEntity {
+  id: string;
+  type: string;
+  name: string;
+  slug: string;
+  email: string;
+  phone: string;
+  description: string;
+  profileImage: string;
+  schedule: string;
+  location: DoctorLocation;
+  website: string;
+  verified: boolean;
+}
+
+const ENTITY_TYPE_LABELS: Record<string, { label: string; dot: string; bg: string; text: string }> = {
+  centro_medico: { label: 'Centros médicos', dot: 'bg-blue-500', bg: 'bg-blue-50', text: 'text-blue-700' },
+  farmacia: { label: 'Farmacias', dot: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700' },
+  laboratorio: { label: 'Laboratorios', dot: 'bg-purple-500', bg: 'bg-purple-50', text: 'text-purple-700' },
+};
+
 /* ─── Helpers ─── */
 type Rank = 'vip' | 'plus' | 'normal';
 
@@ -55,6 +83,8 @@ function getDoctorRank(doc: Doctor): Rank {
   const plan = doc.subscription?.planName?.toLowerCase() ?? '';
   const active = doc.subscription?.status === 'active';
   if (!active) return 'normal';
+  const expires = doc.subscription?.expiresAt;
+  if (expires && new Date(expires) <= new Date()) return 'normal';
   if (plan.includes('plus')) return 'vip';
   if (plan.includes('medium')) return 'plus';
   return 'normal';
@@ -195,14 +225,25 @@ function getBarrioOptions(doctors: Doctor[]): { value: string; label: string; co
 export default function DoctorSearch() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { viewMode, setViewMode } = useViewModeStore();
 
-  const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
-  const [specialties, setSpecialties] = useState<Specialty[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const { data: docData, isLoading: docLoading } = useSWR('/api/doctors', fetcher, SWR_OPTIONS);
+  const { data: specData, isLoading: specLoading } = useSWR('/api/specialties', fetcher, SWR_OPTIONS);
+  const { data: entData, isLoading: entLoading } = useSWR('/api/entities', fetcher, SWR_OPTIONS);
+
+  const allDoctors: Doctor[] = docData?.doctors ?? [];
+  const specialties: Specialty[] = specData?.specialties ?? [];
+  const allEntities: MedicalEntity[] = entData?.entities ?? [];
+  const loading = docLoading || specLoading || entLoading;
+
+  const [page, setPage] = useState(() => {
+    const p = Number(searchParams.get('page'));
+    return p > 1 ? p : 1;
+  });
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<Doctor | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>(searchParams.get('entity') ?? '');
 
   // Filters
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
@@ -224,20 +265,8 @@ export default function DoctorSearch() {
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
+    libraries: GMAP_LIBRARIES,
   });
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/doctors').then((r) => r.json()),
-      fetch('/api/specialties').then((r) => r.json()),
-    ])
-      .then(([docData, specData]) => {
-        setAllDoctors(docData.doctors ?? []);
-        setSpecialties(specData.specialties ?? []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   // Barrio options from all doctors
   const barrioOptions = useMemo(() => getBarrioOptions(allDoctors), [allDoctors]);
@@ -280,6 +309,21 @@ export default function DoctorSearch() {
     return result;
   }, [allDoctors, search, specialty, onlineOnly, genderFilter, planFilter, barrioFilter, showingNearby, userLocation]);
 
+  const filteredEntities = useMemo(() => {
+    let result = [...allEntities];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.name?.toLowerCase().includes(q) ||
+          e.location?.formattedAddress?.toLowerCase().includes(q) ||
+          e.description?.toLowerCase().includes(q),
+      );
+    }
+    if (entityTypeFilter) result = result.filter(e => e.type === entityTypeFilter);
+    return result;
+  }, [allEntities, search, entityTypeFilter]);
+
   const totalPages = Math.ceil(filtered.length / DOCTORS_PER_PAGE);
   const paginated = filtered.slice((page - 1) * DOCTORS_PER_PAGE, page * DOCTORS_PER_PAGE);
 
@@ -291,6 +335,10 @@ export default function DoctorSearch() {
     e.preventDefault();
     setPage(1);
     setShowingNearby(false);
+  }
+
+  // Sync all filters to URL params
+  useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (specialty) params.set('specialty', specialty);
@@ -298,8 +346,11 @@ export default function DoctorSearch() {
     if (genderFilter) params.set('genero', genderFilter);
     if (planFilter) params.set('plan', planFilter);
     if (barrioFilter) params.set('zona', barrioFilter);
-    router.replace(`/doctores?${params.toString()}`, { scroll: false });
-  }
+    if (entityTypeFilter) params.set('entity', entityTypeFilter);
+    if (page > 1) params.set('page', String(page));
+    const qs = params.toString();
+    router.replace(`/doctores${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [search, specialty, onlineOnly, genderFilter, planFilter, barrioFilter, entityTypeFilter, page, router]);
 
   function resetFilters() {
     setSearch('');
@@ -308,6 +359,7 @@ export default function DoctorSearch() {
     setGenderFilter('');
     setPlanFilter('');
     setBarrioFilter('');
+    setEntityTypeFilter('');
     setShowingNearby(false);
     setUserLocation(null);
     setPage(1);
@@ -350,7 +402,7 @@ export default function DoctorSearch() {
     <div className="min-h-screen bg-gray-50">
       {/* Hero / Search bar */}
       <div className="bg-gradient-to-r from-[#011d2f] to-[#0a3a5c] py-10 sm:py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-11/12 max-w-[1600px]">
           <h1 className="text-3xl font-bold text-white sm:text-4xl">Encontrá tu especialista</h1>
           <p className="mt-2 text-gray-300">Buscá entre nuestros profesionales verificados</p>
 
@@ -363,9 +415,14 @@ export default function DoctorSearch() {
                 type="text"
                 placeholder="Nombre, especialidad, zona..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-full py-3 text-sm text-gray-900 placeholder-gray-400 outline-none"
               />
+              {search && (
+                <button type="button" onClick={() => { setSearch(''); setPage(1); }} className="shrink-0 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
             </div>
             <select
               value={specialty}
@@ -387,9 +444,49 @@ export default function DoctorSearch() {
         </div>
       </div>
 
+      {/* Category tabs */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto w-11/12 max-w-[1600px]">
+          <div className="flex gap-1 overflow-x-auto py-3 scrollbar-none">
+            <button
+              onClick={() => { setEntityTypeFilter(''); setPage(1); }}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                !entityTypeFilter
+                  ? 'bg-[#011d2f] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              Doctores
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${!entityTypeFilter ? 'bg-white/20' : 'bg-gray-200 text-gray-500'}`}>{allDoctors.length}</span>
+            </button>
+            {Object.entries(ENTITY_TYPE_LABELS).map(([key, cfg]) => {
+              const count = allEntities.filter(e => e.type === key).length;
+              return (
+                <button
+                  key={key}
+                  onClick={() => { setEntityTypeFilter(entityTypeFilter === key ? '' : key); setPage(1); }}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                    entityTypeFilter === key
+                      ? `${cfg.bg} ${cfg.text} ring-1 ring-current/20 shadow-md`
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    entityTypeFilter === key ? 'bg-white/60 text-current' : 'bg-gray-200 text-gray-500'
+                  }`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Toolbar */}
       <div className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-11/12 max-w-[1600px] items-center justify-between py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -435,7 +532,24 @@ export default function DoctorSearch() {
                 ✕ Ver todos
               </button>
             )}
-            <span className="text-sm text-gray-500">{filtered.length} profesionales</span>
+            <span className="text-sm text-gray-500">{entityTypeFilter ? `${filteredEntities.length} entidades` : `${filtered.length} profesionales`}</span>
+            {/* View mode toggle */}
+            <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                <span className="hidden sm:inline">Grilla</span>
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition ${viewMode === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                <span className="hidden sm:inline">Tabla</span>
+              </button>
+            </div>
             {/* Map modal button */}
             <button
               onClick={() => setShowMapModal(true)}
@@ -452,7 +566,7 @@ export default function DoctorSearch() {
 
       {/* Nearby error */}
       {nearbyError && (
-        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-11/12 max-w-[1600px] pt-4">
           <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{nearbyError}</div>
         </div>
       )}
@@ -467,7 +581,7 @@ export default function DoctorSearch() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden border-b border-gray-200 bg-white"
           >
-            <div className="mx-auto grid max-w-7xl gap-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-5 sm:px-6 lg:px-8">
+            <div className="mx-auto grid w-11/12 max-w-[1600px] gap-4 py-4 sm:grid-cols-2 lg:grid-cols-5">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-500">Especialidad</label>
                 <select value={specialty} onChange={(e) => { setSpecialty(e.target.value); setPage(1); }} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#4dbad9]">
@@ -496,9 +610,9 @@ export default function DoctorSearch() {
                 <label className="mb-1.5 block text-xs font-medium text-gray-500">Tipo de plan</label>
                 <select value={planFilter} onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#4dbad9]">
                   <option value="">Todos</option>
-                  <option value="vip">Premium (Plus)</option>
-                  <option value="plus">Plus (Medium)</option>
-                  <option value="normal">Básico (Free)</option>
+                  <option value="vip">Plus</option>
+                  <option value="plus">Medium</option>
+                  <option value="normal">Free</option>
                 </select>
               </div>
               <div>
@@ -518,7 +632,7 @@ export default function DoctorSearch() {
       {/* Nearby indicator */}
       {showingNearby && (
         <div className="border-b border-blue-100 bg-blue-50">
-          <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2.5 sm:px-6 lg:px-8">
+          <div className="mx-auto flex w-11/12 max-w-[1600px] items-center gap-2 py-2.5">
             <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
             <span className="text-sm font-medium text-blue-700">
               Mostrando {filtered.length} profesionales en un radio de {NEARBY_RADIUS_KM} km
@@ -528,25 +642,46 @@ export default function DoctorSearch() {
       )}
 
       {/* Main content */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-11/12 max-w-[1600px] py-8">
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-52 animate-pulse rounded-2xl bg-gray-100" />
             ))}
           </div>
+        ) : entityTypeFilter ? (
+          /* ── Entity view ── */
+          filteredEntities.length === 0 ? (
+            <EmptyState onReset={resetFilters} />
+          ) : viewMode === 'table' ? (
+            <EntityTableView entities={filteredEntities} />
+          ) : (
+            <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredEntities.map((entity, i) => (
+                <motion.div key={entity.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="h-full">
+                  <EntityCard entity={entity} />
+                </motion.div>
+              ))}
+            </div>
+          )
         ) : filtered.length === 0 ? (
           <EmptyState onReset={resetFilters} />
         ) : (
           <>
-            {vipDoctors.length > 0 && (
-              <DoctorSection title="Premium" badge="⭐" badgeColor="from-amber-500 to-yellow-400" doctors={vipDoctors} cardVariant="vip" showingNearby={showingNearby} />
-            )}
-            {plusDoctors.length > 0 && (
-              <DoctorSection title="Plus" badge="💎" badgeColor="from-blue-500 to-cyan-400" doctors={plusDoctors} cardVariant="plus" showingNearby={showingNearby} />
-            )}
-            {normalDoctors.length > 0 && (
-              <DoctorSection title="" badge="" badgeColor="" doctors={normalDoctors} cardVariant="normal" showingNearby={showingNearby} />
+            {viewMode === 'table' ? (
+              <DoctorTableView doctors={paginated} showDistance={showingNearby} />
+            ) : (
+              <>
+                {vipDoctors.length > 0 && (
+                  <DoctorSection title="Plus" badge="⭐" badgeColor="from-amber-500 to-yellow-400" doctors={vipDoctors} cardVariant="vip" showingNearby={showingNearby} />
+                )}
+                {plusDoctors.length > 0 && (
+                  <DoctorSection title="Medium" badge="💎" badgeColor="from-blue-500 to-cyan-400" doctors={plusDoctors} cardVariant="plus" showingNearby={showingNearby} />
+                )}
+                {normalDoctors.length > 0 && (
+                  <DoctorSection title="" badge="" badgeColor="" doctors={normalDoctors} cardVariant="normal" showingNearby={showingNearby} />
+                )}
+              </>
             )}
 
             {totalPages > 1 && (
@@ -639,6 +774,12 @@ function DoctorsMapModal({
 
   const zoom = barrioFilter ? 14 : 11;
 
+  const [hidePOI, setHidePOI] = useState(true);
+  const mapStyles = useMemo(() => hidePOI ? [
+    { featureType: 'poi', elementType: 'all', stylers: [{ visibility: 'off' }] },
+    { featureType: 'transit', elementType: 'all', stylers: [{ visibility: 'off' }] },
+  ] : [], [hidePOI]);
+
   if (!isLoaded) return null;
 
   return (
@@ -667,6 +808,16 @@ function DoctorsMapModal({
           ))}
         </select>
 
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white select-none">
+          <span className="hidden sm:inline">Solo doctores</span>
+          <span className="sm:hidden">POI</span>
+          <div className="relative">
+            <input type="checkbox" checked={hidePOI} onChange={() => setHidePOI(!hidePOI)} className="peer sr-only" />
+            <div className="h-4 w-7 rounded-full bg-white/20 transition peer-checked:bg-[#4dbad9]" />
+            <div className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-3" />
+          </div>
+        </label>
+
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${showFilters ? 'bg-[#4dbad9] text-white' : 'bg-white/10 text-white'}`}
@@ -691,6 +842,7 @@ function DoctorsMapModal({
             scrollwheel: true,
             gestureHandling: 'greedy',
             controlSize: 32,
+            styles: mapStyles,
           }}
         >
           {mapDoctors.map((doc) => (
@@ -776,9 +928,9 @@ function DoctorsMapModal({
             </div>
             {/* Legend */}
             <div className="mt-2 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />Premium</span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />Plus</span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-slate-500" />Básico</span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />Plus</span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />Medium</span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-slate-500" />Free</span>
               {userLocation && <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ring-blue-200" />Tu ubicación</span>}
             </div>
           </div>
@@ -799,9 +951,9 @@ function DoctorSection({ title, badge, badgeColor, doctors, cardVariant, showing
           </span>
         </div>
       )}
-      <div className={`grid gap-5 ${cardVariant === 'vip' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+      <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {doctors.map((doc, i) => (
-          <motion.div key={doc.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+          <motion.div key={doc.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="h-full">
             <DoctorCard doctor={doc} variant={cardVariant} showDistance={showingNearby} />
           </motion.div>
         ))}
@@ -827,7 +979,7 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
       showWhatsApp: true,
       badge: (
         <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2.5 py-1 text-xs font-bold text-white shadow-md">
-          ⭐ PREMIUM
+          ⭐ PLUS
         </span>
       ),
     },
@@ -843,7 +995,7 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
       showWhatsApp: true,
       badge: (
         <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-          💎 PLUS
+          💎 MEDIUM
         </span>
       ),
     },
@@ -864,9 +1016,9 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
   const s = styles[variant];
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 ${s.ring} ${s.bg} ${s.shadow}`}>
+    <div className={`group relative flex h-full flex-col overflow-hidden rounded-2xl p-5 transition-all duration-300 ${s.ring} ${s.bg} ${s.shadow}`}>
       {s.badge}
-      <div className={`flex items-start gap-4 ${variant === 'vip' ? 'flex-col items-center text-center sm:flex-row sm:items-start sm:text-left' : ''}`}>
+      <div className={`flex flex-1 items-start gap-4 ${variant === 'vip' ? 'flex-col items-center text-center sm:flex-row sm:items-start sm:text-left' : ''}`}>
         {(variant !== 'normal' || doctor.profileImage) && (
           <div className={`shrink-0 overflow-hidden rounded-xl ${s.imgSize}`}>
             {doctor.profileImage ? (
@@ -878,7 +1030,7 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
           </div>
         )}
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex flex-col">
           <h3 className={`font-bold ${s.nameSize} ${s.nameColor} leading-tight`}>
             {title} {doctor.name}
           </h3>
@@ -904,7 +1056,7 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
           {s.showDesc && doctor.description && (
             <p className="mt-2 text-sm leading-relaxed text-gray-600 line-clamp-2">{doctor.description}</p>
           )}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-auto pt-3 flex flex-wrap items-center gap-2">
             {s.showWhatsApp && doctor.phone && (
               <a
                 href={`https://wa.me/${doctor.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${title} ${doctor.name}, me gustaría agendar una consulta.`)}`}
@@ -918,7 +1070,8 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
             )}
             {doctor.phone && (
               <a href={`tel:${doctor.phone}`} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:shadow-md">
-                📞 Llamar
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                Llamar
               </a>
             )}
             <Link
@@ -928,6 +1081,51 @@ function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant
               }`}
             >
               Ver perfil →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Entity Card ─── */
+function EntityCard({ entity }: { entity: MedicalEntity }) {
+  const t = ENTITY_TYPE_LABELS[entity.type] ?? { label: entity.type, dot: 'bg-gray-400', bg: 'bg-gray-50', text: 'text-gray-700' };
+  return (
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-md ring-1 ring-slate-100 transition-all duration-300 hover:shadow-lg">
+      <div className="flex flex-1 items-start gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-lg font-bold text-gray-400">
+          {entity.profileImage ? (
+            <img src={entity.profileImage} alt={entity.name} className="h-full w-full rounded-xl object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            entity.name?.charAt(0).toUpperCase()
+          )}
+        </div>
+        <div className="min-w-0 flex-1 flex flex-col">
+          <h3 className="font-bold text-base text-blue-700 leading-tight">{entity.name}</h3>
+          <span className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${t.bg} ${t.text}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />
+            {t.label}
+          </span>
+          {entity.location?.formattedAddress && (
+            <p className="mt-1.5 truncate text-xs text-gray-500">📍 {entity.location.formattedAddress}</p>
+          )}
+          {entity.schedule && (
+            <p className="mt-1 truncate text-xs text-gray-500">🕐 {entity.schedule}</p>
+          )}
+          <div className="mt-auto pt-3 flex flex-wrap items-center gap-2">
+            {entity.phone && (
+              <a href={`tel:${entity.phone}`} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:shadow-md">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                Llamar
+              </a>
+            )}
+            <Link
+              href={`/entidades/${entity.slug ?? entity.id}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-gray-50"
+            >
+              Ver más →
             </Link>
           </div>
         </div>
@@ -946,6 +1144,181 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <h3 className="mt-4 text-lg font-semibold text-gray-700">No se encontraron resultados</h3>
       <p className="mt-1 text-sm text-gray-500">Intentá con otros filtros de búsqueda</p>
       <button onClick={onReset} className="mt-4 rounded-xl bg-[#4dbad9] px-5 py-2 text-sm font-medium text-white hover:bg-[#3da8c5]">Limpiar filtros</button>
+    </div>
+  );
+}
+
+/* ─── Phone Icon (shared) ─── */
+const PhoneIcon = () => (
+  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+  </svg>
+);
+
+/* ─── Doctor Table View ─── */
+function DoctorTableView({ doctors, showDistance }: { doctors: Doctor[]; showDistance: boolean }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50/80">
+              <th className="px-4 py-3 font-medium text-gray-500">Profesional</th>
+              <th className="px-4 py-3 font-medium text-gray-500">Especialidad</th>
+              <th className="hidden px-4 py-3 font-medium text-gray-500 md:table-cell">Ubicación</th>
+              <th className="hidden px-4 py-3 font-medium text-gray-500 lg:table-cell">Plan</th>
+              {showDistance && <th className="px-4 py-3 font-medium text-gray-500">Distancia</th>}
+              <th className="px-4 py-3 text-right font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {doctors.map((doc) => {
+              const rank = getDoctorRank(doc);
+              const title = getDrTitle(doc.gender);
+              const planLabel = rank === 'vip' ? 'Plus' : rank === 'plus' ? 'Medium' : 'Free';
+              const planCls = rank === 'vip' ? 'bg-amber-50 text-amber-700' : rank === 'plus' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600';
+              return (
+                <tr key={doc.id} className="transition hover:bg-gray-50/60">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#4dbad9]/10">
+                        {doc.profileImage ? (
+                          <img src={doc.profileImage} alt={doc.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="text-xs font-bold text-[#4dbad9]">{doc.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <Link href={`/doctores/${doc.slug ?? doc.id}`} className="font-semibold text-gray-900 hover:text-[#4dbad9]">
+                          {title} {doc.name}
+                        </Link>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                          {doc.verified && (
+                            <span className="inline-flex items-center gap-0.5 text-green-600">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                              Verificado
+                            </span>
+                          )}
+                          {doc.onlineConsultation && <span className="text-emerald-600">Online</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700">{doc.specialty}</span>
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <span className="max-w-[220px] truncate text-xs text-gray-500">{doc.location?.formattedAddress || '—'}</span>
+                  </td>
+                  <td className="hidden px-4 py-3 lg:table-cell">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${planCls}`}>{planLabel}</span>
+                  </td>
+                  {showDistance && (
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {doc._distance != null ? `${doc._distance.toFixed(1)} km` : '—'}
+                    </td>
+                  )}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {doc.phone && (
+                        <a href={`tel:${doc.phone}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600" title="Llamar">
+                          <PhoneIcon />
+                        </a>
+                      )}
+                      {doc.phone && (
+                        <a
+                          href={`https://wa.me/${doc.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${title} ${doc.name}, me gustaría agendar una consulta.`)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-green-50 hover:text-green-600" title="WhatsApp"
+                        >
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /></svg>
+                        </a>
+                      )}
+                      <Link
+                        href={`/doctores/${doc.slug ?? doc.id}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#4dbad9] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#3da8c5]"
+                      >
+                        Ver perfil
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Entity Table View ─── */
+function EntityTableView({ entities }: { entities: MedicalEntity[] }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50/80">
+              <th className="px-4 py-3 font-medium text-gray-500">Nombre</th>
+              <th className="px-4 py-3 font-medium text-gray-500">Tipo</th>
+              <th className="hidden px-4 py-3 font-medium text-gray-500 md:table-cell">Ubicación</th>
+              <th className="hidden px-4 py-3 font-medium text-gray-500 lg:table-cell">Horarios</th>
+              <th className="px-4 py-3 text-right font-medium text-gray-500">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {entities.map((ent) => {
+              const t = ENTITY_TYPE_LABELS[ent.type] ?? { label: ent.type, dot: 'bg-gray-400', bg: 'bg-gray-50', text: 'text-gray-700' };
+              return (
+                <tr key={ent.id} className="transition hover:bg-gray-50/60">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100">
+                        {ent.profileImage ? (
+                          <img src={ent.profileImage} alt={ent.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="text-xs font-bold text-gray-400">{ent.name?.charAt(0)}</span>
+                        )}
+                      </div>
+                      <Link href={`/entidades/${ent.slug ?? ent.id}`} className="font-semibold text-gray-900 hover:text-[#4dbad9]">
+                        {ent.name}
+                      </Link>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${t.bg} ${t.text}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />
+                      {t.label}
+                    </span>
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <span className="max-w-[220px] truncate text-xs text-gray-500">{ent.location?.formattedAddress || '—'}</span>
+                  </td>
+                  <td className="hidden px-4 py-3 lg:table-cell">
+                    <span className="text-xs text-gray-500">{ent.schedule || '—'}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {ent.phone && (
+                        <a href={`tel:${ent.phone}`} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-50 hover:text-blue-600" title="Llamar">
+                          <PhoneIcon />
+                        </a>
+                      )}
+                      <Link
+                        href={`/entidades/${ent.slug ?? ent.id}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#4dbad9] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#3da8c5]"
+                      >
+                        Ver más
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ const GENDERS = [
 ];
 
 export default function DoctorRegisterPage() {
-  const { signup, loginWithGoogle } = useAuth();
+  const { signup, loginWithGoogle, refreshUserData } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -40,6 +40,7 @@ export default function DoctorRegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleUser, setGoogleUser] = useState<import('firebase/auth').User | null>(null);
 
   function update(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -72,11 +73,21 @@ export default function DoctorRegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const userCredential = await signup(form.email, form.password);
-      const token = await userCredential.getIdToken();
-      const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`;
+      let token: string;
+      let fullName: string;
 
-      await fetch('/api/doctors/register', {
+      if (googleUser) {
+        // Google sign-up: user already authenticated, just get the token
+        token = await googleUser.getIdToken();
+        fullName = googleUser.displayName || 'Doctor';
+      } else {
+        // Email/password sign-up
+        const userCredential = await signup(form.email, form.password);
+        token = await userCredential.getIdToken();
+        fullName = `${form.firstName.trim()} ${form.lastName.trim()}`;
+      }
+
+      const res = await fetch('/api/doctors/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,9 +105,16 @@ export default function DoctorRegisterPage() {
         }),
       });
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al registrar perfil');
+      }
+
+      // Refresh auth state so AuthProvider detects the new doctor profile
+      await refreshUserData();
       router.push('/admin');
     } catch {
-      setError('Error al crear la cuenta. El email puede estar en uso.');
+      setError(googleUser ? 'Error al completar el registro.' : 'Error al crear la cuenta. El email puede estar en uso.');
     } finally {
       setLoading(false);
     }
@@ -105,8 +123,18 @@ export default function DoctorRegisterPage() {
   async function handleGoogle() {
     setError('');
     try {
-      await loginWithGoogle();
-      router.push('/admin');
+      const user = await loginWithGoogle();
+      // Check if this Google user already has a doctor profile
+      const token = await user.getIdToken();
+      const res = await fetch('/api/doctors/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        // Already registered — go straight to admin
+        router.push('/admin');
+        return;
+      }
+      // New user — need to complete professional profile
+      setGoogleUser(user);
+      setStep(2);
     } catch {
       setError('Error al registrarse con Google');
     }
@@ -170,7 +198,7 @@ export default function DoctorRegisterPage() {
             </Link>
             <h1 className="mt-4 text-2xl font-bold text-gray-900">Creá tu cuenta médica</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {step === 1 ? 'Datos de tu cuenta' : 'Completá tu perfil profesional'}
+              {step === 1 ? 'Datos de tu cuenta' : googleUser ? 'Completá tu perfil para activar tu cuenta' : 'Completá tu perfil profesional'}
             </p>
           </div>
 
@@ -304,10 +332,12 @@ export default function DoctorRegisterPage() {
                 </label>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setStep(1)}
-                    className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                    Volver
-                  </button>
+                  {!googleUser && (
+                    <button type="button" onClick={() => setStep(1)}
+                      className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                      Volver
+                    </button>
+                  )}
                   <button type="submit" disabled={loading}
                     className="flex-1 rounded-xl bg-gradient-to-r from-[#4dbad9] to-[#3aa8c7] py-3 text-sm font-semibold text-white transition hover:from-[#3aa8c7] hover:to-[#2d97b4] disabled:opacity-50 shadow-sm">
                     {loading ? (

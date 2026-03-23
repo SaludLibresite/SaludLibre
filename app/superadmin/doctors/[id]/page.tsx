@@ -2,7 +2,8 @@
 
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useEffect, useState } from 'react';
+import LocationAutocomplete from '@/src/components/shared/LocationAutocomplete';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
@@ -31,6 +32,18 @@ interface AvailablePlan {
   name: string;
   price: number;
 }
+
+interface Specialty {
+  id: string;
+  name: string;
+}
+
+const GENDERS = [
+  { value: 'male', label: 'Masculino' },
+  { value: 'female', label: 'Femenino' },
+  { value: 'other', label: 'Otro' },
+  { value: 'not_specified', label: 'No especificado' },
+];
 
 function getPlanConfig(planName?: string, status?: string) {
   const active = status === 'active';
@@ -83,6 +96,16 @@ export default function SuperAdminDoctorDetailPage() {
   const [showActivate, setShowActivate] = useState(false);
   const [activateForm, setActivateForm] = useState({ planId: '', price: '', days: '30' });
   const [activating, setActivating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [editForm, setEditForm] = useState({
+    name: '', email: '', phone: '', gender: 'not_specified',
+    specialty: '', description: '', schedule: '', onlineConsultation: false,
+    verified: false,
+    professional: { profession: '', licenseNumber: '', officeAddress: '' },
+    location: { formattedAddress: '', latitude: 0, longitude: 0 },
+  });
 
   useEffect(() => {
     if (!user || !params.id) return;
@@ -105,6 +128,68 @@ export default function SuperAdminDoctorDetailPage() {
       } catch { /* */ } finally { setLoading(false); }
     })();
   }, [user, params.id]);
+
+  useEffect(() => {
+    fetch('/api/specialties')
+      .then(r => r.json())
+      .then(d => setSpecialties(d.specialties ?? []))
+      .catch(() => {});
+  }, []);
+
+  function startEditing() {
+    if (!doctor) return;
+    setEditForm({
+      name: doctor.name, email: doctor.email, phone: doctor.phone,
+      gender: doctor.gender, specialty: doctor.specialty,
+      description: doctor.description, schedule: doctor.schedule,
+      onlineConsultation: doctor.onlineConsultation, verified: doctor.verified,
+      professional: {
+        profession: doctor.professional?.profession ?? '',
+        licenseNumber: doctor.professional?.licenseNumber ?? '',
+        officeAddress: doctor.professional?.officeAddress ?? '',
+      },
+      location: {
+        formattedAddress: doctor.location?.formattedAddress ?? '',
+        latitude: doctor.location?.latitude ?? 0,
+        longitude: doctor.location?.longitude ?? 0,
+      },
+    });
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+  }
+
+  const onEditLocationSelect = useCallback((loc: { latitude: number; longitude: number; formattedAddress: string }) => {
+    setEditForm(f => ({ ...f, location: loc }));
+  }, []);
+
+  async function saveEditing() {
+    if (!user || !doctor) return;
+    setSaving(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/superadmin/doctors/${doctor.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        setDoctor({
+          ...doctor,
+          ...editForm,
+          professional: { ...doctor.professional, ...editForm.professional },
+          location: { ...doctor.location, ...editForm.location },
+        });
+        setEditing(false);
+        toast.success('Doctor actualizado');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error ?? 'Error al guardar');
+      }
+    } catch { toast.error('Error de conexión'); } finally { setSaving(false); }
+  }
 
   async function toggleVerification() {
     if (!user || !doctor) return;
@@ -239,6 +324,26 @@ export default function SuperAdminDoctorDetailPage() {
                   </a>
                 )}
                 <button
+                  onClick={editing ? cancelEditing : startEditing}
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium shadow-sm transition ${
+                    editing
+                      ? 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                      : 'border border-purple-200 bg-white text-purple-600 hover:bg-purple-50'
+                  }`}
+                >
+                  {editing ? (
+                    <>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      Cancelar edición
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      Editar
+                    </>
+                  )}
+                </button>
+                <button
                   onClick={toggleVerification}
                   disabled={toggling}
                   className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium shadow-sm transition disabled:opacity-50 ${
@@ -309,6 +414,65 @@ export default function SuperAdminDoctorDetailPage() {
                   Información de contacto
                 </h2>
               </div>
+              {editing ? (
+                <div className="grid gap-4 p-6 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Nombre completo</label>
+                    <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Email</label>
+                    <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Teléfono</label>
+                    <input type="tel" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Género</label>
+                    <select value={editForm.gender} onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400">
+                      {GENDERS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Especialidad</label>
+                    <select value={editForm.specialty} onChange={e => setEditForm(f => ({ ...f, specialty: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400">
+                      <option value="">Seleccionar</option>
+                      {specialties.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Ubicación</label>
+                    <LocationAutocomplete
+                      defaultValue={editForm.location.formattedAddress}
+                      onSelect={onEditLocationSelect}
+                      placeholder="Escribí una dirección..."
+                    />
+                    {editForm.location.formattedAddress && (
+                      <p className="mt-1.5 text-xs text-gray-500">📍 {editForm.location.formattedAddress}</p>
+                    )}
+                  </div>
+                  <div className="sm:col-span-2 flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={editForm.onlineConsultation}
+                        onChange={e => setEditForm(f => ({ ...f, onlineConsultation: e.target.checked }))}
+                        className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                      <span className="text-sm text-gray-700">Consulta online</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={editForm.verified}
+                        onChange={e => setEditForm(f => ({ ...f, verified: e.target.checked }))}
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                      <span className="text-sm text-gray-700">Verificado</span>
+                    </label>
+                  </div>
+                </div>
+              ) : (
               <div className="divide-y divide-gray-50 px-6">
                 <InfoRow
                   icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
@@ -341,6 +505,7 @@ export default function SuperAdminDoctorDetailPage() {
                   />
                 )}
               </div>
+              )}
             </div>
 
             {/* Professional info */}
@@ -351,6 +516,34 @@ export default function SuperAdminDoctorDetailPage() {
                   Información profesional
                 </h2>
               </div>
+              {editing ? (
+                <div className="grid gap-4 p-6 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Profesión</label>
+                    <input type="text" value={editForm.professional.profession}
+                      onChange={e => setEditForm(f => ({ ...f, professional: { ...f.professional, profession: e.target.value } }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Matrícula</label>
+                    <input type="text" value={editForm.professional.licenseNumber}
+                      onChange={e => setEditForm(f => ({ ...f, professional: { ...f.professional, licenseNumber: e.target.value } }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Domicilio profesional</label>
+                    <input type="text" value={editForm.professional.officeAddress}
+                      onChange={e => setEditForm(f => ({ ...f, professional: { ...f.professional, officeAddress: e.target.value } }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500">Horario de atención</label>
+                    <input type="text" value={editForm.schedule}
+                      onChange={e => setEditForm(f => ({ ...f, schedule: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50" />
+                  </div>
+                </div>
+              ) : (
               <div className="divide-y divide-gray-50 px-6">
                 <InfoRow
                   icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
@@ -375,9 +568,10 @@ export default function SuperAdminDoctorDetailPage() {
                   />
                 )}
               </div>
+              )}
 
               {/* Professional documents */}
-              {(doctor.professional?.signatureUrl || doctor.professional?.stampUrl) && (
+              {!editing && (doctor.professional?.signatureUrl || doctor.professional?.stampUrl) && (
                 <div className="border-t border-gray-100 px-6 py-4">
                   <p className="mb-3 text-xs font-medium text-gray-400">Documentos profesionales</p>
                   <div className="flex gap-4">
@@ -403,7 +597,7 @@ export default function SuperAdminDoctorDetailPage() {
             </div>
 
             {/* Bio */}
-            {doctor.description && (
+            {(editing || doctor.description) && (
               <div className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
                 <div className="border-b border-gray-100 px-6 py-4">
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
@@ -412,8 +606,38 @@ export default function SuperAdminDoctorDetailPage() {
                   </h2>
                 </div>
                 <div className="px-6 py-4">
-                  <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-line">{doctor.description}</p>
+                  {editing ? (
+                    <textarea
+                      value={editForm.description}
+                      onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                      rows={4}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50"
+                    />
+                  ) : (
+                    <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-line">{doctor.description}</p>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Save/Cancel bar when editing */}
+            {editing && (
+              <div className="flex items-center justify-end gap-3 rounded-2xl bg-purple-50 p-4 ring-1 ring-purple-100">
+                <button onClick={cancelEditing} className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveEditing}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition disabled:opacity-50"
+                >
+                  {saving ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      Guardando...
+                    </>
+                  ) : 'Guardar cambios'}
+                </button>
               </div>
             )}
           </div>

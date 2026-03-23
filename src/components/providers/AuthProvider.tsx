@@ -120,6 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadUserData = useCallback(async (user: User) => {
     const { userType, profile } = await detectUserType(user);
     setState({ user, userType, profile, loading: false });
+    // Set cookies for middleware to read (server-side redirects)
+    // Only overwrite cookies if we actually detected a type;
+    // otherwise keep existing cookies to avoid race conditions on reload.
+    if (userType) {
+      document.cookie = `__session=1; path=/; max-age=604800; SameSite=Lax`;
+      document.cookie = `__userType=${userType}; path=/; max-age=604800; SameSite=Lax`;
+    }
   }, []);
 
   useEffect(() => {
@@ -128,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await loadUserData(user);
       } else {
         setState({ user: null, userType: null, profile: null, loading: false });
+        document.cookie = '__session=; path=/; max-age=0';
+        document.cookie = '__userType=; path=/; max-age=0';
       }
     });
     return unsubscribe;
@@ -143,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    document.cookie = '__session=; path=/; max-age=0';
+    document.cookie = '__userType=; path=/; max-age=0';
     await signOut(auth);
   };
 

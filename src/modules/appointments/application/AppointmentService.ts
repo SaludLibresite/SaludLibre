@@ -4,6 +4,7 @@ import type { DoctorRepository } from '@/src/modules/doctors/domain/DoctorReposi
 import type { PatientRepository } from '@/src/modules/patients/domain/PatientRepository';
 import type { EmailService } from '@/src/shared/domain/ports/EmailService';
 import type { AppointmentStatus, AppointmentType, AppointmentUrgency } from '@/src/shared/domain/types';
+import type { WeekDay, DaySchedule } from '@/src/modules/doctors/domain/DoctorEntity';
 
 // ============================================================
 // Appointment Application Services (Use Cases)
@@ -219,6 +220,9 @@ export class AppointmentService {
     end: Date,
     slotDurationMinutes: number = 30,
   ): Promise<AvailableSlot[]> {
+    const doctor = await this.doctorRepo.findById(doctorId);
+    const config = doctor?.scheduleConfig;
+
     const existing = await this.appointmentRepo.findByDateRange(doctorId, start, end);
     const bookedTimes = new Set(
       existing
@@ -226,18 +230,52 @@ export class AppointmentService {
         .map(a => a.dateTime.getTime()),
     );
 
+    const duration = config?.slotDuration ?? slotDurationMinutes;
     const slots: AvailableSlot[] = [];
-    const cursor = new Date(start);
-    while (cursor < end) {
-      const hour = cursor.getHours();
-      // Working hours: 8-20
-      if (hour >= 8 && hour < 20 && !bookedTimes.has(cursor.getTime())) {
-        slots.push({
-          dateTime: new Date(cursor),
-          durationMinutes: slotDurationMinutes,
-        });
+
+    const JS_DAY_TO_WEEKDAY: WeekDay[] = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+    if (config?.enabled) {
+      // Iterate day-by-day and produce slots from configured ranges
+      const dayCursor = new Date(start);
+      dayCursor.setHours(0, 0, 0, 0);
+      const endDay = new Date(end);
+      endDay.setHours(23, 59, 59, 999);
+
+      while (dayCursor <= endDay) {
+        const weekDay = JS_DAY_TO_WEEKDAY[dayCursor.getDay()];
+        const dayConfig: DaySchedule | undefined = config.days[weekDay];
+
+        if (dayConfig?.enabled) {
+          for (const range of dayConfig.ranges) {
+            if (!range.from || !range.to) continue;
+            const [fromH, fromM] = range.from.split(':').map(Number);
+            const [toH, toM] = range.to.split(':').map(Number);
+            const slotCursor = new Date(dayCursor);
+            slotCursor.setHours(fromH, fromM, 0, 0);
+            const rangeEnd = new Date(dayCursor);
+            rangeEnd.setHours(toH, toM, 0, 0);
+
+            while (slotCursor < rangeEnd) {
+              if (slotCursor >= start && slotCursor < end && !bookedTimes.has(slotCursor.getTime())) {
+                slots.push({ dateTime: new Date(slotCursor), durationMinutes: duration });
+              }
+              slotCursor.setMinutes(slotCursor.getMinutes() + duration);
+            }
+          }
+        }
+        dayCursor.setDate(dayCursor.getDate() + 1);
       }
-      cursor.setMinutes(cursor.getMinutes() + slotDurationMinutes);
+    } else {
+      // Fallback: no config → default 8-20 every day
+      const cursor = new Date(start);
+      while (cursor < end) {
+        const hour = cursor.getHours();
+        if (hour >= 8 && hour < 20 && !bookedTimes.has(cursor.getTime())) {
+          slots.push({ dateTime: new Date(cursor), durationMinutes: duration });
+        }
+        cursor.setMinutes(cursor.getMinutes() + duration);
+      }
     }
 
     return slots;

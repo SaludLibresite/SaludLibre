@@ -13,7 +13,7 @@ const GENDERS = [
 ];
 
 export default function PatientRegisterPage() {
-  const { signup, loginWithGoogle } = useAuth();
+  const { signup, loginWithGoogle, refreshUserData } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -37,6 +37,7 @@ export default function PatientRegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleUser, setGoogleUser] = useState<import('firebase/auth').User | null>(null);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -44,10 +45,12 @@ export default function PatientRegisterPage() {
 
   function validateStep1(): boolean {
     setError('');
-    if (!form.name.trim()) { setError('Ingresá tu nombre completo'); return false; }
-    if (!form.email.trim()) { setError('Ingresá tu email'); return false; }
-    if (form.password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return false; }
-    if (form.password !== form.confirmPassword) { setError('Las contraseñas no coinciden'); return false; }
+    if (!googleUser) {
+      if (!form.name.trim()) { setError('Ingresá tu nombre completo'); return false; }
+      if (!form.email.trim()) { setError('Ingresá tu email'); return false; }
+      if (form.password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return false; }
+      if (form.password !== form.confirmPassword) { setError('Las contraseñas no coinciden'); return false; }
+    }
     if (!form.phone.trim()) { setError('Ingresá tu teléfono'); return false; }
     if (!form.dateOfBirth) { setError('Ingresá tu fecha de nacimiento'); return false; }
     if (!form.gender) { setError('Seleccioná tu género'); return false; }
@@ -63,22 +66,34 @@ export default function PatientRegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const userCredential = await signup(form.email, form.password);
-      const token = await userCredential.getIdToken();
+      let token: string;
+      let name: string;
+      let registrationMethod: string;
 
-      await fetch('/api/patients', {
+      if (googleUser) {
+        token = await googleUser.getIdToken();
+        name = googleUser.displayName || form.name.trim() || 'Paciente';
+        registrationMethod = 'google';
+      } else {
+        const userCredential = await signup(form.email, form.password);
+        token = await userCredential.getIdToken();
+        name = form.name.trim();
+        registrationMethod = 'email';
+      }
+
+      const res = await fetch('/api/patients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: form.name.trim(),
+          name,
           phone: form.phone.trim(),
           dateOfBirth: form.dateOfBirth,
           gender: form.gender,
           address: form.address.trim(),
-          registrationMethod: 'email',
+          registrationMethod,
           allergies: form.allergies.trim(),
           currentMedications: form.currentMedications.trim(),
           medicalHistory: form.medicalHistory.trim(),
@@ -87,12 +102,20 @@ export default function PatientRegisterPage() {
           emergencyContactName: form.emergencyContactName.trim(),
           emergencyContactPhone: form.emergencyContactPhone.trim(),
           referralCode: form.referralCode.trim(),
+          googleDisplayName: googleUser?.displayName ?? undefined,
+          googlePhotoUrl: googleUser?.photoURL ?? undefined,
         }),
       });
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al registrar perfil');
+      }
+
+      await refreshUserData();
       router.push('/paciente/dashboard');
     } catch {
-      setError('Error al crear la cuenta. El email puede estar en uso.');
+      setError(googleUser ? 'Error al completar el registro.' : 'Error al crear la cuenta. El email puede estar en uso.');
     } finally {
       setLoading(false);
     }
@@ -101,8 +124,17 @@ export default function PatientRegisterPage() {
   async function handleGoogle() {
     setError('');
     try {
-      await loginWithGoogle();
-      router.push('/paciente/dashboard');
+      const user = await loginWithGoogle();
+      // Check if this Google user already has a patient profile
+      const token = await user.getIdToken();
+      const res = await fetch('/api/patients/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        router.push('/paciente/dashboard');
+        return;
+      }
+      // New user — need to complete required fields
+      setGoogleUser(user);
+      setForm(prev => ({ ...prev, name: user.displayName || '' }));
     } catch {
       setError('Error al registrarse con Google');
     }
@@ -157,7 +189,7 @@ export default function PatientRegisterPage() {
             </Link>
             <h1 className="mt-4 text-2xl font-bold text-gray-900">Registrate como paciente</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {step === 1 ? 'Completá tus datos personales' : 'Información médica (opcional)'}
+              {step === 1 ? (googleUser ? 'Completá tus datos para activar tu cuenta' : 'Completá tus datos personales') : 'Información médica (opcional)'}
             </p>
           </div>
 
@@ -178,49 +210,64 @@ export default function PatientRegisterPage() {
 
             {step === 1 && (
               <>
-                <button onClick={handleGoogle}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:border-gray-300">
-                  <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                  Registrarse con Google
-                </button>
+                {!googleUser && (
+                  <>
+                    <button onClick={handleGoogle}
+                      className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:border-gray-300">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                      Registrarse con Google
+                    </button>
 
-                <div className="my-6 flex items-center gap-3"><div className="h-px flex-1 bg-gray-200" /><span className="text-xs text-gray-400">o completá el formulario</span><div className="h-px flex-1 bg-gray-200" /></div>
+                    <div className="my-6 flex items-center gap-3"><div className="h-px flex-1 bg-gray-200" /><span className="text-xs text-gray-400">o completá el formulario</span><div className="h-px flex-1 bg-gray-200" /></div>
+                  </>
+                )}
+
+                {googleUser && (
+                  <div className="mb-4 flex items-center gap-3 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+                    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    <span>Cuenta de Google conectada como <strong>{googleUser.email}</strong>. Completá tus datos.</span>
+                  </div>
+                )}
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Nombre completo <span className="text-red-500">*</span></label>
-                    <input type="text" required value={form.name} onChange={(e) => update('name', e.target.value)}
-                      className={inputClass} placeholder="Juan Pérez" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
-                    <input type="email" required value={form.email} onChange={(e) => update('email', e.target.value)}
-                      className={inputClass} placeholder="tu@email.com" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Contraseña <span className="text-red-500">*</span></label>
-                      <div className="mt-1 relative">
-                        <input type={showPassword ? 'text' : 'password'} required value={form.password} onChange={(e) => update('password', e.target.value)}
-                          className={`${inputClass} pr-10`} placeholder="Min. 6 caracteres" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            {showPassword
-                              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                              : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></>
-                            }
-                          </svg>
-                        </button>
+                  {!googleUser && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Nombre completo <span className="text-red-500">*</span></label>
+                        <input type="text" required value={form.name} onChange={(e) => update('name', e.target.value)}
+                          className={inputClass} placeholder="Juan Pérez" />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Confirmar <span className="text-red-500">*</span></label>
-                      <input type="password" required value={form.confirmPassword} onChange={(e) => update('confirmPassword', e.target.value)}
-                        className={inputClass} placeholder="••••••••" />
-                    </div>
-                  </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Email <span className="text-red-500">*</span></label>
+                        <input type="email" required value={form.email} onChange={(e) => update('email', e.target.value)}
+                          className={inputClass} placeholder="tu@email.com" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Contraseña <span className="text-red-500">*</span></label>
+                          <div className="mt-1 relative">
+                            <input type={showPassword ? 'text' : 'password'} required value={form.password} onChange={(e) => update('password', e.target.value)}
+                              className={`${inputClass} pr-10`} placeholder="Min. 6 caracteres" />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                {showPassword
+                                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                  : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></>
+                                }
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Confirmar <span className="text-red-500">*</span></label>
+                          <input type="password" required value={form.confirmPassword} onChange={(e) => update('confirmPassword', e.target.value)}
+                            className={inputClass} placeholder="••••••••" />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -317,10 +364,12 @@ export default function PatientRegisterPage() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setStep(1)}
-                    className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                    Volver
-                  </button>
+                  {!googleUser && (
+                    <button type="button" onClick={() => setStep(1)}
+                      className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                      Volver
+                    </button>
+                  )}
                   <button type="submit" disabled={loading}
                     className="flex-1 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50 shadow-sm">
                     {loading ? (

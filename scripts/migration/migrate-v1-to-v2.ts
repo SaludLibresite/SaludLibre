@@ -10,11 +10,14 @@
  *   - Batched: 500 writes per batch (Firestore limit)
  *   - Dry-run mode: pass --dry-run to preview without writing
  *   - Selective: pass --collection=doctors to migrate one collection
+ *   - New-only: pass --new-only to skip docs already in V2
  *
  * Usage:
  *   npx tsx scripts/migration/migrate-v1-to-v2.ts
  *   npx tsx scripts/migration/migrate-v1-to-v2.ts --dry-run
  *   npx tsx scripts/migration/migrate-v1-to-v2.ts --collection=doctors
+ *   npx tsx scripts/migration/migrate-v1-to-v2.ts --collection=doctors --new-only
+ *   npx tsx scripts/migration/migrate-v1-to-v2.ts --collection=doctors --new-only --dry-run
  * ============================================================
  */
 
@@ -55,6 +58,7 @@ const db = getFirestore();
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
+const NEW_ONLY = args.includes('--new-only');
 const collectionArg = args.find(a => a.startsWith('--collection='))?.split('=')[1];
 const BATCH_SIZE = 500;
 
@@ -109,7 +113,7 @@ function mapDoctor(id: string, d: FirebaseFirestore.DocumentData) {
     gender: mapGender(d.genero ?? ''),
     specialty: d.especialidad ?? '',
     description: d.descripcion ?? '',
-    profileImage: d.imagen ?? '',
+    profileImage: d.photoURL || d.imagen || '',
     schedule: d.horario ?? '',
     onlineConsultation: d.consultaOnline ?? false,
     location: {
@@ -442,13 +446,28 @@ async function migrateCollection(job: MigrationJob): Promise<number> {
     return 0;
   }
 
-  console.log(`   📄 ${sourceSnap.size} documentos encontrados`);
+  console.log(`   📄 ${sourceSnap.size} documentos encontrados en V1`);
+
+  // If --new-only, fetch existing V2 doc IDs to skip them
+  let existingIds: Set<string> | null = null;
+  if (NEW_ONLY) {
+    const targetSnap = await db.collection(job.target).select().get();
+    existingIds = new Set(targetSnap.docs.map(d => d.id));
+    console.log(`   📋 ${existingIds.size} documentos ya existen en V2`);
+  }
 
   let batchCount = 0;
   let totalWritten = 0;
+  let skipped = 0;
   let batch = db.batch();
 
   for (const docSnap of sourceSnap.docs) {
+    // Skip if already exists in V2 and --new-only mode
+    if (existingIds && existingIds.has(docSnap.id)) {
+      skipped++;
+      continue;
+    }
+
     try {
       const mapped = job.mapper(docSnap.id, docSnap.data());
 
@@ -481,7 +500,9 @@ async function migrateCollection(job: MigrationJob): Promise<number> {
     await batch.commit();
   }
 
-  console.log(`   ✅ ${DRY_RUN ? '[DRY RUN] ' : ''}${totalWritten} documentos ${DRY_RUN ? 'analizados' : 'migrados'}`);
+  const modeLabel = DRY_RUN ? '[DRY RUN] ' : '';
+  const action = DRY_RUN ? 'analizados' : 'migrados';
+  console.log(`   ✅ ${modeLabel}${totalWritten} documentos ${action}${NEW_ONLY ? `, ${skipped} omitidos (ya existían)` : ''}`);
   return totalWritten;
 }
 
@@ -491,7 +512,8 @@ async function main() {
   console.log('='.repeat(60));
   console.log('   SaludLibre V1 → V2 Migration');
   console.log(`   Mode: ${DRY_RUN ? '🔍 DRY RUN (no writes)' : '🚀 LIVE MIGRATION'}`);
-  if (collectionArg) console.log(`   Filter: ${collectionArg} only`);
+  if (NEW_ONLY) console.log(`   Filter: 🆕 Solo documentos nuevos (--new-only)`);
+  if (collectionArg) console.log(`   Collection: ${collectionArg} only`);
   console.log('='.repeat(60));
 
   const jobs = collectionArg

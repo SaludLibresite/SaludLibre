@@ -84,8 +84,8 @@ export class SpecialtyService {
       updatedAt: now,
     };
 
-    await this.specialtyRepo.save(specialty);
-    return specialty;
+    const newId = await this.specialtyRepo.add(specialty);
+    return { ...specialty, id: newId };
   }
 
   /** Update a specialty — superadmin only */
@@ -111,12 +111,9 @@ export class SpecialtyService {
     await this.specialtyRepo.update(specialtyId, updates);
   }
 
-  /** Delete (soft-delete by deactivating) a specialty — superadmin only */
+  /** Permanently delete a specialty — superadmin only */
   async delete(specialtyId: string): Promise<void> {
-    await this.specialtyRepo.update(specialtyId, {
-      isActive: false,
-      updatedAt: new Date(),
-    });
+    await this.specialtyRepo.delete(specialtyId);
   }
 
   /** Bulk import specialties from parsed Excel rows — superadmin only */

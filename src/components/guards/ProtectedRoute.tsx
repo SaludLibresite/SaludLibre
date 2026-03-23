@@ -8,7 +8,7 @@ type UserType = 'doctor' | 'patient' | 'superadmin';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredUserType?: UserType;
+  requiredUserType?: UserType | UserType[];
 }
 
 const REDIRECT_MAP: Record<UserType, string> = {
@@ -27,16 +27,20 @@ export default function ProtectedRoute({ children, requiredUserType = 'doctor' }
   const { user, userType, loading } = useAuth();
   const router = useRouter();
 
+  const allowedTypes = Array.isArray(requiredUserType) ? requiredUserType : [requiredUserType];
+  const loginPath = LOGIN_MAP[allowedTypes[0]];
+  const isAllowed = userType ? allowedTypes.includes(userType) : false;
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      router.replace(LOGIN_MAP[requiredUserType]);
+      router.replace(loginPath);
       return;
     }
-    if (userType && userType !== requiredUserType) {
+    if (userType && !isAllowed) {
       router.replace(REDIRECT_MAP[userType] || '/');
     }
-  }, [user, userType, loading, requiredUserType, router]);
+  }, [user, userType, loading, isAllowed, loginPath, router]);
 
   if (loading) {
     return <LoadingScreen message="Verificando acceso" />;
@@ -44,7 +48,7 @@ export default function ProtectedRoute({ children, requiredUserType = 'doctor' }
 
   if (!user) return null;
 
-  if (userType && userType !== requiredUserType) return null;
+  if (userType && !isAllowed) return null;
 
   if (!userType) {
     return <LoadingScreen message="Detectando tipo de usuario" />;

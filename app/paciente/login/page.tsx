@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function PatientLoginPage() {
-  const { login, loginWithGoogle, resetPassword, user } = useAuth();
+  const { login, loginWithGoogle, resetPassword } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,17 +18,14 @@ export default function PatientLoginPage() {
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  if (user) {
-    router.replace('/paciente/dashboard');
-    return null;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       await login(email, password);
+      document.cookie = '__session=1; path=/; max-age=604800; SameSite=Lax';
+      document.cookie = '__userType=patient; path=/; max-age=604800; SameSite=Lax';
       router.push('/paciente/dashboard');
     } catch {
       setError('Email o contraseña incorrectos. Verificá tus datos e intentá de nuevo.');
@@ -39,11 +36,22 @@ export default function PatientLoginPage() {
 
   async function handleGoogle() {
     setError('');
+    setLoading(true);
     try {
-      await loginWithGoogle();
-      router.push('/paciente/dashboard');
+      const user = await loginWithGoogle();
+      const token = await user.getIdToken();
+      const res = await fetch('/api/patients/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        document.cookie = '__session=1; path=/; max-age=604800; SameSite=Lax';
+        document.cookie = '__userType=patient; path=/; max-age=604800; SameSite=Lax';
+        router.push('/paciente/dashboard');
+      } else {
+        router.push('/paciente/register');
+      }
     } catch {
       setError('Error al iniciar sesión con Google');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -61,7 +69,7 @@ export default function PatientLoginPage() {
   }
 
   return (
-    <div className="min-h-[85vh] flex">
+    <div className="min-h-[100dvh] flex">
       {/* Left panel - decorative */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-800 via-green-700 to-emerald-500 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
@@ -170,11 +178,15 @@ export default function PatientLoginPage() {
               <Link href="/paciente/register" className="font-medium text-green-600 hover:underline">Registrate como paciente</Link>
             </p>
 
-            <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+            <div className="mt-4 pt-4 border-t border-gray-100 text-center space-y-2">
               <p className="text-xs text-gray-400">
                 ¿Sos médico?{' '}
                 <Link href="/auth/login" className="text-[#4dbad9] hover:underline font-medium">Ingresá acá</Link>
               </p>
+              <Link href="/" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Volver al inicio
+              </Link>
             </div>
           </div>
         </div>

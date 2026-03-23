@@ -5,8 +5,16 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+const SUPERADMIN_EMAILS = (
+  process.env.NEXT_PUBLIC_SUPERADMIN_EMAILS ?? 'juan@jhernandez.mx'
+).split(',');
+
+function isSuperadmin(email: string) {
+  return SUPERADMIN_EMAILS.includes(email);
+}
+
 export default function DoctorLoginPage() {
-  const { login, loginWithGoogle, resetPassword, user } = useAuth();
+  const { login, loginWithGoogle, resetPassword } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -21,18 +29,16 @@ export default function DoctorLoginPage() {
 
   const referralCode = searchParams.get('ref') || searchParams.get('referral') || searchParams.get('code') || '';
 
-  if (user) {
-    router.replace('/admin');
-    return null;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       await login(email, password);
-      router.push('/admin');
+      const superadmin = isSuperadmin(email);
+      document.cookie = '__session=1; path=/; max-age=604800; SameSite=Lax';
+      document.cookie = `__userType=${superadmin ? 'superadmin' : 'doctor'}; path=/; max-age=604800; SameSite=Lax`;
+      router.push(superadmin ? '/superadmin' : '/admin');
     } catch {
       setError('Email o contraseña incorrectos. Verificá tus datos e intentá de nuevo.');
     } finally {
@@ -43,8 +49,25 @@ export default function DoctorLoginPage() {
   async function handleGoogle() {
     setError('');
     try {
-      await loginWithGoogle();
-      router.push('/admin');
+      const user = await loginWithGoogle();
+      const userEmail = user.email ?? '';
+      if (isSuperadmin(userEmail)) {
+        document.cookie = '__session=1; path=/; max-age=604800; SameSite=Lax';
+        document.cookie = '__userType=superadmin; path=/; max-age=604800; SameSite=Lax';
+        router.push('/superadmin');
+        return;
+      }
+      // Check if this user already has a doctor profile
+      const token = await user.getIdToken();
+      const res = await fetch('/api/doctors/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        document.cookie = '__session=1; path=/; max-age=604800; SameSite=Lax';
+        document.cookie = '__userType=doctor; path=/; max-age=604800; SameSite=Lax';
+        router.push('/admin');
+      } else {
+        // No doctor profile — send to register to complete it
+        router.push('/auth/register');
+      }
     } catch {
       setError('Error al iniciar sesión con Google');
     }
@@ -194,11 +217,15 @@ export default function DoctorLoginPage() {
               <Link href={`/auth/register${referralCode ? `?ref=${referralCode}` : ''}`} className="font-medium text-[#4dbad9] hover:underline">Registrate como médico</Link>
             </p>
 
-            <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+            <div className="mt-4 pt-4 border-t border-gray-100 text-center space-y-2">
               <p className="text-xs text-gray-400">
                 ¿Sos paciente?{' '}
                 <Link href="/paciente/login" className="text-green-600 hover:underline font-medium">Ingresá acá</Link>
               </p>
+              <Link href="/" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Volver al inicio
+              </Link>
             </div>
           </div>
         </div>

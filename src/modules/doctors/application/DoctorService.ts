@@ -1,4 +1,4 @@
-import type { Doctor } from '../domain/DoctorEntity';
+import type { Doctor, ScheduleConfig } from '../domain/DoctorEntity';
 import type { DoctorRepository } from '../domain/DoctorRepository';
 import type { AppointmentRepository } from '@/src/modules/appointments/domain/AppointmentRepository';
 import type { ReviewRepository } from '@/src/modules/reviews/domain/ReviewRepository';
@@ -35,6 +35,7 @@ export interface UpdateDoctorProfileInput {
   description?: string;
   specialty?: string;
   schedule?: string;
+  scheduleConfig?: ScheduleConfig;
   onlineConsultation?: boolean;
   location?: Doctor['location'];
   professional?: Partial<Doctor['professional']>;
@@ -52,6 +53,27 @@ export interface CreateDoctorProfileInput {
   onlineConsultation: boolean;
   location: Doctor['location'];
   professional: Doctor['professional'];
+}
+
+export interface AdminCreateDoctorInput {
+  name: string;
+  email: string;
+  phone?: string;
+  gender?: Doctor['gender'];
+  specialty?: string;
+  description?: string;
+  schedule?: string;
+  onlineConsultation?: boolean;
+  location?: Doctor['location'];
+  professional?: Partial<Doctor['professional']>;
+  verified?: boolean;
+}
+
+export interface AdminUpdateDoctorInput extends UpdateDoctorProfileInput {
+  email?: string;
+  gender?: Doctor['gender'];
+  verified?: boolean;
+  profileImage?: string;
 }
 
 // --- Service ---
@@ -82,6 +104,19 @@ export class DoctorService {
   /** List verified doctors with optional filters (public directory) */
   async listVerified(filters?: DoctorListFilters): Promise<Doctor[]> {
     let doctors = await this.doctorRepo.findVerified();
+
+    // Normalize expired subscriptions so they appear as inactive
+    const now = new Date();
+    doctors = doctors.map(d => {
+      if (
+        d.subscription?.status === 'active' &&
+        d.subscription.expiresAt &&
+        d.subscription.expiresAt <= now
+      ) {
+        return { ...d, subscription: { ...d.subscription, status: 'inactive' as const } };
+      }
+      return d;
+    });
 
     if (filters?.specialty) {
       doctors = doctors.filter(d =>
@@ -141,7 +176,7 @@ export class DoctorService {
       updatedAt: now,
     };
 
-    await this.doctorRepo.save(doctor);
+    await this.doctorRepo.add(doctor);
     return doctor;
   }
 
@@ -159,6 +194,7 @@ export class DoctorService {
     if (input.description !== undefined) updates.description = input.description;
     if (input.specialty !== undefined) updates.specialty = input.specialty;
     if (input.schedule !== undefined) updates.schedule = input.schedule;
+    if (input.scheduleConfig !== undefined) updates.scheduleConfig = input.scheduleConfig;
     if (input.onlineConsultation !== undefined) updates.onlineConsultation = input.onlineConsultation;
     if (input.location !== undefined) updates.location = input.location;
 
@@ -194,6 +230,80 @@ export class DoctorService {
     });
 
     return stored.downloadUrl;
+  }
+
+  /** Create a doctor profile as superadmin (no Firebase Auth user needed) */
+  async createAsAdmin(input: AdminCreateDoctorInput): Promise<Doctor> {
+    const slug = this.generateSlug(input.name, input.specialty ?? '');
+    const now = new Date();
+    const doctor: Doctor = {
+      id: '',
+      userId: '',
+      name: input.name,
+      slug,
+      email: input.email,
+      phone: input.phone ?? '',
+      gender: input.gender ?? 'not_specified',
+      specialty: input.specialty ?? '',
+      description: input.description ?? '',
+      profileImage: '',
+      schedule: input.schedule ?? '',
+      onlineConsultation: input.onlineConsultation ?? false,
+      location: input.location ?? { latitude: 0, longitude: 0, formattedAddress: '' },
+      verified: input.verified ?? false,
+      subscription: {
+        status: 'inactive',
+        planId: '',
+        planName: 'Free',
+        expiresAt: null,
+      },
+      professional: {
+        profession: input.professional?.profession ?? '',
+        licenseNumber: input.professional?.licenseNumber ?? '',
+        officeAddress: input.professional?.officeAddress ?? '',
+        signatureUrl: input.professional?.signatureUrl ?? null,
+        stampUrl: input.professional?.stampUrl ?? null,
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const id = await this.doctorRepo.add(doctor);
+    return { ...doctor, id };
+  }
+
+  /** Update a doctor as superadmin — supports all fields */
+  async updateAsAdmin(doctorId: string, input: AdminUpdateDoctorInput): Promise<void> {
+    const doctor = await this.doctorRepo.findById(doctorId);
+    if (!doctor) throw new Error('Doctor not found');
+
+    const updates: Partial<Doctor> = { updatedAt: new Date() };
+
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.email !== undefined) updates.email = input.email;
+    if (input.phone !== undefined) updates.phone = input.phone;
+    if (input.gender !== undefined) updates.gender = input.gender;
+    if (input.description !== undefined) updates.description = input.description;
+    if (input.specialty !== undefined) updates.specialty = input.specialty;
+    if (input.schedule !== undefined) updates.schedule = input.schedule;
+    if (input.scheduleConfig !== undefined) updates.scheduleConfig = input.scheduleConfig;
+    if (input.onlineConsultation !== undefined) updates.onlineConsultation = input.onlineConsultation;
+    if (input.location !== undefined) updates.location = input.location;
+    if (input.verified !== undefined) updates.verified = input.verified;
+    if (input.profileImage !== undefined) updates.profileImage = input.profileImage;
+
+    if (input.professional) {
+      updates.professional = { ...doctor.professional, ...input.professional };
+    }
+
+    if (input.name || input.specialty) {
+      updates.slug = this.generateSlug(
+        input.name ?? doctor.name,
+        input.specialty ?? doctor.specialty,
+      );
+    }
+
+    await this.doctorRepo.update(doctorId, updates);
   }
 
   /** Verify a doctor — superadmin only */

@@ -21,7 +21,7 @@ export async function GET(
   }
 }
 
-// PATCH /api/superadmin/doctors/[id] — Verify a doctor
+// PATCH /api/superadmin/doctors/[id] — Update a doctor (superadmin)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -36,7 +36,7 @@ export async function PATCH(
     if (body.action === 'verify') {
       await getDoctorService().verify(id);
     } else {
-      await getDoctorService().updateProfile(id, body);
+      await getDoctorService().updateAsAdmin(id, body);
     }
 
     return jsonOk({ success: true });

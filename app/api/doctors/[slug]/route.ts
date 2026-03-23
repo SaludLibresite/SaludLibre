@@ -20,10 +20,21 @@ export async function GET(
       getReviewService().getDoctorSummary(doctor.id),
     ]);
 
+    // Sort related doctors: plus plans first, then medium, then rest
+    const planPriority = (d: (typeof relatedDoctors)[number]) => {
+      const plan = d.subscription?.planName?.toLowerCase() ?? '';
+      if (d.subscription?.status === 'active') {
+        if (plan.includes('plus')) return 0;
+        if (plan.includes('medium')) return 1;
+      }
+      return 2;
+    };
+    const sortedRelated = [...relatedDoctors].sort((a, b) => planPriority(a) - planPriority(b));
+
     return jsonOk({
       doctor,
       reviews,
-      relatedDoctors: relatedDoctors.slice(0, 3),
+      relatedDoctors: sortedRelated.slice(0, 4),
       averageRating: reviewSummary.averageRating,
       totalReviews: reviewSummary.totalReviews,
     });

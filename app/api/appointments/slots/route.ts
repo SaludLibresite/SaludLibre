@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
 
     return jsonOk({ slots, total: slots.length });
   } catch (error) {
+    console.error('[slots] Error fetching available slots:', error);
     return jsonError(error instanceof Error ? error.message : 'Internal server error', 500);
   }
 }

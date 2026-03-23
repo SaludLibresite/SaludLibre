@@ -89,10 +89,7 @@ export class FirestoreAppointmentRepository
   }
 
   async findByDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]> {
-    return this.findAll([
-      where('doctorId', '==', doctorId),
-      where('dateTime', '>=', Timestamp.fromDate(start)),
-      where('dateTime', '<=', Timestamp.fromDate(end)),
-    ]);
+    const all = await this.findWhere('doctorId', doctorId);
+    return all.filter(a => a.dateTime >= start && a.dateTime <= end);
   }
 }

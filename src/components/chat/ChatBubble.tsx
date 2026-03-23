@@ -46,13 +46,13 @@ export default function ChatBubble() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text.trim(), history: messages.map((m) => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({ message: text.trim(), chatHistory: messages.map((m) => ({ content: m.content, isBot: m.role === 'assistant' })) }),
       });
       if (res.ok) {
         const data = await res.json();
         setMessages((prev) => [
           ...prev,
-          { id: (Date.now() + 1).toString(), role: 'assistant', content: data.reply ?? data.message ?? 'Lo siento, hubo un error.' },
+          { id: (Date.now() + 1).toString(), role: 'assistant', content: data.response ?? 'Lo siento, hubo un error.' },
         ]);
       } else {
         setMessages((prev) => [

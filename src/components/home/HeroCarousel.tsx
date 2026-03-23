@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const SLIDES = [
   '/img/doctor-1.jpg',
@@ -43,12 +44,12 @@ export default function HeroCarousel() {
           transition={{ duration: 0.7 }}
           className="absolute inset-0"
         >
-          <img
+          <Image
             src={SLIDES[current]}
             alt="Profesional de la salud"
-            fill
             className="object-cover"
             priority={current === 0}
+            fill
           />
         </motion.div>
       </AnimatePresence>
@@ -100,7 +101,7 @@ export default function HeroCarousel() {
             </form>
 
             <div className="mt-6">
-              <a
+              <Link
                 href="/doctores"
                 className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white hover:bg-white/10"
               >
@@ -108,7 +109,7 @@ export default function HeroCarousel() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>

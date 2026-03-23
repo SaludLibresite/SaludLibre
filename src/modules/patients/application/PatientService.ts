@@ -138,7 +138,7 @@ export class PatientService {
       updatedAt: now,
     };
 
-    await this.patientRepo.save(patient);
+    await this.patientRepo.add(patient);
 
     // Send welcome email (fire-and-forget)
     this.emailService
@@ -260,7 +260,7 @@ export class PatientService {
       updatedAt: now,
     };
 
-    await this.familyMemberRepo.save(member);
+    await this.familyMemberRepo.add(member);
     return member;
   }
 

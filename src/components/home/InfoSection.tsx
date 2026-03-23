@@ -43,7 +43,7 @@ export default function InfoSection({
             className="relative w-full lg:w-1/2"
           >
             <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-xl">
-              <img src={image} alt={title} fill className="object-cover" />
+              <Image src={image} alt={title} fill className="object-cover" />
             </div>
             <div className="absolute -bottom-4 -right-4 -z-10 h-full w-full rounded-2xl bg-gradient-to-br from-[#4dbad9]/20 to-[#e8ad0f]/20" />
           </motion.div>

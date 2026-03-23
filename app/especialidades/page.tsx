@@ -14,6 +14,11 @@ interface Specialty {
 export default function EspecialidadesPage() {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  const filtered = specialties.filter((s) =>
+    s.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   useEffect(() => {
     (async () => {
@@ -37,16 +42,31 @@ export default function EspecialidadesPage() {
         <div className="mx-auto mt-2 h-1 w-20 rounded-full bg-gradient-to-r from-[#4dbad9] to-[#e8ad0f]" />
       </div>
 
-      <div className="mt-12">
+      <div className="relative mx-auto mt-8 max-w-md">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar especialidad..."
+          className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-[#4dbad9] focus:ring-2 focus:ring-[#4dbad9]/20"
+        />
+        <svg className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+      </div>
+
+      <div className="mt-8">
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-100" />
             ))}
           </div>
+        ) : filtered.length === 0 ? (
+          <p className="py-12 text-center text-gray-400">No se encontraron especialidades para &ldquo;{search}&rdquo;</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {specialties.map((spec) => (
+            {filtered.map((spec) => (
               <Link
                 key={spec.id}
                 href={`/doctores?specialty=${encodeURIComponent(spec.title)}`}

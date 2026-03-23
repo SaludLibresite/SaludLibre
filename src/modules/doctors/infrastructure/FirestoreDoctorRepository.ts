@@ -4,7 +4,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { BaseRepository } from '@/src/infrastructure/persistence/BaseRepository';
-import type { Doctor, DoctorSubscriptionSummary, DoctorProfessionalInfo } from '../domain/DoctorEntity';
+import type { Doctor, DoctorSubscriptionSummary, DoctorProfessionalInfo, ScheduleConfig } from '../domain/DoctorEntity';
 import type { DoctorRepository } from '../domain/DoctorRepository';
 import type { Gender, SubscriptionStatus } from '@/src/shared/domain/types';
 
@@ -26,6 +26,7 @@ const doctorConverter: FirestoreDataConverter<Doctor> = {
       description: doctor.description,
       profileImage: doctor.profileImage,
       schedule: doctor.schedule,
+      ...(doctor.scheduleConfig !== undefined && { scheduleConfig: doctor.scheduleConfig }),
       onlineConsultation: doctor.onlineConsultation,
       location: doctor.location,
       verified: doctor.verified,
@@ -55,6 +56,7 @@ const doctorConverter: FirestoreDataConverter<Doctor> = {
       description: d.description ?? '',
       profileImage: d.profileImage ?? '',
       schedule: d.schedule ?? '',
+      ...(d.scheduleConfig && { scheduleConfig: d.scheduleConfig as ScheduleConfig }),
       onlineConsultation: d.onlineConsultation ?? false,
       location: d.location ?? { latitude: 0, longitude: 0, formattedAddress: '' },
       verified: d.verified ?? false,

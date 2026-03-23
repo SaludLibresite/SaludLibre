@@ -31,6 +31,24 @@ export interface DoctorProfessionalInfo {
   stampUrl: string | null;
 }
 
+export interface DayTimeRange {
+  from: string; // "HH:mm"
+  to: string;   // "HH:mm"
+}
+
+export interface DaySchedule {
+  enabled: boolean;
+  ranges: DayTimeRange[]; // up to 2 ranges per day
+}
+
+export type WeekDay = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+
+export interface ScheduleConfig {
+  enabled: boolean;
+  slotDuration: number; // minutes (default 30)
+  days: Record<WeekDay, DaySchedule>;
+}
+
 export interface Doctor extends Timestamps {
   id: string;                       // Firestore document ID
   userId: string;                   // Firebase Auth UID
@@ -43,6 +61,7 @@ export interface Doctor extends Timestamps {
   description: string;
   profileImage: string;
   schedule: string;
+  scheduleConfig?: ScheduleConfig;
   onlineConsultation: boolean;
   location: GeoLocation;
   verified: boolean;

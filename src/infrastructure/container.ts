@@ -13,6 +13,7 @@ import { FirestoreReferralRepository } from '@/src/modules/referrals/infrastruct
 import { FirestoreSpecialtyRepository } from '@/src/modules/specialties/infrastructure/FirestoreSpecialtyRepository';
 import { FirestoreReviewRepository } from '@/src/modules/reviews/infrastructure/FirestoreReviewRepository';
 import { FirestoreVideoConsultationRepository } from '@/src/modules/video-consultations/infrastructure/FirestoreVideoConsultationRepository';
+import { FirestoreEntityRepository } from '@/src/modules/entities/infrastructure/FirestoreEntityRepository';
 
 import { ResendEmailService } from '@/src/infrastructure/external/ResendEmailService';
 import { MercadoPagoGateway } from '@/src/infrastructure/external/MercadoPagoGateway';
@@ -29,6 +30,7 @@ import { ReferralService } from '@/src/modules/referrals/application/ReferralSer
 import { SpecialtyService } from '@/src/modules/specialties/application/SpecialtyService';
 import { ReviewService } from '@/src/modules/reviews/application/ReviewService';
 import { VideoConsultationService } from '@/src/modules/video-consultations/application/VideoConsultationService';
+import { EntityService } from '@/src/modules/entities/application/EntityService';
 
 // ============================================================
 // Composition Root — Dependency Injection Container
@@ -53,6 +55,7 @@ const referralRepo = new FirestoreReferralRepository();
 const specialtyRepo = new FirestoreSpecialtyRepository();
 const reviewRepo = new FirestoreReviewRepository();
 const videoConsultationRepo = new FirestoreVideoConsultationRepository();
+const entityRepo = new FirestoreEntityRepository();
 
 // --- External services (lazy — avoid init errors if env vars missing) ---
 
@@ -160,4 +163,12 @@ export function getVideoConsultationService() {
     );
   }
   return _videoConsultationService;
+}
+
+let _entityService: EntityService | null = null;
+export function getEntityService() {
+  if (!_entityService) {
+    _entityService = new EntityService(entityRepo);
+  }
+  return _entityService;
 }

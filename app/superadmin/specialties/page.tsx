@@ -37,6 +37,11 @@ export default function SuperAdminSpecialtiesPage() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState<Specialty | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
   const getToken = useCallback(async () => {
     if (!user) return null;
     return user.getIdToken();
@@ -148,22 +153,6 @@ export default function SuperAdminSpecialtiesPage() {
     } catch { toast.error('Error al guardar'); } finally { setSaving(false); }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('¿Desactivar esta especialidad?')) return;
-    const token = await getToken();
-    if (!token) return;
-    try {
-      const res = await fetch(`/api/superadmin/specialties/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setSpecialties(prev => prev.map(s => s.id === id ? { ...s, isActive: false } : s));
-        toast.success('Especialidad desactivada');
-      }
-    } catch { toast.error('Error al desactivar'); }
-  }
-
   async function toggleActive(spec: Specialty) {
     const token = await getToken();
     if (!token) return;
@@ -178,6 +167,36 @@ export default function SuperAdminSpecialtiesPage() {
         toast.success(spec.isActive ? 'Desactivada' : 'Activada');
       }
     } catch { toast.error('Error'); }
+  }
+
+  function openDeleteModal(spec: Specialty) {
+    setDeleteTarget(spec);
+    setDeleteConfirmText('');
+  }
+
+  function closeDeleteModal() {
+    setDeleteTarget(null);
+    setDeleteConfirmText('');
+  }
+
+  async function handlePermanentDelete() {
+    if (!deleteTarget) return;
+    const token = await getToken();
+    if (!token) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/superadmin/specialties/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setSpecialties(prev => prev.filter(s => s.id !== deleteTarget.id));
+        toast.success('Especialidad eliminada permanentemente');
+        closeDeleteModal();
+      } else {
+        toast.error('Error al eliminar');
+      }
+    } catch { toast.error('Error al eliminar'); } finally { setDeleting(false); }
   }
 
   return (
@@ -325,6 +344,12 @@ export default function SuperAdminSpecialtiesPage() {
                     >
                       {spec.isActive ? 'Desactivar' : 'Activar'}
                     </button>
+                    <button
+                      onClick={() => openDeleteModal(spec)}
+                      className="rounded-xl bg-red-600/90 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-700 transition"
+                    >
+                      Eliminar
+                    </button>
                   </div>
                 </div>
                 {/* Info */}
@@ -381,12 +406,20 @@ export default function SuperAdminSpecialtiesPage() {
                       </button>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => openEdit(spec)}
-                        className="rounded-lg px-3 py-1.5 text-xs font-medium text-purple-600 hover:bg-purple-50 transition"
-                      >
-                        Editar
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(spec)}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-purple-600 hover:bg-purple-50 transition"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(spec)}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -571,6 +604,46 @@ export default function SuperAdminSpecialtiesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ── Delete Confirmation Modal ── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={closeDeleteModal}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+              </div>
+              <h3 className="mt-4 text-center text-lg font-semibold text-gray-900">Eliminar especialidad</h3>
+              <p className="mt-2 text-center text-sm text-gray-500">
+                Esta acción es <strong className="text-red-600">permanente</strong> y no se puede deshacer. Para confirmar, escribí el nombre de la especialidad:
+              </p>
+              <p className="mt-2 text-center text-sm font-semibold font-mono text-gray-900 select-none">{deleteTarget.title}</p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder="Escribí el nombre aquí..."
+                className="mt-3 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-200/50"
+                autoFocus
+              />
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={closeDeleteModal}
+                  className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handlePermanentDelete}
+                  disabled={deleteConfirmText !== deleteTarget.title || deleting}
+                  className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {deleting ? 'Eliminando...' : 'Eliminar permanentemente'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

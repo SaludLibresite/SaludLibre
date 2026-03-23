@@ -2,7 +2,8 @@
 
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface DoctorSubscription {
@@ -38,12 +39,39 @@ function getPlanStyle(planName?: string, status?: string) {
 
 export default function SuperAdminDoctorsPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterVerified, setFilterVerified] = useState<'all' | 'yes' | 'no'>('all');
   const [filterPlan, setFilterPlan] = useState<'all' | 'free' | 'medium' | 'plus'>('all');
-  const [page, setPage] = useState(1);
+
+  const pageFromUrl = Number(searchParams.get('page')) || 1;
+  const [page, _setPage] = useState(pageFromUrl);
+
+  const setPage = useCallback((p: number | ((prev: number) => number)) => {
+    _setPage((prev) => {
+      const next = typeof p === 'function' ? p(prev) : p;
+      return next;
+    });
+  }, []);
+
+  // Push URL param whenever page state changes (skip page 1)
+  useEffect(() => {
+    const currentUrlPage = Number(searchParams.get('page')) || 1;
+    if (page === currentUrlPage) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (page <= 1) params.delete('page');
+    else params.set('page', String(page));
+    const qs = params.toString();
+    router.push(qs ? `?${qs}` : window.location.pathname, { scroll: false });
+  }, [page, router, searchParams]);
+
+  // Sync state when URL changes (e.g. browser back/forward)
+  useEffect(() => {
+    _setPage(pageFromUrl);
+  }, [pageFromUrl]);
 
   useEffect(() => {
     if (!user) return;
@@ -89,7 +117,9 @@ export default function SuperAdminDoctorsPage() {
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [search, filterVerified, filterPlan]);
+  useEffect(() => {
+    _setPage(1);
+  }, [search, filterVerified, filterPlan]);
 
   const verifiedCount = doctors.filter((d) => d.verified).length;
   const pendingCount = doctors.filter((d) => !d.verified).length;
@@ -102,9 +132,18 @@ export default function SuperAdminDoctorsPage() {
     <SuperAdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Doctores</h1>
-          <p className="mt-1 text-sm text-gray-500">{doctors.length} doctores registrados</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Doctores</h1>
+            <p className="mt-1 text-sm text-gray-500">{doctors.length} doctores registrados</p>
+          </div>
+          <Link
+            href="/superadmin/doctors/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Nuevo Doctor
+          </Link>
         </div>
 
         {/* Summary cards */}

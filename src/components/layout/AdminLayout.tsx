@@ -84,7 +84,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const planLabel = planTier === 'plus' ? 'Plus' : planTier === 'medium' ? 'Medium' : 'Free';
 
   return (
-    <ProtectedRoute requiredUserType="doctor">
+    <ProtectedRoute requiredUserType={['doctor', 'superadmin']}>
       <div className="flex min-h-screen">
         {/* Mobile sidebar toggle */}
         <button
