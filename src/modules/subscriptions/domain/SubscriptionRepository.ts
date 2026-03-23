@@ -12,6 +12,7 @@ export interface SubscriptionRepository {
   findActiveByUserId(userId: string): Promise<Subscription | null>;
   findAll(): Promise<Subscription[]>;
   save(subscription: Subscription): Promise<void>;
+  add(subscription: Subscription): Promise<string>;
   update(id: string, data: Partial<Subscription>): Promise<void>;
 }
 
@@ -28,4 +29,5 @@ export interface PaymentRepository {
   findById(id: string): Promise<Payment | null>;
   findBySubscriptionId(subscriptionId: string): Promise<Payment[]>;
   save(payment: Payment): Promise<void>;
+  add(payment: Payment): Promise<string>;
 }

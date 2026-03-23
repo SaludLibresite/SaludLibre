@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -19,6 +19,14 @@ const GENDERS = [
 ];
 
 export default function DoctorRegisterPage() {
+  return (
+    <Suspense>
+      <DoctorRegisterContent />
+    </Suspense>
+  );
+}
+
+function DoctorRegisterContent() {
   const { signup, loginWithGoogle, refreshUserData } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

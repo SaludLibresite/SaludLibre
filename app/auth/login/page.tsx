@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -14,6 +14,14 @@ function isSuperadmin(email: string) {
 }
 
 export default function DoctorLoginPage() {
+  return (
+    <Suspense>
+      <DoctorLoginContent />
+    </Suspense>
+  );
+}
+
+function DoctorLoginContent() {
   const { login, loginWithGoogle, resetPassword } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

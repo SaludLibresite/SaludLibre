@@ -13,6 +13,7 @@ export interface DoctorRepository {
   findBySpecialty(specialty: string): Promise<Doctor[]>;
   findVerified(): Promise<Doctor[]>;
   save(doctor: Doctor): Promise<void>;
+  add(doctor: Doctor): Promise<string>;
   update(id: string, data: Partial<Doctor>): Promise<void>;
   delete(id: string): Promise<void>;
 }

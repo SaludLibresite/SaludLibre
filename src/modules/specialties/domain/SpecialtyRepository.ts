@@ -9,6 +9,7 @@ export interface SpecialtyRepository {
   findAll(): Promise<Specialty[]>;
   findActive(): Promise<Specialty[]>;
   save(specialty: Specialty): Promise<void>;
+  add(specialty: Specialty): Promise<string>;
   update(id: string, data: Partial<Specialty>): Promise<void>;
   delete(id: string): Promise<void>;
 }

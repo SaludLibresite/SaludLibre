@@ -11,6 +11,7 @@ export interface EntityRepository {
   findByType(type: EntityType): Promise<MedicalEntity[]>;
   findVerified(): Promise<MedicalEntity[]>;
   save(entity: MedicalEntity): Promise<void>;
+  add(entity: MedicalEntity): Promise<string>;
   update(id: string, data: Partial<MedicalEntity>): Promise<void>;
   delete(id: string): Promise<void>;
 }

@@ -2,7 +2,7 @@
 
 import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -38,6 +38,14 @@ function getPlanStyle(planName?: string, status?: string) {
 }
 
 export default function SuperAdminDoctorsPage() {
+  return (
+    <Suspense>
+      <SuperAdminDoctorsContent />
+    </Suspense>
+  );
+}
+
+function SuperAdminDoctorsContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

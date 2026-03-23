@@ -11,6 +11,7 @@ export interface PatientRepository {
   findByDoctorId(doctorId: string): Promise<Patient[]>;
   findAll(): Promise<Patient[]>;
   save(patient: Patient): Promise<void>;
+  add(patient: Patient): Promise<string>;
   update(id: string, data: Partial<Patient>): Promise<void>;
   delete(id: string): Promise<void>;
 }
@@ -20,6 +21,7 @@ export interface FamilyMemberRepository {
   findByPrimaryPatientId(patientId: string): Promise<FamilyMember[]>;
   findByDoctorId(doctorId: string): Promise<FamilyMember[]>;
   save(familyMember: FamilyMember): Promise<void>;
+  add(familyMember: FamilyMember): Promise<string>;
   update(id: string, data: Partial<FamilyMember>): Promise<void>;
   delete(id: string): Promise<void>;
 }
