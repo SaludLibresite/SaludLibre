@@ -20,14 +20,14 @@ function normalizePlanTier(planId: string, planName: string, price: number): 'fr
 }
 
 // GET /api/subscriptions/me — Get current subscription for authenticated doctor
-// Checks v2_subscriptions first, then falls back to legacy subscriptions collection.
+// Checks v2_subscriptions first (with MP verification), then falls back to legacy.
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth(request);
     if (user instanceof NextResponse) return user;
 
-    // 1. Try v2 subscriptions
-    const v2Sub = await getSubscriptionService().getByDoctor(user.uid);
+    // 1. Try v2 subscriptions — verifies status with MercadoPago if recurring
+    const v2Sub = await getSubscriptionService().verifySubscriptionStatus(user.uid);
     if (v2Sub) {
       return jsonOk({ subscription: v2Sub });
     }

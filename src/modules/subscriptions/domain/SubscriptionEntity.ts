@@ -19,4 +19,7 @@ export interface Subscription extends Timestamps {
   activatedAt: Date;
   expiresAt: Date;
   deactivatedAt: Date | null;
+
+  // MercadoPago recurring subscription
+  mpSubscriptionId?: string;            // MercadoPago preapproval ID for recurring billing
 }

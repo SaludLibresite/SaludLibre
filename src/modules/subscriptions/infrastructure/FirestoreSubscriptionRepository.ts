@@ -36,6 +36,7 @@ const subscriptionConverter: FirestoreDataConverter<Subscription> = {
       activatedAt: Timestamp.fromDate(sub.activatedAt),
       expiresAt: Timestamp.fromDate(sub.expiresAt),
       deactivatedAt: sub.deactivatedAt ? Timestamp.fromDate(sub.deactivatedAt) : null,
+      ...(sub.mpSubscriptionId ? { mpSubscriptionId: sub.mpSubscriptionId } : {}),
       createdAt: Timestamp.fromDate(sub.createdAt),
       updatedAt: Timestamp.fromDate(sub.updatedAt),
     };
@@ -56,6 +57,7 @@ const subscriptionConverter: FirestoreDataConverter<Subscription> = {
       activatedAt: d.activatedAt?.toDate?.() ?? new Date(),
       expiresAt: d.expiresAt?.toDate?.() ?? new Date(),
       deactivatedAt: d.deactivatedAt?.toDate?.() ?? null,
+      mpSubscriptionId: d.mpSubscriptionId ?? undefined,
       createdAt: d.createdAt?.toDate?.() ?? new Date(),
       updatedAt: d.updatedAt?.toDate?.() ?? new Date(),
     };
@@ -77,6 +79,13 @@ export class FirestoreSubscriptionRepository
     const results = await this.findAll([
       where('userId', '==', userId),
       where('status', '==', 'active'),
+    ]);
+    return results[0] ?? null;
+  }
+
+  async findByMpSubscriptionId(mpSubscriptionId: string): Promise<Subscription | null> {
+    const results = await this.findAll([
+      where('mpSubscriptionId', '==', mpSubscriptionId),
     ]);
     return results[0] ?? null;
   }

@@ -3,6 +3,9 @@ import type {
   CreatePreferenceParams,
   PaymentPreferenceResult,
   PaymentInfo,
+  CreateSubscriptionParams,
+  SubscriptionResult,
+  SubscriptionInfo,
 } from '@/src/shared/domain/ports/PaymentGateway';
 
 // ============================================================
@@ -105,5 +108,108 @@ export class MercadoPagoGateway implements PaymentGateway {
       externalReference: data.external_reference ?? '',
       approvedAt: data.date_approved ? new Date(data.date_approved) : null,
     };
+  }
+
+  async createSubscription(params: CreateSubscriptionParams): Promise<SubscriptionResult> {
+    const body = {
+      reason: params.reason,
+      external_reference: params.externalReference,
+      payer_email: params.payerEmail,
+      auto_recurring: {
+        frequency: params.frequency,
+        frequency_type: params.frequencyType,
+        transaction_amount: params.transactionAmount,
+        currency_id: params.currencyId,
+      },
+      back_url: params.backUrl,
+      notification_url: params.notificationUrl,
+      status: 'pending',
+    };
+
+    const response = await fetch(`${this.baseUrl}/preapproval`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`MercadoPago Subscription API error (${response.status}): ${error}`);
+    }
+
+    const data = (await response.json()) as {
+      id: string;
+      init_point: string;
+      status: string;
+    };
+
+    return {
+      subscriptionId: data.id,
+      initPoint: data.init_point,
+      status: data.status,
+    };
+  }
+
+  async getSubscriptionInfo(subscriptionId: string): Promise<SubscriptionInfo> {
+    const response = await fetch(
+      `${this.baseUrl}/preapproval/${encodeURIComponent(subscriptionId)}`,
+      {
+        headers: { 'Authorization': `Bearer ${this.accessToken}` },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`MercadoPago Subscription API error (${response.status}): ${error}`);
+    }
+
+    const data = (await response.json()) as {
+      id: string;
+      status: string;
+      payer_email: string;
+      external_reference: string;
+      auto_recurring: { transaction_amount: number };
+      next_payment_date: string | null;
+      last_modified: string | null;
+    };
+
+    const statusMap: Record<string, SubscriptionInfo['status']> = {
+      authorized: 'authorized',
+      pending: 'pending',
+      paused: 'paused',
+      cancelled: 'cancelled',
+    };
+
+    return {
+      id: data.id,
+      status: statusMap[data.status] ?? 'cancelled',
+      payerEmail: data.payer_email ?? '',
+      externalReference: data.external_reference ?? '',
+      transactionAmount: data.auto_recurring?.transaction_amount ?? 0,
+      nextPaymentDate: data.next_payment_date ? new Date(data.next_payment_date) : null,
+      lastModified: data.last_modified ? new Date(data.last_modified) : null,
+    };
+  }
+
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/preapproval/${encodeURIComponent(subscriptionId)}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'cancelled' }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`MercadoPago Cancel Subscription error (${response.status}): ${error}`);
+    }
   }
 }

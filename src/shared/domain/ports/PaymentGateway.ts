@@ -35,7 +35,40 @@ export interface PaymentInfo {
   approvedAt: Date | null;
 }
 
+// --- Recurring Subscription (Preapproval) ---
+
+export interface CreateSubscriptionParams {
+  reason: string;                  // e.g. "Salud Libre — Plan Medium"
+  payerEmail: string;
+  externalReference: string;
+  transactionAmount: number;
+  currencyId: string;              // e.g. "ARS"
+  frequency: number;              // e.g. 1
+  frequencyType: 'months' | 'days';
+  backUrl: string;
+  notificationUrl: string;
+}
+
+export interface SubscriptionResult {
+  subscriptionId: string;          // MercadoPago preapproval ID
+  initPoint: string;               // URL to redirect user for authorization
+  status: string;
+}
+
+export interface SubscriptionInfo {
+  id: string;
+  status: 'authorized' | 'pending' | 'paused' | 'cancelled';
+  payerEmail: string;
+  externalReference: string;
+  transactionAmount: number;
+  nextPaymentDate: Date | null;
+  lastModified: Date | null;
+}
+
 export interface PaymentGateway {
   createPreference(params: CreatePreferenceParams): Promise<PaymentPreferenceResult>;
   getPaymentInfo(paymentId: string): Promise<PaymentInfo>;
+  createSubscription(params: CreateSubscriptionParams): Promise<SubscriptionResult>;
+  getSubscriptionInfo(subscriptionId: string): Promise<SubscriptionInfo>;
+  cancelSubscription(subscriptionId: string): Promise<void>;
 }

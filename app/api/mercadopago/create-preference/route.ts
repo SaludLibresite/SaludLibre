@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriptionService } from '@/src/infrastructure/container';
 import { requireAuth, jsonOk, jsonError } from '@/src/infrastructure/api/auth';
 
-// POST /api/mercadopago/create-preference — Create MercadoPago checkout preference
+// POST /api/mercadopago/create-preference — Create MercadoPago recurring subscription
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request);
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
 
-    const result = await getSubscriptionService().createPaymentPreference({
+    const result = await getSubscriptionService().createRecurringSubscription({
       userId: user.uid,
       userEmail: user.email,
       planId: body.planId,

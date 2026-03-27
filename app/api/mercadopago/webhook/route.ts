@@ -4,6 +4,7 @@ import { getSubscriptionService } from '@/src/infrastructure/container';
 import { jsonOk, jsonError } from '@/src/infrastructure/api/auth';
 
 // POST /api/mercadopago/webhook — MercadoPago IPN webhook
+// Handles: payment events (charges) + subscription_preapproval events (lifecycle)
 // No auth required — validated via HMAC-SHA256 signature
 export async function POST(request: NextRequest) {
   try {
@@ -37,15 +38,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Process the webhook
+    // Determine event type
     const topic = body.type ?? body.topic;
-    const paymentId = String(body.data?.id ?? body.id ?? '');
+    const resourceId = String(body.data?.id ?? body.id ?? '');
 
-    if (topic === 'payment' && paymentId) {
-      await getSubscriptionService().processWebhook({
-        paymentId,
-        topic,
-      });
+    if (resourceId) {
+      if (topic === 'payment') {
+        // Individual payment event (first charge or renewal)
+        await getSubscriptionService().processWebhook({
+          paymentId: resourceId,
+          topic,
+        });
+      } else if (topic === 'subscription_preapproval') {
+        // Subscription lifecycle event (authorized, paused, cancelled)
+        await getSubscriptionService().processWebhook({
+          paymentId: '',
+          topic,
+          resourceId,
+        });
+      }
     }
 
     return jsonOk({ received: true });

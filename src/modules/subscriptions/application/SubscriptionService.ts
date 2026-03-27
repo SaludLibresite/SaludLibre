@@ -9,7 +9,7 @@ import type {
 import type { DoctorRepository } from '@/src/modules/doctors/domain/DoctorRepository';
 import type {
   PaymentGateway,
-  PaymentPreferenceResult,
+  SubscriptionResult,
 } from '@/src/shared/domain/ports/PaymentGateway';
 import type { SubscriptionStatus } from '@/src/shared/domain/types';
 
@@ -29,6 +29,7 @@ export interface CreatePaymentPreferenceInput {
 export interface ProcessWebhookInput {
   paymentId: string;
   topic: string;
+  resourceId?: string;           // For subscription_preapproval events
 }
 
 export interface ActivateSubscriptionInput {
@@ -202,31 +203,48 @@ export class SubscriptionService {
 
   // ========== Checkout Flow ==========
 
-  /** Create a MercadoPago payment preference (redirects user to checkout) */
-  async createPaymentPreference(
+  /** Create a MercadoPago recurring subscription (preapproval) */
+  async createRecurringSubscription(
     input: CreatePaymentPreferenceInput,
-  ): Promise<PaymentPreferenceResult & { subscriptionId: string }> {
+  ): Promise<SubscriptionResult & { subscriptionId: string }> {
     const plan = await this.planRepo.findById(input.planId);
     if (!plan) throw new Error('Subscription plan not found');
     if (plan.price <= 0) throw new Error('Cannot create payment for free plan');
 
     const externalReference = `${input.userId}_${plan.id}_${Date.now()}`;
+    const baseUrl = input.baseUrl;
 
-    const preference = await this.paymentGateway.createPreference({
-      items: [
-        {
-          title: `Salud Libre — ${plan.name}`,
-          unitPrice: plan.price,
-          quantity: 1,
-        },
-      ],
+    // Cancel any existing MP subscription for this user
+    const existingActive = await this.subscriptionRepo.findActiveByUserId(input.userId);
+    if (existingActive?.mpSubscriptionId) {
+      try {
+        await this.paymentGateway.cancelSubscription(existingActive.mpSubscriptionId);
+      } catch {
+        // If cancellation fails (already cancelled, etc.), continue
+      }
+    }
+
+    // Create recurring subscription on MercadoPago
+    const mpResult = await this.paymentGateway.createSubscription({
+      reason: `Salud Libre — ${plan.name} (mensual)`,
       payerEmail: input.userEmail,
       externalReference,
-      successUrl: `${input.baseUrl}/subscription/success`,
-      failureUrl: `${input.baseUrl}/subscription/failure`,
-      pendingUrl: `${input.baseUrl}/subscription/pending`,
-      notificationUrl: `${input.baseUrl}/api/mercadopago/webhook`,
+      transactionAmount: plan.price,
+      currencyId: 'ARS',
+      frequency: 1,
+      frequencyType: 'months',
+      backUrl: `${baseUrl}/subscription/success`,
+      notificationUrl: `${baseUrl}/api/mercadopago/webhook`,
     });
+
+    // Deactivate any existing active subscription
+    if (existingActive) {
+      await this.subscriptionRepo.update(existingActive.id, {
+        status: 'cancelled' as SubscriptionStatus,
+        deactivatedAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
 
     // Create pending subscription record
     const now = new Date();
@@ -243,13 +261,13 @@ export class SubscriptionService {
       activatedAt: now,
       expiresAt: new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000),
       deactivatedAt: null,
+      mpSubscriptionId: mpResult.subscriptionId,
       createdAt: now,
       updatedAt: now,
     };
     const subscriptionId = await this.subscriptionRepo.add(subscription);
-    subscription.id = subscriptionId;
 
-    // Create pending payment record
+    // Create pending payment record for the first charge
     const payment: Payment = {
       id: '',
       subscriptionId,
@@ -263,25 +281,182 @@ export class SubscriptionService {
     };
     await this.paymentRepo.add(payment);
 
-    return { ...preference, subscriptionId };
+    return { ...mpResult, subscriptionId };
   }
 
   /** Process MercadoPago webhook notification (IPN) */
   async processWebhook(input: ProcessWebhookInput): Promise<void> {
-    if (input.topic !== 'payment') return;
+    // Handle subscription lifecycle events (authorized, paused, cancelled)
+    if (input.topic === 'subscription_preapproval' && input.resourceId) {
+      await this.processSubscriptionEvent(input.resourceId);
+      return;
+    }
 
-    const paymentInfo = await this.paymentGateway.getPaymentInfo(input.paymentId);
-    if (paymentInfo.status !== 'approved') return;
+    // Handle individual payment events (first charge + renewals)
+    if (input.topic === 'payment' && input.paymentId) {
+      const paymentInfo = await this.paymentGateway.getPaymentInfo(input.paymentId);
+      if (paymentInfo.status !== 'approved') return;
 
-    // Parse external_reference: "userId_planId_timestamp"
-    const [userId] = paymentInfo.externalReference.split('_');
-    if (!userId) return;
+      // Parse external_reference: "userId_planId_timestamp"
+      const [userId] = paymentInfo.externalReference.split('_');
+      if (!userId) return;
 
-    const subscriptions = await this.subscriptionRepo.findByUserId(userId);
-    const pendingSub = subscriptions.find(s => s.status === 'inactive');
-    if (!pendingSub) return;
+      // Check if this payment belongs to a recurring subscription
+      const subscriptions = await this.subscriptionRepo.findByUserId(userId);
+      const activeSub = subscriptions.find(s => s.status === 'active' && s.mpSubscriptionId);
 
-    await this.activate({ subscriptionId: pendingSub.id, activatedBy: 'mercadopago-webhook' });
+      if (activeSub) {
+        // This is a renewal payment — extend the subscription
+        await this.processRenewalPayment(activeSub, paymentInfo.transactionAmount);
+        return;
+      }
+
+      // First payment — activate pending subscription
+      const pendingSub = subscriptions.find(s => s.status === 'inactive' && s.mpSubscriptionId);
+      if (!pendingSub) return;
+      await this.activate({ subscriptionId: pendingSub.id, activatedBy: 'mercadopago-webhook' });
+    }
+  }
+
+  /** Process subscription_preapproval event from MercadoPago */
+  private async processSubscriptionEvent(mpSubscriptionId: string): Promise<void> {
+    const mpInfo = await this.paymentGateway.getSubscriptionInfo(mpSubscriptionId);
+    const sub = await this.subscriptionRepo.findByMpSubscriptionId(mpSubscriptionId);
+    if (!sub) return;
+
+    const now = new Date();
+
+    if (mpInfo.status === 'authorized' && sub.status === 'inactive') {
+      // Subscription was just authorized — activate it
+      await this.activate({ subscriptionId: sub.id, activatedBy: 'mercadopago-webhook' });
+    } else if (mpInfo.status === 'paused' || mpInfo.status === 'cancelled') {
+      // Subscription was paused or cancelled
+      await this.subscriptionRepo.update(sub.id, {
+        status: 'cancelled' as SubscriptionStatus,
+        deactivatedAt: now,
+        updatedAt: now,
+      });
+      await this.doctorRepo.update(sub.userId, {
+        subscription: {
+          status: 'cancelled',
+          planId: sub.planId,
+          planName: sub.planName,
+          expiresAt: sub.expiresAt,
+        },
+        updatedAt: now,
+      });
+    }
+  }
+
+  /** Process a renewal payment — extend subscription by 30 days */
+  private async processRenewalPayment(sub: Subscription, amount: number): Promise<void> {
+    const now = new Date();
+    const currentExpiry = sub.expiresAt > now ? sub.expiresAt : now;
+    const newExpiry = new Date(currentExpiry.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await this.subscriptionRepo.update(sub.id, {
+      expiresAt: newExpiry,
+      updatedAt: now,
+    });
+
+    // Log the renewal payment
+    const payment: Payment = {
+      id: '',
+      subscriptionId: sub.id,
+      status: 'approved',
+      paymentMethod: 'mercadopago',
+      transactionAmount: amount,
+      approvedAt: now,
+      activatedBy: 'mercadopago-renewal',
+      createdAt: now,
+      updatedAt: now,
+    };
+    await this.paymentRepo.add(payment);
+
+    // Update doctor's subscription expiry
+    await this.doctorRepo.update(sub.userId, {
+      subscription: {
+        status: 'active',
+        planId: sub.planId,
+        planName: sub.planName,
+        expiresAt: newExpiry,
+      },
+      updatedAt: now,
+    });
+  }
+
+  /** Verify subscription status with MercadoPago and sync locally */
+  async verifySubscriptionStatus(userId: string): Promise<Subscription | null> {
+    const sub = await this.subscriptionRepo.findActiveByUserId(userId);
+    if (!sub) return null;
+
+    // If no MP subscription ID, it's manual — just check expiry
+    if (!sub.mpSubscriptionId) {
+      if (sub.expiresAt <= new Date()) {
+        await this.subscriptionRepo.update(sub.id, {
+          status: 'expired' as SubscriptionStatus,
+          updatedAt: new Date(),
+        });
+        await this.doctorRepo.update(sub.userId, {
+          subscription: { status: 'expired', planId: sub.planId, planName: sub.planName, expiresAt: sub.expiresAt },
+          updatedAt: new Date(),
+        });
+        return null;
+      }
+      return sub;
+    }
+
+    // Verify with MercadoPago
+    try {
+      const mpInfo = await this.paymentGateway.getSubscriptionInfo(sub.mpSubscriptionId);
+
+      if (mpInfo.status === 'authorized') {
+        // Still active — update next payment info if we have it
+        return sub;
+      }
+
+      if (mpInfo.status === 'paused' || mpInfo.status === 'cancelled') {
+        const now = new Date();
+        await this.subscriptionRepo.update(sub.id, {
+          status: 'cancelled' as SubscriptionStatus,
+          deactivatedAt: now,
+          updatedAt: now,
+        });
+        await this.doctorRepo.update(sub.userId, {
+          subscription: { status: 'cancelled', planId: sub.planId, planName: sub.planName, expiresAt: sub.expiresAt },
+          updatedAt: now,
+        });
+        return null;
+      }
+
+      return sub;
+    } catch {
+      // If MP API fails, trust local state
+      return sub;
+    }
+  }
+
+  /** Cancel a MercadoPago recurring subscription */
+  async cancelRecurring(subscriptionId: string): Promise<void> {
+    const sub = await this.subscriptionRepo.findById(subscriptionId);
+    if (!sub) throw new Error('Subscription not found');
+
+    // Cancel on MercadoPago side if it's a recurring subscription
+    if (sub.mpSubscriptionId) {
+      await this.paymentGateway.cancelSubscription(sub.mpSubscriptionId);
+    }
+
+    const now = new Date();
+    await this.subscriptionRepo.update(subscriptionId, {
+      status: 'cancelled' as SubscriptionStatus,
+      deactivatedAt: now,
+      updatedAt: now,
+    });
+
+    await this.doctorRepo.update(sub.userId, {
+      subscription: { status: 'cancelled', planId: sub.planId, planName: sub.planName, expiresAt: sub.expiresAt },
+      updatedAt: now,
+    });
   }
 
   // ========== Subscription Lifecycle ==========
