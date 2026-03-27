@@ -90,7 +90,8 @@ function getDoctorRank(doc: Doctor): Rank {
   return 'normal';
 }
 
-function getDrTitle(gender: string): string {
+function getDrTitle(gender: string, name?: string): string {
+  if (name && /^(Dra?\.?\s)/i.test(name.trim())) return '';
   return gender === 'female' ? 'Dra.' : 'Dr.';
 }
 
@@ -712,6 +713,8 @@ export default function DoctorSearch() {
           <DoctorsMapModal
             doctors={filtered}
             allDoctors={allDoctors}
+            allEntities={allEntities}
+            specialties={specialties}
             isLoaded={isLoaded}
             selectedMarker={selectedMarker}
             setSelectedMarker={setSelectedMarker}
@@ -733,6 +736,8 @@ export default function DoctorSearch() {
 function DoctorsMapModal({
   doctors,
   allDoctors,
+  allEntities,
+  specialties,
   isLoaded,
   selectedMarker,
   setSelectedMarker,
@@ -746,6 +751,8 @@ function DoctorsMapModal({
 }: {
   doctors: Doctor[];
   allDoctors: Doctor[];
+  allEntities: MedicalEntity[];
+  specialties: Specialty[];
   isLoaded: boolean;
   selectedMarker: Doctor | null;
   setSelectedMarker: (d: Doctor | null) => void;
@@ -757,20 +764,49 @@ function DoctorsMapModal({
   userLocation: { lat: number; lng: number } | null;
   onClose: () => void;
 }) {
+  const [mapSpecialty, setMapSpecialty] = useState('');
+  const [showDoctors, setShowDoctors] = useState(true);
+  const [showCentros, setShowCentros] = useState(true);
+  const [showFarmacias, setShowFarmacias] = useState(true);
+  const [showLabs, setShowLabs] = useState(true);
+  const [selectedEntityMarker, setSelectedEntityMarker] = useState<MedicalEntity | null>(null);
+
   const mapDoctors = useMemo(() => {
-    return allDoctors.filter((d) => d.location?.latitude && d.location?.longitude);
-  }, [allDoctors]);
+    if (!showDoctors) return [];
+    let result = allDoctors.filter((d) => d.location?.latitude && d.location?.longitude);
+    if (mapSpecialty) result = result.filter((d) => d.specialty === mapSpecialty);
+    if (barrioFilter) result = result.filter((d) => extractBarrio(d.location?.formattedAddress) === barrioFilter);
+    return result;
+  }, [allDoctors, mapSpecialty, barrioFilter, showDoctors]);
+
+  const mapEntities = useMemo(() => {
+    const activeTypes: string[] = [];
+    if (showCentros) activeTypes.push('centro_medico');
+    if (showFarmacias) activeTypes.push('farmacia');
+    if (showLabs) activeTypes.push('laboratorio');
+    if (activeTypes.length === 0) return [];
+    let result = allEntities.filter((e) => e.location?.latitude && e.location?.longitude && activeTypes.includes(e.type));
+    if (barrioFilter) result = result.filter((e) => extractBarrio(e.location?.formattedAddress) === barrioFilter);
+    return result;
+  }, [allEntities, showCentros, showFarmacias, showLabs, barrioFilter]);
+
+  const ENTITY_MARKER_COLORS: Record<string, string> = { centro_medico: '#3b82f6', farmacia: '#22c55e', laboratorio: '#a855f7' };
+
+  const allMapPoints = useMemo(() => [
+    ...mapDoctors.map((d) => d.location),
+    ...mapEntities.map((e) => e.location),
+  ], [mapDoctors, mapEntities]);
 
   const center = useMemo(() => {
     if (barrioFilter && BARRIO_COORDINATES[barrioFilter]) return BARRIO_COORDINATES[barrioFilter];
     if (userLocation) return userLocation;
-    if (mapDoctors.length > 0) {
-      const avgLat = mapDoctors.reduce((s, d) => s + d.location.latitude, 0) / mapDoctors.length;
-      const avgLng = mapDoctors.reduce((s, d) => s + d.location.longitude, 0) / mapDoctors.length;
+    if (allMapPoints.length > 0) {
+      const avgLat = allMapPoints.reduce((s, l) => s + l.latitude, 0) / allMapPoints.length;
+      const avgLng = allMapPoints.reduce((s, l) => s + l.longitude, 0) / allMapPoints.length;
       return { lat: avgLat, lng: avgLng };
     }
     return BUENOS_AIRES;
-  }, [barrioFilter, userLocation, mapDoctors]);
+  }, [barrioFilter, userLocation, allMapPoints]);
 
   const zoom = barrioFilter ? 14 : 11;
 
@@ -809,7 +845,7 @@ function DoctorsMapModal({
         </select>
 
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white select-none">
-          <span className="hidden sm:inline">Solo doctores</span>
+          <span className="hidden sm:inline">Sin Puntos de Referencia</span>
           <span className="sm:hidden">POI</span>
           <div className="relative">
             <input type="checkbox" checked={hidePOI} onChange={() => setHidePOI(!hidePOI)} className="peer sr-only" />
@@ -826,6 +862,84 @@ function DoctorsMapModal({
           Filtros
         </button>
       </div>
+
+      {/* Filter panel */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-b border-white/10 bg-[#011d2f]/95"
+          >
+            <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+              {/* Toggle switches for categories */}
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs text-white select-none">
+                <span>👨‍⚕️ Médicos</span>
+                <div className="relative">
+                  <input type="checkbox" checked={showDoctors} onChange={() => setShowDoctors(!showDoctors)} className="peer sr-only" />
+                  <div className="h-4 w-7 rounded-full bg-white/20 transition peer-checked:bg-[#4dbad9]" />
+                  <div className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-3" />
+                </div>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs text-white select-none">
+                <span>🏥 Centros médicos</span>
+                <div className="relative">
+                  <input type="checkbox" checked={showCentros} onChange={() => setShowCentros(!showCentros)} className="peer sr-only" />
+                  <div className="h-4 w-7 rounded-full bg-white/20 transition peer-checked:bg-[#3b82f6]" />
+                  <div className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-3" />
+                </div>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs text-white select-none">
+                <span>💊 Farmacias</span>
+                <div className="relative">
+                  <input type="checkbox" checked={showFarmacias} onChange={() => setShowFarmacias(!showFarmacias)} className="peer sr-only" />
+                  <div className="h-4 w-7 rounded-full bg-white/20 transition peer-checked:bg-[#22c55e]" />
+                  <div className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-3" />
+                </div>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs text-white select-none">
+                <span>🔬 Laboratorios</span>
+                <div className="relative">
+                  <input type="checkbox" checked={showLabs} onChange={() => setShowLabs(!showLabs)} className="peer sr-only" />
+                  <div className="h-4 w-7 rounded-full bg-white/20 transition peer-checked:bg-[#a855f7]" />
+                  <div className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white transition-transform peer-checked:translate-x-3" />
+                </div>
+              </label>
+
+              {/* Divider */}
+              <div className="hidden sm:block h-6 w-px bg-white/20" />
+
+              {/* Specialty filter */}
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Especialidad</label>
+                <select
+                  value={mapSpecialty}
+                  onChange={(e) => setMapSpecialty(e.target.value)}
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white outline-none [&>option]:text-gray-900"
+                >
+                  <option value="">Todas</option>
+                  {specialties.map((s) => <option key={s.id} value={s.title}>{s.title}</option>)}
+                </select>
+              </div>
+
+              {/* Zone filter */}
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Zona</label>
+                <select
+                  value={barrioFilter}
+                  onChange={(e) => setBarrioFilter(e.target.value)}
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white outline-none [&>option]:text-gray-900"
+                >
+                  <option value="">Todas las zonas</option>
+                  {barrioOptions.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Map */}
       <div className="relative flex-1">
@@ -849,7 +963,7 @@ function DoctorsMapModal({
             <Marker
               key={doc.id}
               position={{ lat: doc.location.latitude, lng: doc.location.longitude }}
-              onClick={() => setSelectedMarker(doc)}
+              onClick={() => { setSelectedMarker(doc); setSelectedEntityMarker(null); }}
               icon={{
                 path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
                 fillColor: getDoctorRank(doc) === 'vip' ? '#f59e0b' : getDoctorRank(doc) === 'plus' ? '#3b82f6' : '#64748b',
@@ -889,7 +1003,7 @@ function DoctorsMapModal({
                     <img src={selectedMarker.profileImage} alt={selectedMarker.name} className="h-12 w-12 rounded-lg object-cover" referrerPolicy="no-referrer" />
                   )}
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900">{getDrTitle(selectedMarker.gender)} {selectedMarker.name}</p>
+                    <p className="font-semibold text-gray-900">{getDrTitle(selectedMarker.gender, selectedMarker.name)} {selectedMarker.name}</p>
                     <p className="text-sm text-[#4dbad9]">{selectedMarker.specialty}</p>
                   </div>
                 </div>
@@ -912,29 +1026,57 @@ function DoctorsMapModal({
               </div>
             </InfoWindow>
           )}
-        </GoogleMap>
 
-        {/* Bottom drawer */}
-        <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white/95 px-4 py-3 shadow-2xl backdrop-blur">
-          <div className="mx-auto max-w-lg">
-            <div className="mb-1 flex items-center justify-center">
-              <div className="h-1 w-8 rounded-full bg-gray-300" />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">{mapDoctors.length} profesionales</span>
-              {barrioFilter && (
-                <button onClick={() => setBarrioFilter('')} className="text-xs text-[#4dbad9] hover:underline">Limpiar zona</button>
-              )}
-            </div>
-            {/* Legend */}
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />Plus</span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" />Medium</span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-slate-500" />Free</span>
-              {userLocation && <span className="inline-flex items-center gap-1 text-[10px] text-gray-500"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ring-blue-200" />Tu ubicación</span>}
-            </div>
-          </div>
-        </div>
+          {/* Entity markers */}
+          {mapEntities.map((ent) => (
+            <Marker
+              key={`ent-${ent.id}`}
+              position={{ lat: ent.location.latitude, lng: ent.location.longitude }}
+              onClick={() => { setSelectedEntityMarker(ent); setSelectedMarker(null); }}
+              icon={{
+                path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+                fillColor: ENTITY_MARKER_COLORS[ent.type] ?? '#6b7280',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+                scale: 1.5,
+                anchor: typeof google !== 'undefined' ? new google.maps.Point(12, 22) : undefined,
+              } as google.maps.Symbol}
+            />
+          ))}
+
+          {selectedEntityMarker && (
+            <InfoWindow
+              position={{ lat: selectedEntityMarker.location.latitude, lng: selectedEntityMarker.location.longitude }}
+              onCloseClick={() => setSelectedEntityMarker(null)}
+            >
+              <div className="max-w-[260px] p-1">
+                <div className="flex items-start gap-3">
+                  {selectedEntityMarker.profileImage && (
+                    <img src={selectedEntityMarker.profileImage} alt={selectedEntityMarker.name} className="h-12 w-12 rounded-lg object-cover" referrerPolicy="no-referrer" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900">{selectedEntityMarker.name}</p>
+                    <p className="text-sm" style={{ color: ENTITY_MARKER_COLORS[selectedEntityMarker.type] ?? '#6b7280' }}>
+                      {ENTITY_TYPE_LABELS[selectedEntityMarker.type]?.label ?? selectedEntityMarker.type}
+                    </p>
+                  </div>
+                </div>
+                {selectedEntityMarker.location.formattedAddress && <p className="mt-1.5 text-xs text-gray-500">📍 {selectedEntityMarker.location.formattedAddress}</p>}
+                <div className="mt-2 flex items-center gap-2">
+                  <Link href={`/entidades/${selectedEntityMarker.slug ?? selectedEntityMarker.id}`} className="rounded-lg bg-[#e8910f] px-3 py-1 text-xs font-semibold text-white hover:bg-[#d4830d]">
+                    Ver más
+                  </Link>
+                  {selectedEntityMarker.phone && (
+                    <a href={`tel:${selectedEntityMarker.phone}`} className="rounded-lg bg-blue-500 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-600">
+                      Llamar
+                    </a>
+                  )}
+                </div>
+              </div>
+            </InfoWindow>
+          )}
+        </GoogleMap>
       </div>
     </motion.div>
   );
@@ -964,7 +1106,7 @@ function DoctorSection({ title, badge, badgeColor, doctors, cardVariant, showing
 
 /* ─── Doctor Card ─── */
 function DoctorCard({ doctor, variant, showDistance }: { doctor: Doctor; variant: Rank; showDistance: boolean }) {
-  const title = getDrTitle(doctor.gender);
+  const title = getDrTitle(doctor.gender, doctor.name);
 
   const styles = {
     vip: {
@@ -1174,7 +1316,7 @@ function DoctorTableView({ doctors, showDistance }: { doctors: Doctor[]; showDis
           <tbody className="divide-y divide-gray-100">
             {doctors.map((doc) => {
               const rank = getDoctorRank(doc);
-              const title = getDrTitle(doc.gender);
+              const title = getDrTitle(doc.gender, doc.name);
               const planLabel = rank === 'vip' ? 'Plus' : rank === 'plus' ? 'Medium' : 'Free';
               const planCls = rank === 'vip' ? 'bg-amber-50 text-amber-700' : rank === 'plus' ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600';
               return (

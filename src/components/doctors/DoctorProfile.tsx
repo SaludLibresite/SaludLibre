@@ -63,7 +63,8 @@ interface Review {
 }
 
 /* ─── Helpers ─── */
-function getDrTitle(gender: string): string {
+function getDrTitle(gender: string, name?: string): string {
+  if (name && /^(Dra?\.?\s)/i.test(name.trim())) return '';
   return gender === 'female' ? 'Dra.' : 'Dr.';
 }
 
@@ -259,7 +260,7 @@ function AppointmentModal({ doctor, onClose }: { doctor: Doctor; onClose: () => 
             {/* Doctor info */}
             <div className="mb-5 rounded-xl bg-gray-50 px-4 py-3">
               <p className="text-sm text-gray-500">
-                Turno con <span className="font-semibold text-gray-800">{getDrTitle(doctor.gender)} {doctor.name}</span>
+                Turno con <span className="font-semibold text-gray-800">{getDrTitle(doctor.gender, doctor.name)} {doctor.name}</span>
               </p>
               <p className="mt-0.5 text-xs text-gray-400">{doctor.specialty}</p>
             </div>
@@ -435,7 +436,7 @@ export default function DoctorProfile() {
     );
   }
 
-  const title = getDrTitle(doctor.gender);
+  const title = getDrTitle(doctor.gender, doctor.name);
   const planBadge = getPlanBadge(doctor.subscription);
   const hasLocation = doctor.location?.latitude && doctor.location?.longitude;
 
@@ -793,7 +794,7 @@ export default function DoctorProfile() {
                         {rd.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                       </div>
                     </div>
-                    <p className="mt-3 text-center text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[#4dbad9] transition-colors">{getDrTitle(rd.gender)} {rd.name}</p>
+                    <p className="mt-3 text-center text-sm font-semibold text-[var(--color-text-primary)] group-hover:text-[#4dbad9] transition-colors">{getDrTitle(rd.gender, rd.name)} {rd.name}</p>
                     <p className="mt-0.5 text-xs text-[#4dbad9]">{rd.specialty}</p>
                     {rd.location?.formattedAddress && (
                       <p className="mt-1.5 line-clamp-1 text-center text-[11px] text-[var(--color-text-muted)]">📍 {rd.location.formattedAddress}</p>
