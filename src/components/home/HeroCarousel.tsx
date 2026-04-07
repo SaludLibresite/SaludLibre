@@ -43,7 +43,7 @@ export default function HeroCarousel() {
   }
 
   return (
-    <section className="relative h-[600px] overflow-hidden sm:h-[700px]">
+    <section className="relative h-[600px] overflow-hidden sm:h-[100dvh]">
       {/* Background slides */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -95,11 +95,10 @@ export default function HeroCarousel() {
             {/* Search bar */}
             <form
               onSubmit={handleSearch}
-              className={`mt-8 flex overflow-hidden rounded-xl shadow-2xl transition-all duration-700 ${
-                SLIDES[current].showText
+              className={`mt-8 flex overflow-hidden rounded-xl shadow-2xl transition-all duration-700 ${SLIDES[current].showText
                   ? "bg-white"
                   : "border border-white/30 bg-white/20 backdrop-blur-md"
-              }`}
+                }`}
             >
               <div className="flex flex-1 items-center gap-2 px-4">
                 <svg
@@ -120,11 +119,10 @@ export default function HeroCarousel() {
                   placeholder="Buscar doctor, especialidad, área..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className={`w-full bg-transparent py-4 text-sm outline-none sm:text-base ${
-                    SLIDES[current].showText
+                  className={`w-full bg-transparent py-4 text-sm outline-none sm:text-base ${SLIDES[current].showText
                       ? "text-gray-900 placeholder-gray-400"
                       : "text-white placeholder-white/80"
-                  }`}
+                    }`}
                 />
               </div>
               <button
