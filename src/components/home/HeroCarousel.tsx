@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 const SLIDES = [
   {
@@ -19,8 +17,6 @@ const SLIDES = [
 
 export default function HeroCarousel() {
   const [current, setCurrent] = useState(0);
-  const [query, setQuery] = useState("");
-  const router = useRouter();
 
   const next = useCallback(
     () => setCurrent((c) => (c + 1) % SLIDES.length),
@@ -32,18 +28,12 @@ export default function HeroCarousel() {
   );
 
   useEffect(() => {
-    const interval = setInterval(next, 8000); // 8s per slide
+    const interval = setInterval(next, 8000);
     return () => clearInterval(interval);
   }, [current, next]);
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (query.trim())
-      router.push(`/doctores?search=${encodeURIComponent(query.trim())}`);
-  }
-
   return (
-    <section className="relative h-[600px] overflow-hidden sm:h-[100dvh]">
+    <section className="relative -mt-12 h-[600px] overflow-hidden sm:h-[110dvh]">
       {/* Background slides */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -57,27 +47,27 @@ export default function HeroCarousel() {
           <Image
             src={SLIDES[current].image}
             alt="Profesional de la salud"
-            className="object-cover"
+            className="object-cover object-top"
             priority={current === 0}
             fill
           />
         </motion.div>
       </AnimatePresence>
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#011d2f]/80 to-[#4dbad9]/30" />
+      {/* Overlay + Content (only when showText) */}
+      {SLIDES[current].showText && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#011d2f]/80 to-[#4dbad9]/30" />
 
-      {/* Content */}
-      <div className="relative z-10 flex h-full items-center">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className={`max-w-2xl w-full ${!SLIDES[current].showText ? "mx-auto" : ""}`}
-          >
-            {SLIDES[current].showText && (
-              <>
+          <div className="relative z-10 flex h-full items-center">
+            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="max-w-2xl w-full"
+              >
                 <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
                   <span className="text-white">Encontrá tu</span>
                   <br />
@@ -89,74 +79,11 @@ export default function HeroCarousel() {
                   Conectá con los mejores especialistas médicos en tu zona. Turnos
                   rápidos, atención de calidad y cuidado personalizado.
                 </p>
-              </>
-            )}
-
-            {/* Search bar */}
-            <form
-              onSubmit={handleSearch}
-              className={`mt-8 flex overflow-hidden rounded-xl shadow-2xl transition-all duration-700 ${SLIDES[current].showText
-                  ? "bg-white"
-                  : "border border-white/30 bg-white/20 backdrop-blur-md"
-                }`}
-            >
-              <div className="flex flex-1 items-center gap-2 px-4">
-                <svg
-                  className={`h-5 w-5 shrink-0 ${SLIDES[current].showText ? "text-gray-400" : "text-white"}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Buscar doctor, especialidad, área..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className={`w-full bg-transparent py-4 text-sm outline-none sm:text-base ${SLIDES[current].showText
-                      ? "text-gray-900 placeholder-gray-400"
-                      : "text-white placeholder-white/80"
-                    }`}
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-[#e8910f] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#d4830d] sm:px-8 sm:text-base"
-              >
-                Buscar
-              </button>
-            </form>
-
-            <div className={`mt-6 ${!SLIDES[current].showText ? "flex justify-center" : ""}`}>
-              <Link
-                href="/doctores"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white hover:bg-white/10"
-              >
-                Ver Doctores
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  />
-                </svg>
-              </Link>
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Arrows */}
       <button

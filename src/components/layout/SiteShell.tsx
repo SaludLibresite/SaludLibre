@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import NavBar from './NavBar';
+import SearchBar from './SearchBar';
 import Footer from './Footer';
 import ChatBubble from '../chat/ChatBubble';
 
@@ -16,6 +17,7 @@ export default function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <NavBar />
+      <SearchBar />
       <main className="flex-1">{children}</main>
       <Footer />
       <ChatBubble />
