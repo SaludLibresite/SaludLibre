@@ -8,6 +8,7 @@ const SLIDES = [
   {
     image: "/img/laboratorio-argue-en-acuerdo-con-saludlibre.webp",
     showText: false,
+    link: "https://www.argus.com.ar/ficha_sede.php?id=3&gad_source=1&gad_campaignid=20772241605&gclid=CjwKCAjw-dfOBhAjEiwAq0RwIy9ljofzoo-neaJRelCyqZ5WnyEtO1Qy1CfkSwM7Tub0Ii29wzB50xoC40cQAvD_BwE",
   },
   {
     image: "/img/doctor-1.jpg",
@@ -33,7 +34,7 @@ export default function HeroCarousel() {
   }, [current, next]);
 
   return (
-    <section className="relative -mt-12 h-[600px] overflow-hidden sm:h-[110dvh]">
+    <section className="relative -mt-12 h-[40dvh] overflow-hidden lg:h-[110dvh]">
       {/* Background slides */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -44,13 +45,30 @@ export default function HeroCarousel() {
           transition={{ duration: 0.7 }}
           className="absolute inset-0"
         >
-          <Image
-            src={SLIDES[current].image}
-            alt="Profesional de la salud"
-            className="object-cover object-top"
-            priority={current === 0}
-            fill
-          />
+          {!SLIDES[current].showText && SLIDES[current].link ? (
+            <a
+              href={SLIDES[current].link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block h-full w-full cursor-pointer"
+            >
+              <Image
+                src={SLIDES[current].image}
+                alt="Profesional de la salud"
+                className="object-bottom object-contain lg:object-cover lg:object-top"
+                priority={current === 0}
+                fill
+              />
+            </a>
+          ) : (
+            <Image
+              src={SLIDES[current].image}
+              alt="Profesional de la salud"
+              className="object-bottom object-contain lg:object-cover lg:object-top"
+              priority={current === 0}
+              fill
+            />
+          )}
         </motion.div>
       </AnimatePresence>
 
