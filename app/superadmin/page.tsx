@@ -4,6 +4,7 @@ import SuperAdminLayout from '@/components/layout/SuperAdminLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { usePlatformSettingsStore } from '@/src/stores/platformSettingsStore';
 
 interface PlatformStats {
   totalDoctors: number;
@@ -32,17 +33,42 @@ export default function SuperAdminDashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<PlatformStats>(EMPTY);
   const [loading, setLoading] = useState(true);
+  const { freemiumMode, setFreemiumMode } = usePlatformSettingsStore();
+  const [freemiumLoading, setFreemiumLoading] = useState(false);
+  const [freemiumFetched, setFreemiumFetched] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
         const token = await user.getIdToken();
-        const res = await fetch('/api/superadmin/stats', { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) setStats(await res.json());
+        const [statsRes, settingsRes] = await Promise.all([
+          fetch('/api/superadmin/stats', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/superadmin/platform-settings', { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (settingsRes.ok) {
+          const d = await settingsRes.json();
+          setFreemiumMode(d.freemiumMode);
+          setFreemiumFetched(true);
+        }
       } catch { /* */ } finally { setLoading(false); }
     })();
-  }, [user]);
+  }, [user, setFreemiumMode]);
+
+  async function handleFreemiumToggle(value: boolean) {
+    if (!user) return;
+    setFreemiumLoading(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/superadmin/platform-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ freemiumMode: value }),
+      });
+      if (res.ok) setFreemiumMode(value);
+    } catch { /* */ } finally { setFreemiumLoading(false); }
+  }
 
   const pct = (n: number, total: number) => total > 0 ? Math.round((n / total) * 100) : 0;
 
@@ -162,6 +188,42 @@ export default function SuperAdminDashboardPage() {
                       <div className="h-full rounded-full bg-gray-300 transition-all" style={{ width: `${pct(stats.planBreakdown.free, stats.totalDoctors)}%` }} />
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Freemium mode toggle */}
+            <div className="mt-6">
+              <p className="text-sm font-semibold text-gray-900">Configuración de plataforma</p>
+              <div className="mt-3 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Modo freemium</p>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      Habilita todas las funciones premium para todos los doctores sin costo. Los botones de suscripción se deshabilitan y se muestra un aviso en el panel.
+                    </p>
+                    {freemiumMode && (
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Activo ahora
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleFreemiumToggle(!freemiumMode)}
+                    disabled={freemiumLoading || !freemiumFetched}
+                    aria-checked={freemiumMode}
+                    role="switch"
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+                      freemiumMode ? 'bg-amber-400' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                        freemiumMode ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </div>

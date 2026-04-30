@@ -13,7 +13,15 @@ export const metadata: Metadata = {
   title: "SaludLibre – Conectá con los mejores profesionales de la salud",
   description:
     "Buscá y conectá con profesionales de la salud en Argentina. Turnos online, videoconsultas, recetas digitales y más.",
-  icons: { icon: "/img/logo.png" },
+  icons: {
+    icon: [
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", rel: "shortcut icon" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({

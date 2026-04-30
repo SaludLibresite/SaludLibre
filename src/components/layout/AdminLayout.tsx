@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ProtectedRoute from '@/components/guards/ProtectedRoute';
 import { useSubscriptionStore, type PlanTier } from '@/src/stores/subscriptionStore';
+import { usePlatformSettingsStore } from '@/src/stores/platformSettingsStore';
 
 const FREE_LINKS = [
   { href: '/admin',         label: 'Inicio',       icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -51,29 +52,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { planTier, expiresAt, setSubscription, clearSubscription, isValid } = useSubscriptionStore();
+  const { freemiumMode, setFreemiumMode } = usePlatformSettingsStore();
 
   const isActive = (href: string) => pathname === href || (href !== '/admin' && pathname.startsWith(href));
 
   useEffect(() => {
     if (!user) return;
-    // Use cached value if still valid (< 1 hour old, same user)
-    if (isValid(user.uid)) return;
 
-    (async () => {
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch('/api/subscriptions/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const tier = (data.subscription?.planId ?? 'free') as PlanTier;
-          const expiresAt = data.subscription?.expiresAt ?? null;
-          setSubscription(user.uid, PLAN_ORDER[tier] !== undefined ? tier : 'free', expiresAt);
-        }
-      } catch { /* */ }
-    })();
-  }, [user, isValid, setSubscription]);
+    const tasks: Promise<void>[] = [];
+
+    if (!isValid(user.uid)) {
+      tasks.push(
+        user.getIdToken().then((token) =>
+          fetch('/api/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } })
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => {
+              if (!data) return;
+              const tier = (data.subscription?.planId ?? 'free') as PlanTier;
+              setSubscription(user.uid, PLAN_ORDER[tier] !== undefined ? tier : 'free', data.subscription?.expiresAt ?? null);
+            })
+            .catch(() => {}),
+        ),
+      );
+    }
+
+    tasks.push(
+      fetch('/api/platform-settings')
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => { if (data) setFreemiumMode(data.freemiumMode); })
+        .catch(() => {}),
+    );
+
+    Promise.all(tasks);
+  }, [user, isValid, setSubscription, setFreemiumMode]);
 
   async function handleLogout() {
     clearSubscription();
@@ -166,41 +177,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 );
               })}
 
-              {/* Premium links — shown with lock or active depending on plan */}
+              {/* Premium links — always show badge; access depends on plan or freemium mode */}
               {PREMIUM_LINKS.map((link) => {
                 const active = isActive(link.href);
-                const accessible = hasAccess(planTier, link.minPlan);
+                const accessible = freemiumMode || hasAccess(planTier, link.minPlan);
                 const badgeLabel = link.minPlan === 'plus' ? 'Plus' : 'Medium';
+                const badgeColor = link.minPlan === 'plus'
+                  ? 'text-[#e8ad0f]/80'
+                  : 'text-[#4dbad9]/80';
 
-                return accessible ? (
+                return (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={accessible ? link.href : '/admin/subscription'}
                     onClick={() => setSidebarOpen(false)}
-                    className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-[#4dbad9]/20 text-[#4dbad9]'
-                        : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      accessible
+                        ? active
+                          ? 'bg-[#4dbad9]/20 text-[#4dbad9]'
+                          : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                        : 'text-gray-600 hover:bg-white/5 hover:text-gray-400'
                     }`}
-                  >
-                    <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
-                    </svg>
-                    {link.label}
-                  </Link>
-                ) : (
-                  <Link
-                    key={link.href}
-                    href="/admin/subscription"
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-white/5 hover:text-gray-400"
-                    title={`Requiere plan ${badgeLabel}`}
+                    title={accessible ? undefined : `Requiere plan ${badgeLabel}`}
                   >
                     <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
                     </svg>
                     <span className="flex-1">{link.label}</span>
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-[#e8ad0f]/60">
+                    <span className={`ml-auto text-[10px] font-bold uppercase tracking-wider ${badgeColor}`}>
                       {badgeLabel}
                     </span>
                   </Link>

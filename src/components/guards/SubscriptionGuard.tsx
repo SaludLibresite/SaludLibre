@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/components/providers/AuthProvider';
+import { usePlatformSettingsStore } from '@/src/stores/platformSettingsStore';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -35,6 +36,7 @@ export default function SubscriptionGuard({
   fallback,
 }: SubscriptionGuardProps) {
   const { user } = useAuth();
+  const { freemiumMode, setFreemiumMode } = usePlatformSettingsStore();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [userPlan, setUserPlan] = useState<string>('Free');
 
@@ -45,15 +47,27 @@ export default function SubscriptionGuard({
 
     async function checkAccess() {
       try {
-        const token = await user!.getIdToken();
-        const res = await fetch('/api/subscriptions/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
+        const [subRes, platformRes] = await Promise.all([
+          user!.getIdToken().then((token) =>
+            fetch('/api/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } }),
+          ),
+          fetch('/api/platform-settings'),
+        ]);
+
+        if (platformRes.ok) {
+          const pd = await platformRes.json();
+          setFreemiumMode(pd.freemiumMode);
+          if (pd.freemiumMode) {
+            setHasAccess(true);
+            return;
+          }
+        }
+
+        if (!subRes.ok) {
           setHasAccess(false);
           return;
         }
-        const data = await res.json();
+        const data = await subRes.json();
         const plan = (data.subscription?.planId ?? 'free').toLowerCase();
         setUserPlan(plan === 'plus' ? 'Plus' : plan === 'medium' ? 'Medium' : 'Free');
 
@@ -65,7 +79,7 @@ export default function SubscriptionGuard({
     }
 
     checkAccess();
-  }, [user, needed]);
+  }, [user, needed, setFreemiumMode]);
 
   if (hasAccess === null) {
     return (

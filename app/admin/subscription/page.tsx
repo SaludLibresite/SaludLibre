@@ -2,6 +2,7 @@
 
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { usePlatformSettingsStore } from '@/src/stores/platformSettingsStore';
 import { useEffect, useState } from 'react';
 
 interface Plan { id: string; planId: string; name: string; price: number; features: string[]; isPopular?: boolean; }
@@ -14,11 +15,19 @@ const TIER_ORDER = ['plan-free', 'plan-medium', 'plan-plus'];
 
 export default function AdminSubscriptionPage() {
   const { user } = useAuth();
+  const { freemiumMode, setFreemiumMode } = usePlatformSettingsStore();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/platform-settings')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setFreemiumMode(d.freemiumMode); })
+      .catch(() => {});
+  }, [setFreemiumMode]);
 
   useEffect(() => {
     if (!user) return;
@@ -110,6 +119,22 @@ export default function AdminSubscriptionPage() {
         <h1 className="text-2xl font-bold text-gray-900">Suscripción</h1>
         <p className="mt-1 text-sm text-gray-500">Gestioná tu plan y accedé a más funcionalidades</p>
 
+        {freemiumMode && (
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-3">
+              <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Funciones premium habilitadas gratuitamente</p>
+                <p className="mt-0.5 text-xs text-amber-700">
+                  Todas las funciones de planes pagos están disponibles sin costo por tiempo limitado. Las suscripciones están temporalmente deshabilitadas.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="mt-8 flex justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#4dbad9]" /></div>
         ) : (
@@ -167,12 +192,18 @@ export default function AdminSubscriptionPage() {
                       ))}
                     </ul>
                     {!isCurrent && plan.price > 0 && (
-                      <button
-                        onClick={() => handleCheckout(plan.id)}
-                        disabled={checkoutLoading === plan.id}
-                        className="mt-6 block w-full rounded-xl bg-[#4dbad9] py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3da8c5] disabled:opacity-60">
-                        {checkoutLoading === plan.id ? 'Redirigiendo...' : `Suscribirse a ${plan.name}`}
-                      </button>
+                      freemiumMode ? (
+                        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+                          <p className="text-xs font-medium text-amber-700">Funciones premium gratuitas por tiempo limitado</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleCheckout(plan.id)}
+                          disabled={checkoutLoading === plan.id}
+                          className="mt-6 block w-full rounded-xl bg-[#4dbad9] py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3da8c5] disabled:opacity-60">
+                          {checkoutLoading === plan.id ? 'Redirigiendo...' : `Suscribirse a ${plan.name}`}
+                        </button>
+                      )
                     )}
                   </div>
                 );
